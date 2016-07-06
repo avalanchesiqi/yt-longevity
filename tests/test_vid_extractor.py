@@ -75,7 +75,6 @@ class TestVidExtractor(unittest.TestCase):
     def setUp(self):
         logging.config.fileConfig('../conf/logging.conf')
         self.testcases = self._TESTS
-        # self.testcases = VidExtractor().get_testcases()
 
     def tearDown(self):
         self.testcases = None
