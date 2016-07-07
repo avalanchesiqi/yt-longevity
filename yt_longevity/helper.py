@@ -18,20 +18,35 @@ class YTDict(object):
     Specifically, {vid: (viewcount, sharecount, tweetcount)}
     """
 
-    def __init__(self):
-        self.ytdict = defaultdict(lambda: [0, 0, 0])
+    def __init__(self, ytdict=None):
+        if ytdict:
+            self._ytdict = ytdict
+        else:
+            self._ytdict = defaultdict(lambda: [0, 0, 0])
 
     def __getitem__(self, k):
-        return self.ytdict[k]
+        return self._ytdict[k]
 
     def __len__(self):
-        return len(self.ytdict)
+        return len(self._ytdict)
+
+    def getter(self):
+        return dict(self._ytdict)
+
+    def keys(self):
+        return self._ytdict.keys()
+
+    def values(self):
+        return self._ytdict.values()
+
+    def items(self):
+        return self._ytdict.items()
 
     def update_tc(self, k):
-        self.ytdict[k][2] += 1
+        self._ytdict[k][2] += 1
 
     def set_vc(self, k, vc):
-        self.ytdict[k][0] = vc
+        self._ytdict[k][0] = vc
 
     def set_sc(self, k, sc):
-        self.ytdict[k][1] = sc
+        self._ytdict[k][1] = sc

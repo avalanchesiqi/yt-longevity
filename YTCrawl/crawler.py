@@ -27,7 +27,7 @@ class Crawler(object):
          - output is a directory
        - for single_crawl
          - input is a video's ID
-         - output is a dictionay containing possible information
+         - output is a dictionary containing possible information
     """
     
     def __init__(self):
@@ -66,7 +66,6 @@ class Crawler(object):
         self._email_password = ''
         self._email_to_addr = ''
 
-
     def set_email_reminder(self, from_addr, password, to_addrs):
         """set the email reminder
         
@@ -78,8 +77,7 @@ class Crawler(object):
         self._email_from_addr = from_addr
         self._email_password = password
         self._email_to_addr = to_addrs
-        
-        
+
     def set_num_thread(self, n):
         """set the number of threads used in crawling, default is 20
         
@@ -95,7 +93,6 @@ class Crawler(object):
         - `t`:
         """
         self._update_cookie_period = t
-        
 
     def set_seed_videoID(self, vID):
         """set the seed videoID used to update cookies
@@ -104,7 +101,20 @@ class Crawler(object):
         - `vID`:
         """
         self._seed_videoID = vID
-        
+
+    def set_crawl_delay_time(self, t):
+        """
+        Set crawl delay time (in seconds). Default: 0.1 which will request 10 times per second.
+        """
+        self._crawl_delay_time = t
+
+    def set_cookie_update_delay_time(self, t):
+        """
+
+        :param t:
+        :return:
+        """
+        self._cookie_update_delay_time = t
         
     def mutex_delay(self, t):
         """ delay some time
@@ -116,7 +126,6 @@ class Crawler(object):
         time.sleep(t)
         self._delay_mutex.release()
 
-        
     def store(self, k, txt):
         """generate the filepath of the output file of key "k"
         
@@ -137,28 +146,22 @@ class Crawler(object):
         """
         return 'https://www.youtube.com/insight_ajax?action_get_statistics_and_data=1&v=' + k
 
-
     def update_cookie_and_sectiontoken(self):
         # if already begin to update
-        if self._cookie_update_on == True:
+        if self._cookie_update_on:
             return
-
         self._cookie_update_on = True
-
         self.period_update()
-    
-    
+
     def period_update(self):
-        
         # all the job is done
-        if self._is_done == True:
+        if self._is_done:
             return
         # begin to update
         self._mutex_crawl.acquire()
 
         # if self._last_cookie_update_time != None:
         #     time.sleep(10) # wait for the current job to finish
-
 
         i = 0
         state = 'fail'
@@ -183,8 +186,6 @@ class Crawler(object):
             re_st = re.compile('\'XSRF_TOKEN\'\: \"([^\"]+)\"\,')
             self._session_token = re_st.findall(src)[0]
 
-            
-            
             # test
             try:
                 self.single_crawl(self._seed_videoID)
@@ -198,7 +199,6 @@ class Crawler(object):
                     
             state = 'success'
             break
-        
 
         if state == 'fail':
             self.email('times of updating cookies reaches maximum, please report this on github (%s)' % str(e))
@@ -273,7 +273,6 @@ class Crawler(object):
                 request = urllib2.Request(url, data, headers=header)
                 txt = urllib2.urlopen(request).read()
 
-
                 if '<p>Public statistics have been disabled.</p>' in txt:
                     self._logger.log_warn( key, 'statistics disabled', 'disabled' )
                     self._key_done.add( key )
@@ -306,7 +305,6 @@ class Crawler(object):
             except Exception, e:
                 self._logger.log_warn( key, str(e) )
 
-               
     def batch_crawl(self,  input_file, output_dir ):
         """ 
         
@@ -324,7 +322,6 @@ class Crawler(object):
 
         self._delay_mutex = threading.Lock()
 
-        
         self.update_cookie_and_sectiontoken()
         threads = []
         for i in range(0, self._num_thread):
@@ -336,7 +333,6 @@ class Crawler(object):
             t.join()
 
         self._current_update_cookie_timer.cancel()
-        
     
     def single_crawl(self, key):
         """crawl video
@@ -344,10 +340,9 @@ class Crawler(object):
         Arguments:
         - `key`: videoID
         """
-        if self._last_cookie_update_time == None:
+        if not self._last_cookie_update_time:
             self.update_cookie_and_sectiontoken()
 
-            
         url = self.get_url(key)
         data = self.get_post_data()
         header = self.get_header(key)
@@ -358,7 +353,7 @@ class Crawler(object):
         txt = urllib2.urlopen(request).read()
 
         if '<p>Public statistics have been disabled.</p>' in txt:
-            raise Exception('statistics disabled')
+            raise Exception('Statistics disabled')
 
         if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
             raise Exception('Video not found')
@@ -373,8 +368,7 @@ class Crawler(object):
             raise Exception('Invalid request')
 
         if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
-            raise Exception('private video')
+            raise Exception('Private video')
 
-        
         return parseString(txt)
-    
+
