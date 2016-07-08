@@ -4,8 +4,12 @@
 UnitTest, YouTube video ID extractor
 
 Author: Siqi Wu
-Date last modified: 06/07/2016
+Email: Siqi.Wu@anu.edu.au
 """
+
+import sys
+import os
+sys.path.append(os.path.dirname(sys.path[0]))
 
 import unittest
 import logging
