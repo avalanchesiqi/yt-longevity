@@ -68,6 +68,13 @@ class TestVidExtractor(unittest.TestCase):
               {"urls":
                    [{"url": "https://t.co/8GZOrZkZpO", "expanded_url": "https://m.youtube.com/watch?feature=yo",
                      "display_url": "m.youtube.com/watch?feature=\u2026", "indices": [102, 125]}]
+               }}, None),
+
+        # Invalid url, ascii encoding issue
+        ({"entities":
+              {"urls":
+                  [{"url": "https://t.co/BiF0KkhHTE", "expanded_url": "https://youtu.be/çqGQN_5mTIAI",
+                    "display_url": "youtu.be/çqGQN_5mTIAI", "indices": [79, 102]}]
                }}, None)
 
     ]

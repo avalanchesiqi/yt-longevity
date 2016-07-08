@@ -46,7 +46,6 @@ class VidExtractor(object):
     def extract(self):
         if 'entities' not in self.tweet.keys():
             return
-        vid = ''
         urls = self.tweet['entities']['urls']
         if len(urls) == 0:
             return
@@ -55,7 +54,12 @@ class VidExtractor(object):
             vid = expanded_url.split('v=')[1][:11]
         elif 'youtu.be' in expanded_url:
             vid = expanded_url.rsplit('/', 1)[-1][:11]
-        if len(vid) == 11:
-            return vid
         else:
+            return
+
+        try:
+            if len(vid) == 11:
+                vid.decode('utf-8').encode('ascii')
+                return vid
+        except:
             return
