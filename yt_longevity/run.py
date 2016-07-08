@@ -1,17 +1,17 @@
-#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
 """
 yt-longevity inner-package entry
 
 Author: Siqi Wu
-Date last modified: 06/07/2016
+Email: Siqi.Wu@anu.edu.au
 """
 
-import os
 import sys
-import time
+import os
+sys.path.append(os.path.dirname(sys.path[0]))
 
+import time
 import bz2
 import json
 import cPickle as pickle
@@ -22,51 +22,39 @@ from YTCrawl.crawler import Crawler
 
 
 def main(indir):
+    # ============== Part 1: Create statistics tmp file and video id list ==============
     # yt_dict = YTDict()
-    crawler = Crawler()
-    # c1 = 0
     #
     # for subdir, _, files in os.walk(indir):
-    #     for file in files:
-    #         filepath = os.path.join(subdir, file)
-    #
+    #     for f in files:
+    #         filepath = os.path.join(subdir, f)
     #         datafile = bz2.BZ2File(filepath, mode='r')
     #
     #         for line in datafile:
     #             if line.rstrip():
     #                 vid = VidExtractor(json.loads(line)).extract()
     #                 if vid:
-    #                     c1 += 1
     #                     yt_dict.update_tc(vid)
     #
-    # print 'overall video id number', c1
-    # print 'distinct video id number', len(yt_dict)
+    # pickle.dump(yt_dict.getter(), open('tmp/stat_dict', 'wb'))
     #
-    # pickle.dump(yt_dict.getter(), open('../tmp/tmp_dict', 'wb'))
-    yt_dict = YTDict(pickle.load(open('../tmp/tmp_dict', 'rb')))
-    c1 = len(yt_dict)
-    print 'distinct video id number', c1
+    # c = 0
+    # with open('tmp/video_ids', 'wb') as vids:
+    #     for vid in yt_dict.keys():
+    #         c += 1
+    #         vids.write('{0}\n'.format(vid))
+    #
+    # vids.close()
+    #
+    # c1 = len(yt_dict)
+    # print 'distinct video id number', c1
 
-    c2 = 0
-    for vid in yt_dict.keys():
-        print vid
-        try:
-            time.sleep(0.1)
-            stat = crawler.single_crawl(vid)
-            sharecount = sum(stat['numShare'])
-            viewcount = sum(stat['dailyViewcount'])
-            yt_dict.set_sc(vid, sharecount)
-            yt_dict.set_vc(vid, viewcount)
-            print yt_dict[vid]
-            c2 += 1
-            print c2
-        except Exception as e:
-            print str(e)
-            pass
+    # ============== Part 2: Crawl statistics from given video ids file ==============
+    crawler = Crawler()
+    yt_dict = YTDict(pickle.load(open('tmp/stat_dict', 'rb')))
 
-    print 'video with useful info', c2
-    print 'available rate: %.4f%%' % (100.0*c2/c1)
+    print "\nbatch crawl starts"
+    crawler.set_crawl_delay_time(1)
+    crawler.batch_crawl("tmp/video_ids", "output", yt_dict)
+    print "\nbatch crawler finishes"
 
-
-if __name__ == '__main__':
-    main(sys.argv[1])
