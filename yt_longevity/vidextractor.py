@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 
 """
-Extract YouTube video ID from Tweet's expanded_url field
+Extract YouTube video Id from Tweet's expanded_url field
 
 Author: Siqi Wu
-Date last modified: 06/07/2016
+Email: Siqi.Wu@anu.edu.au
 """
 
+from exceptions import InvalidVideoIdError
 
-class VidExtractor(object):
+
+class VideoIdExtractor(object):
     """
-    YouTube video ID Extractor Class.
+    YouTube video id Extractor Class.
 
     For a tweet, the dictionaries must include the following fields:
 
-    created_at:     UTC time when this Tweet was created.
     id:             The integer representation of the unique identifier for this Tweet.
 
     ******
@@ -41,25 +42,30 @@ class VidExtractor(object):
 
     def __init__(self, tweet=None):
         """Constructor. Receives an optional tweet."""
-        self.tweet = tweet
+        self._tweet = tweet
 
     def extract(self):
-        if 'entities' not in self.tweet.keys():
-            return
-        urls = self.tweet['entities']['urls']
+        if 'entities' not in self._tweet.keys():
+            raise InvalidVideoIdError('No entities in tweet')
+        urls = self._tweet['entities']['urls']
         if len(urls) == 0:
-            return
+            raise InvalidVideoIdError('No urls in tweet')
         expanded_url = urls[0]['expanded_url']
         if 'watch?' in expanded_url and 'v=' in expanded_url:
             vid = expanded_url.split('v=')[1][:11]
         elif 'youtu.be' in expanded_url:
             vid = expanded_url.rsplit('/', 1)[-1][:11]
         else:
-            return
+            raise InvalidVideoIdError('Invalid video id')
 
-        try:
-            if len(vid) == 11:
-                vid.decode('utf-8').encode('ascii')
-                return vid
-        except:
-            return
+        def check_vid(_vid):
+            if len(_vid) == 11:
+                try:
+                    _vid.decode('utf-8').encode('ascii')
+                    return _vid
+                except:
+                    raise InvalidVideoIdError('Video id coding issue')
+            else:
+                raise InvalidVideoIdError('Video id length not equals to 11')
+
+        return check_vid(vid)
