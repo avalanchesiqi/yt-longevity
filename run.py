@@ -5,7 +5,7 @@
 yt-longevity main entry
 
 Author: Siqi Wu
-Date last modified: 06/07/2016
+Email: Siqi.Wu@anu.edu.au
 """
 
 from yt_longevity.run import main
@@ -14,4 +14,3 @@ from yt_longevity.run import main
 if __name__ == '__main__':
     indir = 'datasets'
     main(indir)
-
