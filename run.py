@@ -14,4 +14,5 @@ from yt_longevity.run import main
 if __name__ == '__main__':
     indir = 'datasets'
     outdir = 'tmp'
-    main(indir, outdir)
+    proc_num = 4
+    main(indir, outdir, proc_num)

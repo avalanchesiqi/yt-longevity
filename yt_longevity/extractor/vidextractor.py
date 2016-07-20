@@ -8,7 +8,7 @@ Email: Siqi.Wu@anu.edu.au
 """
 
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 import bz2
 import json
 import cPickle as pickle
@@ -63,20 +63,22 @@ class VideoIdExtractor(Extractor):
     def _extract(self):
         print "\nStart extracting video ids from tweet bz2 files...\n"
 
-        processes = list()
+        processes = []
+        filequeue = Queue()
 
-        cnt = 0
         for subdir, _, files in os.walk(self.input_dir):
             for f in files:
                 filepath = os.path.join(subdir, f)
-                p = Process(target=self._extract_vid, args=(filepath,))
-                processes.append(p)
-                p.start()
-                cnt += 1
-                print "Process {0} starts...".format(cnt)
+                filequeue.put(filepath)
 
-        for proc in processes:
-            proc.join()
+        for w in xrange(self.proc_num):
+            p = Process(target=self._extract_vid, args=(filequeue,))
+            p.daemon = True
+            p.start()
+            processes.append(p)
+
+        for p in processes:
+            p.join()
 
     @staticmethod
     def _extract_single_vid(tweet):
@@ -105,23 +107,27 @@ class VideoIdExtractor(Extractor):
 
         return check_vid(vid)
 
-    def _extract_vid(self, filepath):
-        datafile = bz2.BZ2File(filepath, mode='r')
-        filename = os.path.basename(os.path.normpath(filepath)).split(".")[0]
-        yt_dict = YTDict()
-        for line in datafile:
-            if line.rstrip():
-                tweet = json.loads(line)
-                try:
-                    vid = self._extract_single_vid(tweet)
-                except:
-                    continue
-                yt_dict.update_tc(vid)
-        pickle.dump(yt_dict.getter(), open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb'))
+    def _extract_vid(self, filequeue):
+        while not filequeue.empty():
+            filepath = filequeue.get()
+            datafile = bz2.BZ2File(filepath, mode='r')
+            filename = os.path.basename(os.path.normpath(filepath)).split(".")[0]
+            yt_dict = YTDict()
+            for line in datafile:
+                if line.rstrip():
+                    tweet = json.loads(line)
+                    try:
+                        vid = self._extract_single_vid(tweet)
+                    except:
+                        continue
+                    yt_dict.update_tc(vid)
+            pickle.dump(yt_dict.getter(), open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb'))
 
-        with open('{0}/{1}.txt'.format(self.video_ids_path, filename), 'wb') as vids:
-            for vid in yt_dict.keys():
-                vids.write('{0}\n'.format(vid))
+            with open('{0}/{1}.txt'.format(self.video_ids_path, filename), 'wb') as vids:
+                for vid in yt_dict.keys():
+                    vids.write('{0}\n'.format(vid))
 
-        print "\nFinish extracting video ids from {0}".format(filename)
-        print 'Number of distinct video ids: {0}'.format(len(yt_dict))
+            datafile.close()
+            print '{0} done!'.format(filename)
+            # print "\nFinish extracting video ids from {0}".format(filename)
+            # print 'Number of distinct video ids: {0}'.format(len(yt_dict))

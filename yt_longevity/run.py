@@ -25,8 +25,10 @@ def batch_crawl():
     crawler.batch_crawl("tmp/video_ids", "output", yt_dict)
     print "\nFinish batch crawling"
 
+
 # ============== Part 1: Create statistics tmp file and video id list ==============
-def main(indir, outdir):
+def main(indir, outdir, proc_num):
     extractor = VideoIdExtractor(indir, outdir)
+    extractor.set_proc_num(proc_num)
     extractor.extract()
     # batch_crawl()
