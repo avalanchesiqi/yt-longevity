@@ -80,6 +80,6 @@ class Logger(object):
         - `k`:
         """
         # self._mutex_done.acquire()
-        self._result_file.write('{0}: {1}; Crawled by thread {2}\n'.format(k, v, i))
+        self._result_file.write('{0}: {1}\n'.format(k, v))
         self._result_file.flush()
         # self._mutex_done.release()

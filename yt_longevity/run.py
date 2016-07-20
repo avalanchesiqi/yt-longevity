@@ -75,8 +75,8 @@ def main(indir):
     yt_dict = YTDict(pickle.load(open('tmp/stat_dict', 'rb')))
 
     print "\nbatch crawl starts"
-    crawler.set_crawl_delay_time(0.1)
-    crawler.set_num_thread(1)
-    crawler.batch_crawl("tmp/video_ids", "output2", yt_dict)
+    # crawler.set_crawl_delay_time(0.1)
+    crawler.set_num_thread(5)
+    crawler.batch_crawl("tmp/video_ids", "output", yt_dict)
     print "\nbatch crawler finishes"
 

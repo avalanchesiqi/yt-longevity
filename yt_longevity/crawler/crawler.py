@@ -58,7 +58,6 @@ class Crawler(object):
         self._last_cookie_update_time = None
         self._current_update_cookie_timer = None
 
-        self._crawl_delay_time = 0.1
         self._cookie_update_delay_time = 0.1
         self._cookie_update_on = False
 
@@ -66,7 +65,7 @@ class Crawler(object):
 
         self._cnt = 0
 
-        self._PROXY_LIST = ['203.210.8.41:80', '203.210.6.39:80', '202.47.236.252:8080']
+        self._PROXY_LIST = ['66.186.2.163:80', '54.67.117.173:8083', '216.220.165.62:8080', '45.55.173.10:3128', '52.36.84.86:8083']
 
         self._USER_AGENT_CHOICES = [
             'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0',
@@ -96,18 +95,6 @@ class Crawler(object):
         Set the seed videoID used to update cookies
         """
         self._seed_vid = vid
-
-    def set_crawl_delay_time(self, t):
-        """
-        Set crawl delay time (in seconds), default is 0.1 which will request 10 times per second
-        """
-        self._crawl_delay_time = t
-
-    def set_cookie_update_delay_time(self, t):
-        """
-        Set cookie update delay time (in seconds), default is 0.1 which will hold 0.1 second per cookie update operation
-        """
-        self._cookie_update_delay_time = t
 
     def mutex_delay(self, t):
         """
@@ -197,6 +184,8 @@ class Crawler(object):
             f = opener.open(req)
             src = f.read()
 
+            # print src
+
             time.sleep(self._cookie_update_delay_time)
 
             cookiename = ['YSC', 'PREF', 'VISITOR_INFO1_LIVE', 'ACTIVITY']
@@ -241,18 +230,28 @@ class Crawler(object):
         self._current_update_cookie_timer.start()
 
     @staticmethod
-    def check_current_ip2(opener):
-        url = "http://checkip.dyndns.org"
-        txt = opener.open(url).read()
-        return txt
+    def check_https_ip(opener):
+        url = "https://www.privateinternetaccess.com/pages/whats-my-ip/"
+        try:
+            response = opener.open(url, timeout=5)
+        except:
+            return "Time out..."
+        content = response.read()
+        m = re.search(
+            '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+            content)
+        myip = m.group(0)
+        return myip if len(myip) > 0 else ''
 
     def crawl_thread(self, keyfile, yt_dict, i):
         """
         The function to iterate through the keyfile and try to download the data
         """
 
-        proxy = urllib2.ProxyHandler({'http': self._PROXY_LIST[i+1]})
+        proxy = urllib2.ProxyHandler({'https': self._PROXY_LIST[i]})
         opener = urllib2.build_opener(proxy)
+
+        # print self.check_https_ip(opener)
 
         while True:
             # read one line from the keyfile
@@ -276,40 +275,36 @@ class Crawler(object):
             header = self.get_header(key, i)
 
             try:
-                # self.mutex_delay(self._crawl_delay_time)
-                self.mutex_delay(random.uniform(0.1, 0.6))
+                self.mutex_delay(random.uniform(0.1, 0.5))
 
                 opener.addheaders = header
                 txt = opener.open(url, data).read()
 
+                self._cnt += 1
+
                 if '<p>Public statistics have been disabled.</p>' in txt:
                     self._logger.log_warn(key, 'statistics disabled', 'disabled')
                     self._key_done.add(key)
-                    self._cnt += 1
                     continue
 
                 if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
                     self._logger.log_warn(key, 'Video not found', 'notfound')
                     self._key_done.add(key)
-                    self._cnt += 1
                     continue
 
                 if 'No statistics available yet' in txt:
                     self._logger.log_warn(key, 'No statistics available yet', 'nostatyet')
                     self._key_done.add(key)
-                    self._cnt += 1
                     continue
 
                 if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
                     self._logger.log_warn(key, 'Invalid request', 'invalidrequest')
                     self._key_done.add(key)
-                    self._cnt += 1
                     continue
 
                 if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
                     self._logger.log_warn(key, 'Private video', 'private')
                     self._key_done.add(key)
-                    self._cnt += 1
                     continue
 
                 if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
@@ -319,7 +314,6 @@ class Crawler(object):
                     print "*******************I am in thread", i, ", I am banned for 10 second"
                     print 'finish keys:', self._cnt
                     print 'Quota exceed\n' + str(datetime.datetime.now()) + '\n'
-                    # print self.check_current_ip2(opener)
                     print header[1]
                     print self._session_token
                     print header[4]
@@ -333,11 +327,9 @@ class Crawler(object):
                 self._logger.log_done(key)
                 self.store(key, txt, yt_dict, i)
                 self._key_done.add(key)
-                self._cnt += 1
             except Exception as exc:
                 self._logger.log_warn(key, str(exc))
                 self._key_done.add(key)
-                self._cnt += 1
 
     def batch_crawl(self, input_file, output_dir, yt_dict):
         """
