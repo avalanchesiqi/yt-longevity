@@ -368,7 +368,7 @@ class Crawler(object):
             threads.append(
                 threading.Thread(target=self.crawl_thread, args=(self._input_file, yt_dict, i)))
 
-        print 'Start\n' + str(datetime.datetime.now()) + '\n'
+        print '****** start time: ' + str(datetime.datetime.now()) + '\n'
 
         for t in threads:
             t.start()
