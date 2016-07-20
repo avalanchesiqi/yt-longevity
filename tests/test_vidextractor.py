@@ -11,7 +11,7 @@ import unittest
 import logging
 import logging.config
 
-from yt_longevity.vidextractor import VideoIdExtractor
+from yt_longevity.extractor.vidextractor import VideoIdExtractor
 from yt_longevity.exceptions import InvalidVideoIdError
 
 

@@ -26,13 +26,13 @@ class Crawler(object):
     """
     YouTube video daily viewcount crawler Class.
 
-       - for batch_crawl:
-         - input is a file
-         - output is a directory
+        - for batch_crawl:
+            - input is a file
+            - output is a directory
 
-       - for single_crawl
-         - input is a video's ID
-         - output is a dictionary containing possible information
+        - for single_crawl
+            - input is a video's ID
+            - output is a dictionary containing possible information
     """
 
     def __init__(self):
