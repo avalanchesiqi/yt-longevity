@@ -17,6 +17,7 @@ import re
 import cookielib
 import shutil
 import random
+import bz2
 
 from logger import Logger
 from xmlparser import *
@@ -377,41 +378,172 @@ class Crawler(object):
 
         self._current_update_cookie_timer.cancel()
 
-    def single_crawl(self, key):
-        """crawl video
+    def single_crawl(self, input_file, output_dir):
+        """Single crawler that runs on a single machine, assume 1 cpu 1 thread (NeCTAR m2.small instance)
 
-        Arguments:
-        - `key`: videoID
+        :param input_file: directory that contains all video ids bz2 files
+        :param output_dir: directory that contains crawling results
+        :return:
         """
 
-        if not self._last_cookie_update_time:
-            self.update_cookie_and_sessiontoken()
+        print "\nStart crawling video ids from tweet bz2 files...\n"
 
-        url = self.get_url(key)
-        data = self.get_post_data()
-        header = self.get_header(key)
+        # Delete target folder if exists, then create a new one
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        time.sleep(0.1)
+        os.makedirs(output_dir)
 
-        txt = ''
+        self._input_file = bz2.BZ2File(input_file, mode='r')
+        self._output_dir = output_dir
 
-        request = urllib2.Request(url, data, headers=header)
-        txt = urllib2.urlopen(request).read()
+        self._logger = Logger(self._output_dir)
+        self._logger.add_log({'disabled': 'disabled', 'notfound': 'notfound', 'quotalimit': 'quotalimit',
+                              'nostatyet': 'nostatyet', 'invalidrequest': 'invalidrequest',
+                              'private': 'private'})
 
-        if '<p>Public statistics have been disabled.</p>' in txt:
-            raise Exception('Statistics disabled')
+        self._key_done = set(self._logger.get_key_done(['disabled', 'notfound', 'nostatyet',
+                                                        'invalidrequest', 'private']))
 
-        if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
-            raise Exception('Video not found')
+        self._delay_mutex = threading.Lock()
 
-        if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
-            raise Exception('Quota limit exceeded')
+        self.update_cookie_and_sessiontoken(self._seed_vid)
 
-        if 'No statistics available yet' in txt:
-            raise Exception('No statistics available yet')
+        opener = urllib2.build_opener()
 
-        if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
-            raise Exception('Invalid request')
+        # print self.check_https_ip(opener)
 
-        if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
-            raise Exception('Private video')
+        while True:
+            # read one line from the keyfile
+            line = self._input_file.readline()
 
-        return parseString(txt)
+            if not line:
+                # the keyfile is finished
+                self._is_done = True
+                break
+
+            key = line.rstrip(' \t\n')
+
+            if key in self._key_done:
+                # key has already been crawled
+                continue
+
+            url = self.get_url(key)
+            data = self.get_post_data()
+            header = self.get_header(key, 0)
+
+            try:
+                self.mutex_delay(random.uniform(0.1, 1))
+
+                opener.addheaders = header
+                txt = opener.open(url, data).read()
+                self._cnt += 1
+
+                if '<p>Public statistics have been disabled.</p>' in txt:
+                    self._logger.log_warn(key, 'statistics disabled', 'disabled')
+                    self._key_done.add(key)
+                    continue
+
+                if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
+                    self._logger.log_warn(key, 'Video not found', 'notfound')
+                    self._key_done.add(key)
+                    continue
+
+                if 'No statistics available yet' in txt:
+                    self._logger.log_warn(key, 'No statistics available yet', 'nostatyet')
+                    self._key_done.add(key)
+                    continue
+
+                if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
+                    self._logger.log_warn(key, 'Invalid request', 'invalidrequest')
+                    self._key_done.add(key)
+                    continue
+
+                if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
+                    self._logger.log_warn(key, 'Private video', 'private')
+                    self._key_done.add(key)
+                    continue
+
+                if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
+                    self._logger.log_warn(key, 'Quota limit exceeded', 'quotalimit')
+
+                    # self.update_cookie_and_sessiontoken(key)
+                    print "*******************I am banned for 10 second"
+                    print 'finish keys:', self._cnt
+                    print 'Quota exceed\n' + str(datetime.datetime.now()) + '\n'
+                    # print self.check_current_ip2(opener)
+                    time.sleep(10)
+                    print "*******************I am gonna leave punishment...."
+                    continue
+
+                self._logger.log_done(key)
+
+                def store(k, txt):
+                    outdir = self._output_dir + '/data/' + k[0] + '/' + k[1] + '/' + k[2] + '/'
+                    if not os.path.exists(outdir):
+                        os.makedirs(outdir)
+                    with open(outdir + k, 'w') as f:
+                        f.write(txt)
+                    f.close()
+
+                    # Siqi Wu
+                    # Update the statistic dict
+                    stat = parseString(txt)
+                    v = []
+
+                    sc = sum(stat['numShare'])
+                    vc = sum(stat['dailyViewcount'])
+                    v.append(sc)
+                    v.append(vc)
+                    v.append(stat['numShare'])
+                    v.append(stat['dailyViewcount'])
+                    self._logger.log_result(k, v, 0)
+
+                store(key, txt)
+                self._key_done.add(key)
+            except Exception as exc:
+                self._logger.log_warn(key, str(exc))
+                self._key_done.add(key)
+
+        self._current_update_cookie_timer.cancel()
+        print "\nFinish crawling video ids from tweet bz2 files.\n"
+
+    # def single_crawl(self, input_file, output_dir):
+    #     """Single crawler that runs on a single machine, assume 1 cpu 1 thread (NeCTAR m2.small instance)
+    #
+    #     :param input_file: directory that contains all video ids bz2 files
+    #     :param output_dir: directory that contains crawling results
+    #     :return:
+    #     """
+    #
+    #     if not self._last_cookie_update_time:
+    #         self.update_cookie_and_sessiontoken(self._seed_vid)
+    #
+        # url = self.get_url(key)
+        # data = self.get_post_data()
+        # header = self.get_header(key)
+        #
+        # txt = ''
+        #
+        # request = urllib2.Request(url, data, headers=header)
+        # txt = urllib2.urlopen(request).read()
+        #
+        # if '<p>Public statistics have been disabled.</p>' in txt:
+        #     raise Exception('Statistics disabled')
+        #
+        # if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
+        #     raise Exception('Video not found')
+        #
+        # if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
+        #     raise Exception('Quota limit exceeded')
+        #
+        # if 'No statistics available yet' in txt:
+        #     raise Exception('No statistics available yet')
+        #
+        # if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
+        #     raise Exception('Invalid request')
+        #
+        # if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
+        #     raise Exception('Private video')
+        #
+        # return parseString(txt)

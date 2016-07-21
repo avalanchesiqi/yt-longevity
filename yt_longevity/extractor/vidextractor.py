@@ -19,11 +19,10 @@ from yt_longevity.extractor.helper import YTDict
 
 
 class VideoIdExtractor(Extractor):
-    """
-    YouTube video id Extractor Class.
+    """YouTube video id Extractor Class.
 
-    - input is a directory that contains all tweet bz2 files
-    - output is a directory that contains daily viewcounts and video id list
+    :param input_dir: directory that contains all tweet bz2 files
+    :param output_dir: directory that contains daily viewcounts and video id list
 
     For a tweet, the dictionaries must include the following fields:
 
@@ -43,12 +42,12 @@ class VideoIdExtractor(Extractor):
     ******
     """
 
-    def __init__(self, input_dir, out_dir):
+    def __init__(self, input_dir, output_dir):
         super(Extractor, self).__init__()
         self.set_input_dir(input_dir)
-        self.set_output_dir(out_dir)
-        self.video_ids_path = "{0}/{1}".format(out_dir, "video_ids")
-        self.video_stats_path = "{0}/{1}".format(out_dir, "video_stats")
+        self.set_output_dir(output_dir)
+        self.video_ids_path = "{0}/{1}".format(output_dir, "video_ids")
+        self.video_stats_path = "{0}/{1}".format(output_dir, "video_stats")
         self._mkdirs(self.video_ids_path)
         self._mkdirs(self.video_stats_path)
 
@@ -79,6 +78,8 @@ class VideoIdExtractor(Extractor):
 
         for p in processes:
             p.join()
+
+        print "\nFinish extracting video ids from tweet bz2 files.\n"
 
     @staticmethod
     def _extract_single_vid(tweet):
@@ -121,7 +122,9 @@ class VideoIdExtractor(Extractor):
                     except:
                         continue
                     yt_dict.update_tc(vid)
-            pickle.dump(yt_dict.getter(), open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb'))
+
+            with open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb') as stats:
+                pickle.dump(yt_dict.getter(), stats)
 
             with open('{0}/{1}.txt'.format(self.video_ids_path, filename), 'wb') as vids:
                 for vid in yt_dict.keys():
