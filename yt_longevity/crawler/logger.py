@@ -73,7 +73,7 @@ class Logger(object):
         self._log_file_dict[lfk].flush()
         #self._mutex_log.release()
 
-    def log_result(self, k, v, i):
+    def log_result(self, k, v):
         """ this function is thread safe
 
         Arguments:

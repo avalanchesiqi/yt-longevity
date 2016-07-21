@@ -379,22 +379,24 @@ class Crawler(object):
         self._current_update_cookie_timer.cancel()
 
     # Single crawler part
-    def _store(self, k, txt):
-        outdir = self._output_dir + '/data/' + k[0] + '/' + k[1] + '/' + k[2] + '/'
+    def _store(self, vid, content):
+        outdir = self._output_dir + '/data/' + vid[0] + '/' + vid[1] + '/' + vid[2] + '/'
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        with open(outdir + k, 'w') as f:
-            f.write(txt)
+        with open(outdir + vid, 'w') as f:
+            f.write(content)
 
-        stat = parseString(txt)
-        v = []
-        sc = sum(stat['numShare'])
-        vc = sum(stat['dailyViewcount'])
-        v.append(sc)
-        v.append(vc)
-        v.append(stat['numShare'])
-        v.append(stat['dailyViewcount'])
-        self._logger.log_result(k, v, 0)
+        stat = parseString(content)
+        upload_date = stat['uploadDate']
+        res = []
+        dsc = stat['numShare']
+        dvc = stat['dailyViewcount']
+        res.append(str(upload_date))
+        res.append(sum(dvc))
+        res.append(sum(dsc))
+        res.append(dvc)
+        res.append(dsc)
+        self._logger.log_result(vid, res)
 
     def _request(self, opener, vid):
         """Make a request to YouTube server
