@@ -17,7 +17,6 @@ import re
 import cookielib
 import shutil
 import random
-import bz2
 
 from logger import Logger
 from xmlparser import *
@@ -230,153 +229,153 @@ class Crawler(object):
         self._current_update_cookie_timer.daemon = True
         self._current_update_cookie_timer.start()
 
-    @staticmethod
-    def check_https_ip(opener):
-        url = "https://www.privateinternetaccess.com/pages/whats-my-ip/"
-        try:
-            response = opener.open(url, timeout=5)
-        except:
-            return "Time out..."
-        content = response.read()
-        m = re.search(
-            '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
-            content)
-        myip = m.group(0)
-        return myip if len(myip) > 0 else ''
+    # @staticmethod
+    # def check_https_ip(opener):
+    #     url = "https://www.privateinternetaccess.com/pages/whats-my-ip/"
+    #     try:
+    #         response = opener.open(url, timeout=5)
+    #     except:
+    #         return "Time out..."
+    #     content = response.read()
+    #     m = re.search(
+    #         '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+    #         content)
+    #     myip = m.group(0)
+    #     return myip if len(myip) > 0 else ''
 
-    def crawl_thread(self, keyfile, yt_dict, i):
-        """
-        The function to iterate through the keyfile and try to download the data
-        """
+    # def crawl_thread(self, keyfile, yt_dict, i):
+    #     """
+    #     The function to iterate through the keyfile and try to download the data
+    #     """
+    #
+    #     proxy = urllib2.ProxyHandler({'https': self._PROXY_LIST[i]})
+    #     opener = urllib2.build_opener(proxy)
+    #
+    #     # print self.check_https_ip(opener)
+    #
+    #     while True:
+    #         # read one line from the keyfile
+    #         self._mutex_crawl.acquire()
+    #         line = keyfile.readline()
+    #         self._mutex_crawl.release()
+    #
+    #         if not line:
+    #             # the keyfile is finished
+    #             self._is_done = True
+    #             break
+    #
+    #         key = line.rstrip(' \t\n')
+    #
+    #         if key in self._key_done:
+    #             # key has already been crawled
+    #             continue
+    #
+    #         url = self.get_url(key)
+    #         data = self.get_post_data()
+    #         header = self.get_header(key, i)
+    #
+    #         try:
+    #             self.mutex_delay(random.uniform(0.1, 0.5))
+    #
+    #             opener.addheaders = header
+    #             txt = opener.open(url, data).read()
+    #
+    #             self._cnt += 1
+    #
+    #             if '<p>Public statistics have been disabled.</p>' in txt:
+    #                 self._logger.log_warn(key, 'statistics disabled', 'disabled')
+    #                 self._key_done.add(key)
+    #                 continue
+    #
+    #             if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
+    #                 self._logger.log_warn(key, 'Video not found', 'notfound')
+    #                 self._key_done.add(key)
+    #                 continue
+    #
+    #             if 'No statistics available yet' in txt:
+    #                 self._logger.log_warn(key, 'No statistics available yet', 'nostatyet')
+    #                 self._key_done.add(key)
+    #                 continue
+    #
+    #             if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
+    #                 self._logger.log_warn(key, 'Invalid request', 'invalidrequest')
+    #                 self._key_done.add(key)
+    #                 continue
+    #
+    #             if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
+    #                 self._logger.log_warn(key, 'Private video', 'private')
+    #                 self._key_done.add(key)
+    #                 continue
+    #
+    #             if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
+    #                 self._logger.log_warn(key, 'Quota limit exceeded', 'quotalimit')
+    #
+    #                 # self.update_cookie_and_sessiontoken(key)
+    #                 print "*******************I am in thread", i, ", I am banned for 10 second"
+    #                 print 'finish keys:', self._cnt
+    #                 print 'Quota exceed\n' + str(datetime.datetime.now()) + '\n'
+    #                 print header[1]
+    #                 print self._session_token
+    #                 print header[4]
+    #                 print '\nQuota exceed\n' + str(datetime.datetime.now()) + '\n'
+    #                 # print self.check_current_ip2(opener)
+    #                 self.period_update(key)
+    #                 time.sleep(10)
+    #                 print "*******************I am gonna leave punishment...."
+    #                 continue
+    #
+    #             self._logger.log_done(key)
+    #             self.store(key, txt, yt_dict, i)
+    #             self._key_done.add(key)
+    #         except Exception as exc:
+    #             self._logger.log_warn(key, str(exc))
+    #             self._key_done.add(key)
 
-        proxy = urllib2.ProxyHandler({'https': self._PROXY_LIST[i]})
-        opener = urllib2.build_opener(proxy)
-
-        # print self.check_https_ip(opener)
-
-        while True:
-            # read one line from the keyfile
-            self._mutex_crawl.acquire()
-            line = keyfile.readline()
-            self._mutex_crawl.release()
-
-            if not line:
-                # the keyfile is finished
-                self._is_done = True
-                break
-
-            key = line.rstrip(' \t\n')
-
-            if key in self._key_done:
-                # key has already been crawled
-                continue
-
-            url = self.get_url(key)
-            data = self.get_post_data()
-            header = self.get_header(key, i)
-
-            try:
-                self.mutex_delay(random.uniform(0.1, 0.5))
-
-                opener.addheaders = header
-                txt = opener.open(url, data).read()
-
-                self._cnt += 1
-
-                if '<p>Public statistics have been disabled.</p>' in txt:
-                    self._logger.log_warn(key, 'statistics disabled', 'disabled')
-                    self._key_done.add(key)
-                    continue
-
-                if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
-                    self._logger.log_warn(key, 'Video not found', 'notfound')
-                    self._key_done.add(key)
-                    continue
-
-                if 'No statistics available yet' in txt:
-                    self._logger.log_warn(key, 'No statistics available yet', 'nostatyet')
-                    self._key_done.add(key)
-                    continue
-
-                if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
-                    self._logger.log_warn(key, 'Invalid request', 'invalidrequest')
-                    self._key_done.add(key)
-                    continue
-
-                if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
-                    self._logger.log_warn(key, 'Private video', 'private')
-                    self._key_done.add(key)
-                    continue
-
-                if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
-                    self._logger.log_warn(key, 'Quota limit exceeded', 'quotalimit')
-
-                    # self.update_cookie_and_sessiontoken(key)
-                    print "*******************I am in thread", i, ", I am banned for 10 second"
-                    print 'finish keys:', self._cnt
-                    print 'Quota exceed\n' + str(datetime.datetime.now()) + '\n'
-                    print header[1]
-                    print self._session_token
-                    print header[4]
-                    print '\nQuota exceed\n' + str(datetime.datetime.now()) + '\n'
-                    # print self.check_current_ip2(opener)
-                    self.period_update(key)
-                    time.sleep(10)
-                    print "*******************I am gonna leave punishment...."
-                    continue
-
-                self._logger.log_done(key)
-                self.store(key, txt, yt_dict, i)
-                self._key_done.add(key)
-            except Exception as exc:
-                self._logger.log_warn(key, str(exc))
-                self._key_done.add(key)
-
-    def batch_crawl(self, input_file, output_dir, yt_dict):
-        """
-
-        Arguments:
-        - `input_file`: the file that includes the keys (e.g. video IDs)
-        - `output_dir`: the dir to output crawled data
-
-        # Siqi Wu
-        - `yt_dict`: the dict that holds video_id, statistic_list key-pairs
-        ###
-        """
-
-        # Delete target folder if exists, then create a new one
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        time.sleep(0.1)
-        os.makedirs(output_dir)
-
-        self._input_file = open(input_file, 'r')
-        self._output_dir = output_dir
-
-        self._logger = Logger(self._output_dir)
-        self._logger.add_log({'disabled': 'disabled', 'notfound': 'notfound', 'quotalimit': 'quotalimit',
-                              'nostatyet': 'nostatyet', 'invalidrequest': 'invalidrequest',
-                              'private': 'private'})
-
-        self._key_done = set(self._logger.get_key_done(['disabled', 'notfound', 'nostatyet',
-                                                        'invalidrequest', 'private']))
-
-        self._delay_mutex = threading.Lock()
-
-        self.update_cookie_and_sessiontoken(self._seed_vid)
-        threads = []
-        for i in range(0, self._num_thread):
-            threads.append(
-                threading.Thread(target=self.crawl_thread, args=(self._input_file, yt_dict, i)))
-
-        print '****** start time: ' + str(datetime.datetime.now()) + '\n'
-
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
-        self._current_update_cookie_timer.cancel()
+    # def batch_crawl(self, input_file, output_dir, yt_dict):
+    #     """
+    #
+    #     Arguments:
+    #     - `input_file`: the file that includes the keys (e.g. video IDs)
+    #     - `output_dir`: the dir to output crawled data
+    #
+    #     # Siqi Wu
+    #     - `yt_dict`: the dict that holds video_id, statistic_list key-pairs
+    #     ###
+    #     """
+    #
+    #     # Delete target folder if exists, then create a new one
+    #     if os.path.exists(output_dir):
+    #         shutil.rmtree(output_dir)
+    #     time.sleep(0.1)
+    #     os.makedirs(output_dir)
+    #
+    #     self._input_file = open(input_file, 'r')
+    #     self._output_dir = output_dir
+    #
+    #     self._logger = Logger(self._output_dir)
+    #     self._logger.add_log({'disabled': 'disabled', 'notfound': 'notfound', 'quotalimit': 'quotalimit',
+    #                           'nostatyet': 'nostatyet', 'invalidrequest': 'invalidrequest',
+    #                           'private': 'private'})
+    #
+    #     self._key_done = set(self._logger.get_key_done(['disabled', 'notfound', 'nostatyet',
+    #                                                     'invalidrequest', 'private']))
+    #
+    #     self._delay_mutex = threading.Lock()
+    #
+    #     self.update_cookie_and_sessiontoken(self._seed_vid)
+    #     threads = []
+    #     for i in range(0, self._num_thread):
+    #         threads.append(
+    #             threading.Thread(target=self.crawl_thread, args=(self._input_file, yt_dict, i)))
+    #
+    #     print '****** start time: ' + str(datetime.datetime.now()) + '\n'
+    #
+    #     for t in threads:
+    #         t.start()
+    #     for t in threads:
+    #         t.join()
+    #
+    #     self._current_update_cookie_timer.cancel()
 
     # Single crawler part
     def _store(self, vid, content):
@@ -417,7 +416,13 @@ class Crawler(object):
         except:
             print "server is down, can't get response, retry..."
             return 0
-        content = response.read()
+
+        try:
+            content = response.read()
+        except:
+            print "response read time out, retry..."
+            return 0
+
         self._cnt += 1
 
         if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in content:
@@ -438,6 +443,7 @@ class Crawler(object):
             self._logger.log_warn(vid, 'No statistics available yet', 'nostatyet')
         elif '<error_message><![CDATA[Invalid request.]]></error_message>' in content:
             self._logger.log_warn(vid, 'Invalid request', 'invalidrequest')
+            self._logger.log_done(content)
         elif '<error_message><![CDATA[Video is private.]]></error_message>' in content:
             self._logger.log_warn(vid, 'Private video', 'private')
         else:
@@ -456,7 +462,7 @@ class Crawler(object):
         :return:
         """
 
-        print "\nStart crawling video ids from tweet bz2 files...\n"
+        print "\nStart crawling video ids from tweet video id files...\n"
 
         # Delete target folder if exists, then create a new one
         if os.path.exists(output_dir):
@@ -496,50 +502,15 @@ class Crawler(object):
             #     continue
 
             flag = self._request(opener, key)
+            # fail over 3 times, pass
+            cnt = 0
             while not flag:
+                if cnt > 3:
+                    break
                 flag = self._request(opener, key)
+                cnt += 1
             continue
 
         self._current_update_cookie_timer.cancel()
         self._input_file.close()
-        print "\nFinish crawling video ids from tweet bz2 files.\n"
-
-    # def single_crawl(self, input_file, output_dir):
-    #     """Single crawler that runs on a single machine, assume 1 cpu 1 thread (NeCTAR m2.small instance)
-    #
-    #     :param input_file: directory that contains all video ids bz2 files
-    #     :param output_dir: directory that contains crawling results
-    #     :return:
-    #     """
-    #
-    #     if not self._last_cookie_update_time:
-    #         self.update_cookie_and_sessiontoken(self._seed_vid)
-    #
-        # url = self.get_url(key)
-        # data = self.get_post_data()
-        # header = self.get_header(key)
-        #
-        # txt = ''
-        #
-        # request = urllib2.Request(url, data, headers=header)
-        # txt = urllib2.urlopen(request).read()
-        #
-        # if '<p>Public statistics have been disabled.</p>' in txt:
-        #     raise Exception('Statistics disabled')
-        #
-        # if '<error_message><![CDATA[Video not found.]]></error_message>' in txt:
-        #     raise Exception('Video not found')
-        #
-        # if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in txt:
-        #     raise Exception('Quota limit exceeded')
-        #
-        # if 'No statistics available yet' in txt:
-        #     raise Exception('No statistics available yet')
-        #
-        # if '<error_message><![CDATA[Invalid request.]]></error_message>' in txt:
-        #     raise Exception('Invalid request')
-        #
-        # if '<error_message><![CDATA[Video is private.]]></error_message>' in txt:
-        #     raise Exception('Private video')
-        #
-        # return parseString(txt)
+        print "\nFinish crawling video ids from tweet video id files.\n"
