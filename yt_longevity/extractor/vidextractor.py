@@ -124,7 +124,8 @@ class VideoIdExtractor(Extractor):
                     yt_dict.update_tc(vid)
 
             with open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb') as stats:
-                pickle.dump(yt_dict.getter(), stats)
+                for k, v in yt_dict.items():
+                    stats.write('{0}: {1}\n'.format(k, v[2]))
 
             with open('{0}/{1}.txt'.format(self.video_ids_path, filename), 'wb') as vids:
                 for vid in yt_dict.keys():
