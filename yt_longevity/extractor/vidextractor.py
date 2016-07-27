@@ -112,7 +112,10 @@ class VideoIdExtractor(Extractor):
         while not filequeue.empty():
             filepath = filequeue.get()
             datafile = bz2.BZ2File(filepath, mode='r')
-            filename = os.path.basename(os.path.normpath(filepath)).split(".")[0]
+            filename, filetype = os.path.basename(os.path.normpath(filepath)).split(".")
+            if filetype != "bz2":
+                print 'Exists non-bz2 file {0} in dataset folder'.format(filepath)
+                continue
             yt_dict = YTDict()
 
             try:
