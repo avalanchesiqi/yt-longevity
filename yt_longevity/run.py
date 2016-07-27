@@ -28,10 +28,10 @@ from crawler.crawler import Crawler
 
 # ============== Part 1: Create statistics tmp file and video id list ==============
 def main(indir, outdir, proc_num):
-    # extractor = VideoIdExtractor(indir, outdir)
-    # extractor.set_proc_num(proc_num)
-    # extractor.extract()
+    extractor = VideoIdExtractor(indir, outdir)
+    extractor.set_proc_num(proc_num)
+    extractor.extract()
 
-    crawler = Crawler()
-    crawler.single_crawl("{0}/{1}".format(outdir, "vids.txt"), "{0}/{1}".format(outdir, "output"))
+    # crawler = Crawler()
+    # crawler.single_crawl("{0}/{1}".format(outdir, "vids.txt"), "{0}/{1}".format(outdir, "output"))
     # batch_crawl()

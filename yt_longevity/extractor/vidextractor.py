@@ -114,16 +114,21 @@ class VideoIdExtractor(Extractor):
             datafile = bz2.BZ2File(filepath, mode='r')
             filename = os.path.basename(os.path.normpath(filepath)).split(".")[0]
             yt_dict = YTDict()
-            for line in datafile:
-                if line.rstrip():
-                    tweet = json.loads(line)
-                    try:
-                        vid = self._extract_single_vid(tweet)
-                    except:
-                        continue
-                    yt_dict.update_tc(vid)
 
-            with open('{0}/{1}.p'.format(self.video_stats_path, filename), 'wb') as stats:
+            try:
+                for line in datafile:
+                    if line.rstrip():
+                        tweet = json.loads(line)
+                        try:
+                            vid = self._extract_single_vid(tweet)
+                        except:
+                            continue
+                        yt_dict.update_tc(vid)
+            except:
+                print ('EOFError: compressed file ended before the logical end-of-stream was detected,'
+                       '{0} is possibly empty bz2 file').format(filename)
+
+            with open('{0}/{1}.txt'.format(self.video_stats_path, filename), 'wb') as stats:
                 for k, v in yt_dict.items():
                     stats.write('{0}: {1}\n'.format(k, v[2]))
 
