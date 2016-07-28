@@ -15,7 +15,7 @@ import os
 import time
 import re
 import cookielib
-import shutil
+import sys
 import random
 
 from logger import Logger
@@ -443,7 +443,7 @@ class Crawler(object):
             self._logger.log_warn(vid, 'No statistics available yet', 'nostatyet')
         elif '<error_message><![CDATA[Invalid request.]]></error_message>' in content:
             self._logger.log_warn(vid, 'Invalid request', 'invalidrequest')
-            self._logger.log_done(content)
+            # self._logger.log_done(content)
         elif '<error_message><![CDATA[Video is private.]]></error_message>' in content:
             self._logger.log_warn(vid, 'Private video', 'private')
         else:
@@ -464,11 +464,17 @@ class Crawler(object):
 
         print "\nStart crawling video ids from tweet video id files...\n"
 
-        # Delete target folder if exists, then create a new one
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        time.sleep(0.1)
-        os.makedirs(output_dir)
+        # If not exist, create a new one
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        offset_file = os.path.join(output_dir, 'tmp_offset')
+
+        if not os.path.exists(offset_file):
+            offset = 0
+        else:
+            with open(offset_file, 'r') as f:
+                offset = int(f.readline())
 
         self._input_file = open(input_file, mode='r')
         self._output_dir = output_dir
@@ -486,9 +492,17 @@ class Crawler(object):
 
         opener = urllib2.build_opener()
 
+        cnt1 = 0
         while True:
             # read one line from the keyfile
             line = self._input_file.readline()
+            cnt1 += 1
+            if cnt1 < offset:
+                continue
+            if cnt1 > (offset+10000):
+                with open(offset_file, 'w+') as f:
+                    f.write(str(offset+10000))
+                sys.exit("hit the 10000 margin")
 
             if not line:
                 # the keyfile is finished
@@ -503,12 +517,12 @@ class Crawler(object):
 
             flag = self._request(opener, key)
             # fail over 3 times, pass
-            cnt = 0
+            cnt2 = 0
             while not flag:
-                if cnt > 3:
+                if cnt2 > 3:
                     break
                 flag = self._request(opener, key)
-                cnt += 1
+                cnt2 += 1
             continue
 
         self._current_update_cookie_timer.cancel()
