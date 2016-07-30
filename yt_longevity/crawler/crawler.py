@@ -499,10 +499,12 @@ class Crawler(object):
             cnt1 += 1
             if cnt1 < offset:
                 continue
-            if cnt1 > (offset+10000):
+            if cnt1 > (offset+30000):
                 with open(offset_file, 'w+') as f:
-                    f.write(str(offset+10000))
-                sys.exit("hit the 10000 margin")
+                    f.write(str(offset+30000))
+                self._input_file.close()
+                print "hit the {0} margin".format(offset+30000)
+                sys.exit()
 
             if not line:
                 # the keyfile is finished
