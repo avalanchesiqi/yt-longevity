@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-  The crawler to download YouTube video viewcount history
+  The dailydata_crawler to download YouTube video viewcount history
 """
 # Author: Honglin Yu <yuhonglin1986@gmail.com>
 # License: BSD 3 clause
@@ -17,11 +17,10 @@ def parseString(s):
     if graphData == None:
         raise Exception("can not find data in the xml response")
 
-
     jsonDict = json.loads(graphData.text)
 
     # get days
-    rawdate = [ datetime.date(1970,1,1) + datetime.timedelta( x/86400000 ) for x in  jsonDict['day']['data'] ]
+    rawdate = [datetime.date(1970, 1, 1) + datetime.timedelta(x/86400000) for x in jsonDict['day']['data']]
     uploadDate = rawdate[0]
 
     # get views
@@ -71,9 +70,9 @@ def parseString(s):
             tmp = j
 
     return {
-        'uploadDate' : uploadDate,
-        'dailyViewcount' : viewcount,
-        'watchTime': watchTime,
-        'numShare' : numShare,
-        'numSubscriber' : numSubscriber
+        'uploadDate': str(uploadDate),
+        'dailyViewcount': viewcount,
+        'dailyWatchTime': watchTime,
+        'dailySharecount': numShare,
+        'dailySubscriber': numSubscriber
         }

@@ -11,18 +11,18 @@ import cPickle as pickle
 
 from yt_longevity.extractor.helper import YTDict
 from yt_longevity.extractor.vidextractor import VideoIdExtractor
-from crawler.crawler import Crawler
+from dailydata_crawler.single_crawler import SingleCrawler
 
 
 # def batch_crawl():
 #     # ============== Part 2: Crawl statistics from given video ids file ==============
-#     crawler = Crawler()
+#     dailydata_crawler = Crawler()
 #     yt_dict = YTDict(pickle.load(open('tmp/stat_dict', 'rb')))
 #
 #     print "\nStart batch crawling..."
 #     # num of thread, corresponding to proxy num and user-agent num
-#     crawler.set_num_thread(5)
-#     crawler.batch_crawl("tmp/video_ids", "output", yt_dict)
+#     dailydata_crawler.set_num_thread(5)
+#     dailydata_crawler.batch_crawl("tmp/video_ids", "output", yt_dict)
 #     print "\nFinish batch crawling"
 
 
@@ -32,6 +32,6 @@ def main(indir, outdir, proc_num):
     # extractor.set_proc_num(proc_num)
     # extractor.extract()
 
-    crawler = Crawler()
-    crawler.single_crawl("{0}/{1}".format(outdir, "part.txt"), "{0}/{1}".format(outdir, "output"))
+    single_crawler = SingleCrawler()
+    single_crawler.start("{0}/{1}".format(outdir, "validvids.txt"), "{0}/{1}".format(outdir, "output"))
     # batch_crawl()
