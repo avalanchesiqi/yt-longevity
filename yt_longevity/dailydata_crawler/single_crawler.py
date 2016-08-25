@@ -64,9 +64,9 @@ class SingleCrawler(Crawler):
         if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in content:
             self.update_cookie_and_sessiontoken(vid)
             self._logger.log_log('Quota exceed at {0}'.format(str(datetime.now())))
-            self._logger.log_log('******************* ban for 10 seconds')
+            self._logger.log_log('******************* wait for 10 seconds...')
             time.sleep(10)
-            self._logger.log_log('******************* leave punishment')
+            self._logger.log_log('******************* leave waiting.')
             return 0
 
         if '<p>Public statistics have been disabled.</p>' in content:
