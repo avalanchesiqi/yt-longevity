@@ -13,7 +13,6 @@ import os
 import time
 import re
 import cookielib
-import json
 
 from xmlparser import parsexml
 
@@ -99,7 +98,7 @@ class Crawler(object):
         if not os.path.exists(raw_outdir):
             os.makedirs(raw_outdir)
 
-        raw = parsexml(response)
+        csvstring = parsexml(response)
         with open(raw_outdir + vid, 'w') as f:
-            json.dump(raw, f)
+            f.write(csvstring)
         self._logger.log_success(vid)

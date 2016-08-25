@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""The xmlparser class parsing the xml response
+"""The xmlparser class parsing the xml response into a space separated csv format
 
 Author: Siqi Wu
 Email: Siqi.Wu@anu.edu.au
@@ -32,33 +32,34 @@ def parsexml(s):
 
     # get total views
     totalview = jsondata['views']['cumulative']['data'][-1]
+    dailyviews = ','.join(map(str, dailyviews))
 
-    # get daily sharecount
-    dailyshares = jsondata['shares']['daily']['data']
+    # try parse daily sharecount and get total shares
+    try:
+        dailyshares = jsondata['shares']['daily']['data']
+        totalshare = jsondata['shares']['cumulative']['data'][-1]
+        dailyshares = ','.join(map(str, dailyshares))
+    except:
+        dailyshares = 'N'
+        totalshare = 'N'
 
-    # get total shares
-    totalshare = jsondata['shares']['cumulative']['data'][-1]
+    # try parse daily watchtime and get average watchtime at the end
+    try:
+        dailywatches = jsondata['watch-time']['daily']['data']
+        avgwatch = 1.0*jsondata['watch-time']['cumulative']['data'][-1]/totalview
+        dailywatches = ','.join(map(str, dailywatches))
+    except:
+        dailywatches = 'N'
+        avgwatch = 'N'
 
-    # get daily watchtime
-    dailywatches = jsondata['watch-time']['daily']['data']
+    # try parse daily subscribercount and get total subscribers
+    try:
+        dailysubscribers = jsondata['subscribers']['daily']['data']
+        totalsubscriber = jsondata['subscribers']['cumulative']['data'][-1]
+        dailysubscribers = ','.join(map(str, dailysubscribers))
+    except:
+        dailysubscribers = 'N'
+        totalsubscriber = 'N'
 
-    # get avg watchtime
-    avgwatch = 1.0*jsondata['watch-time']['cumulative']['data'][-1]/totalview
-
-    # get daily subscribercount
-    dailysubscribers = jsondata['subscribers']['daily']['data']
-
-    # get total subscribers
-    totalsubscriber = jsondata['subscribers']['cumulative']['data'][-1]
-
-    return {
-        'startdate': startdate,
-        'dailyviews': dailyviews,
-        'totalview': totalview,
-        'dailyshares': dailyshares,
-        'totalshare': totalshare,
-        'dailywatches': dailywatches,
-        'avgwatch': avgwatch,
-        'dailysubscribers': dailysubscribers,
-        'totalsubscriber': totalsubscriber,
-    }
+    return '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n'\
+        .format(startdate, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber)

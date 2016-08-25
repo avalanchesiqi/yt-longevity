@@ -84,7 +84,7 @@ class SingleCrawler(Crawler):
                 self.store(vid, content)
             except Exception as exc:
                 if 'can not get viewcount in the xml response' in str(exc):
-                    self._logger.log_fail(vid, 7)
+                    self._logger.log_fail(vid, 6)
                 else:
                     self._logger.log_log('Exception happens when successfully, {0}, {1}'.format(vid, str(exc)))
         return 1
