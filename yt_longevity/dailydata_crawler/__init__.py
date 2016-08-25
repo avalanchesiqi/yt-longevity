@@ -15,7 +15,7 @@ import re
 import cookielib
 import json
 
-from xmlparser import parseString
+from xmlparser import parsexml
 
 
 class Crawler(object):
@@ -92,28 +92,14 @@ class Crawler(object):
         self._mutex_crawl.release()
 
     def store(self, vid, response):
-        """Store parsed response of vid with uploadDate, dailyViewcount, dailyWatchTime, dailySharecount,
-        dailySubscriber in json format
-
-        log result format, '\t' separated
-        upload_date total_viewcount total_sharecount    daily_viewcount daily_sharecount
+        """Store parsed response of vid in json format, field to record:
+        startdate, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber,
         """
-        outdir = self._output_dir + '/data/' + vid[0] + '/' + vid[1] + '/' + vid[2] + '/'
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
+        raw_outdir = '{0}/raw_data/{1}/{2}/{3}/'.format(self._output_dir, vid[0], vid[1], vid[2])
+        if not os.path.exists(raw_outdir):
+            os.makedirs(raw_outdir)
 
-        stat = parseString(response)
-        with open(outdir + vid, 'w') as f:
-            json.dump(stat, f)
-
-        upload_date = stat['uploadDate']
-        res = []
-        daily_viewcount = stat['dailyViewcount']
-        daily_sharecount = stat['dailySharecount']
-        res.append(upload_date)
-        res.append(str(sum(daily_viewcount)))
-        res.append(str(sum(daily_sharecount)))
-        res.append(str(daily_viewcount)[1:-1])
-        res.append(str(daily_sharecount)[1:-1])
-        res2 = '\t'.join(res)
-        self._logger.log_result(vid, res2)
+        raw = parsexml(response)
+        with open(raw_outdir + vid, 'w') as f:
+            json.dump(raw, f)
+        self._logger.log_success(vid)

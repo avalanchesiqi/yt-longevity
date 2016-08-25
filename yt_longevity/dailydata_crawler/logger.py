@@ -15,41 +15,39 @@ class Logger(object):
     
     def __init__(self, output_dir=""):
         self._output_dir = output_dir
-        self._result_file = open(self._output_dir + '/result.txt', 'a+')
+        self._success_file = open(self._output_dir + '/success.txt', 'a+')
+        self._fail_file = open(self._output_dir + '/fail.txt', 'a+')
         self._log_file = open(self._output_dir + '/crawler.log', 'a+')
-        self._warning_file = open(self._output_dir + '/warning.txt', 'a+')
-        self._done_file = open(self._output_dir + '/vids_done.txt', 'a+')
 
-    def log_result(self, vid, res):
-        """Log result if daily status return successfully, '\t' separated
-
-        format: vid upload_date total_viewcount total_sharecount    daily_viewcount daily_sharecount
+    def log_success(self, vid):
+        """Log if this vid gets valid stat successfully
         """
-        self._result_file.write('{0}\t{1}\n'.format(vid, res))
-        self._result_file.flush()
+        self._success_file.write('{0}\n'.format(vid))
+        self._success_file.flush()
+
+    def log_fail(self, vid, fail_id):
+        """Log if this vid is fail, use fail id, mapping as following,
+
+        1 disabled
+        2 notfound
+        3 private
+        4 nostatyet
+        5 invalidrequest
+        6 noviewcount
+        7 toomanyfails(quota limit exceed or server down or response timeout)
+        """
+        self._fail_file.write('{0}\t{1}\n'.format(vid, str(fail_id)))
+        self._fail_file.flush()
 
     def log_log(self, msg):
         """Log message during the crawling, i.e, server down, quota limit exceed, etc,
         """
-        self._log_file.write('{0}\t{1}\n'.format(str(datetime.now()), msg))
+        self._log_file.write('{0}\t{1}\n'.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), msg))
         self._log_file.flush()
-
-    def log_warn(self, vid, msg):
-        """Log message as warning, i.e, invalid request, nostatyet, etc,
-        """
-        self._warning_file.write('{0}\t{1}\n'.format(vid, msg))
-        self._warning_file.flush()
-
-    def log_done(self, vid):
-        """Log if this vid is done, i.e, success, disable, nostatyet, etc,
-        """
-        self._done_file.write('{0}\n'.format(vid))
-        self._done_file.flush()
 
     def close(self):
         """Close all log files
         """
-        self._result_file.close()
+        self._success_file.close()
+        self._fail_file.close()
         self._log_file.close()
-        self._warning_file.close()
-        self._done_file.close()

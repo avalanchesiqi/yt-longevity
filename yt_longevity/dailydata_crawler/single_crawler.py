@@ -62,7 +62,6 @@ class SingleCrawler(Crawler):
             return 0
 
         if '<error_message><![CDATA[Sorry, quota limit exceeded, please retry later.]]></error_message>' in content:
-            self._logger.log_warn(vid, 'quotalimit')
             self.update_cookie_and_sessiontoken(vid)
             self._logger.log_log('Quota exceed at {0}'.format(str(datetime.now())))
             self._logger.log_log('******************* ban for 10 seconds')
@@ -71,24 +70,23 @@ class SingleCrawler(Crawler):
             return 0
 
         if '<p>Public statistics have been disabled.</p>' in content:
-            self._logger.log_warn(vid, 'disabled')
+            self._logger.log_fail(vid, 1)
         elif '<error_message><![CDATA[Video not found.]]></error_message>' in content:
-            self._logger.log_warn(vid, 'notfound')
+            self._logger.log_fail(vid, 2)
         elif '<error_message><![CDATA[Video is private.]]></error_message>' in content:
-            self._logger.log_warn(vid, 'private')
+            self._logger.log_fail(vid, 3)
         elif 'No statistics available yet' in content:
-            self._logger.log_warn(vid, 'nostatyet')
+            self._logger.log_fail(vid, 4)
         elif '<error_message><![CDATA[Invalid request.]]></error_message>' in content:
-            self._logger.log_warn(vid, 'invalidrequest')
+            self._logger.log_fail(vid, 5)
         else:
             try:
                 self.store(vid, content)
             except Exception as exc:
                 if 'can not get viewcount in the xml response' in str(exc):
-                    self._logger.log_warn(vid, 'noviewcount')
+                    self._logger.log_fail(vid, 7)
                 else:
                     self._logger.log_log('Exception happens when successfully, {0}, {1}'.format(vid, str(exc)))
-        self._logger.log_done(vid)
         return 1
 
     def start(self, input_file, output_dir):
@@ -98,7 +96,7 @@ class SingleCrawler(Crawler):
         :param output_dir: directory that contains possible information
         """
 
-        # If not exist, create a new one
+        # If output directory not exists, create a new one
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -123,8 +121,7 @@ class SingleCrawler(Crawler):
                 offset = int(f.readline().strip())
 
         cnt1 = 0
-        while True:
-            line = self._input.readline()
+        for line in self._input:
             cnt1 += 1
             if cnt1 < offset:
                 continue
@@ -132,22 +129,22 @@ class SingleCrawler(Crawler):
                 with open(offset_file, 'w+') as f:
                     f.write(str(offset+30000))
                 self._input.close()
-                self._logger.log_log('hit the {0} margin'.format(offset+30000))
+                self._logger.log_log('Hit the {0} margin'.format(offset+30000))
+                self._logger.log_log('Current program exits, restart...\n')
+                print '\nHit the {0} margin\nCurrent program exits, restart...\n'.format(offset+30000)
+                self._logger.close()
                 sys.exit()
-
-            if not line:
-                # this vid file is finished
-                break
 
             vid = line.rstrip('\t\n')
 
             flag = self.request(opener, vid)
-            # fail over 3 times, pass
+            # fail over 5 times, pass
             cnt2 = 0
             while not flag:
-                if cnt2 > 3:
+                if cnt2 > 5:
+                    self._logger.log_fail(vid, 7)
+                    self._logger.log_log('Warning: {0} failed over 5 times\n'.format(vid))
                     break
-                cnt1 -= 1
                 flag = self.request(opener, vid)
                 cnt2 += 1
             continue

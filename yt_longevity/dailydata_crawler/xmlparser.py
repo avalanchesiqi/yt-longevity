@@ -1,78 +1,64 @@
 # -*- coding: utf-8 -*-
+
+"""The xmlparser class parsing the xml response
+
+Author: Siqi Wu
+Email: Siqi.Wu@anu.edu.au
 """
-  The dailydata_crawler to download YouTube video viewcount history
-"""
-# Author: Honglin Yu <yuhonglin1986@gmail.com>
-# License: BSD 3 clause
 
 import datetime
 from xml.etree import ElementTree
 import json
 
 
-def parseString(s):
+def parsexml(s):
     tree = ElementTree.fromstring(s)
-    graphData = tree.find('graph_data')
+    graphdata = tree.find('graph_data')
 
-    if graphData == None:
+    if graphdata is None:
         raise Exception("can not find data in the xml response")
 
-    jsonDict = json.loads(graphData.text)
+    jsondata = json.loads(graphdata.text)
 
-    # get days
-    rawdate = [datetime.date(1970, 1, 1) + datetime.timedelta(x/86400000) for x in jsonDict['day']['data']]
-    uploadDate = rawdate[0]
-
-    # get views
+    # try parse daily viewcount
     try:
-        raw_views = jsonDict['views']['daily']['data']
+        dailyviews = jsondata['views']['daily']['data']
     except KeyError:
         raise Exception("can not get viewcount in the xml response")
 
-    tmp = uploadDate
-    viewcount = []
-    for i, j in enumerate(rawdate):
-        viewcount.append(raw_views[i])
-        viewcount += [0]*((j - tmp).days - 1)
-        tmp = j
+    # get start date
+    startdate = datetime.date(1970, 1, 1) + datetime.timedelta(jsondata['day']['data'][0]/86400000)
+    startdate = startdate.strftime("%Y-%m-%d")
 
-    # get watch time
-    watchTime = []
-    if 'watch-time' in jsonDict:
-        raw_wt = jsonDict['watch-time']['daily']['data']
-        tmp = uploadDate
-        for i, j in enumerate(rawdate):
-            watchTime.append(raw_wt[i])
-            watchTime += [0]*((j - tmp).days - 1)
-            tmp = j
+    # get total views
+    totalview = jsondata['views']['cumulative']['data'][-1]
 
+    # get daily sharecount
+    dailyshares = jsondata['shares']['daily']['data']
 
-    # get shares
-    numShare = []
-    if 'shares' in jsonDict:
-        raw_ns = jsonDict['shares']['daily']['data']
+    # get total shares
+    totalshare = jsondata['shares']['cumulative']['data'][-1]
 
-        tmp = uploadDate
-        for i, j in enumerate(rawdate):
-            numShare.append(raw_ns[i])
-            numShare += [0]*((j - tmp).days - 1)
-            tmp = j
+    # get daily watchtime
+    dailywatches = jsondata['watch-time']['daily']['data']
 
-    # get numSubscriber
-    numSubscriber = []
-    if 'subscribers' in jsonDict:
-        raw_ns = jsonDict['subscribers']['daily']['data']
+    # get avg watchtime
+    avgwatch = 1.0*jsondata['watch-time']['cumulative']['data'][-1]/totalview
 
-        tmp = uploadDate
-        for i, j in enumerate(rawdate):
-            numSubscriber.append(raw_ns[i])
-            numSubscriber += [0]*((j - tmp).days - 1)
-            tmp = j
+    # get daily subscribercount
+    dailysubscribers = jsondata['subscribers']['daily']['data']
+
+    # get total subscribers
+    totalsubscriber = jsondata['subscribers']['cumulative']['data'][-1]
 
     return {
-        'uploadDate': str(uploadDate),
-        'dailyViewcount': viewcount,
-        'dailyWatchTime': watchTime,
-        'dailySharecount': numShare,
-        'dailySubscriber': numSubscriber
-        }
+        'startdate': startdate,
+        'dailyviews': dailyviews,
+        'totalview': totalview,
+        'dailyshares': dailyshares,
+        'totalshare': totalshare,
+        'dailywatches': dailywatches,
+        'avgwatch': avgwatch,
+        'dailysubscribers': dailysubscribers,
+        'totalsubscriber': totalsubscriber,
+    }
