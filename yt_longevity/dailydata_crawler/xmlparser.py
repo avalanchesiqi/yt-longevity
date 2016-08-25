@@ -31,13 +31,19 @@ def parsexml(s):
     startdate = startdate.strftime("%Y-%m-%d")
 
     # get total views
-    totalview = jsondata['views']['cumulative']['data'][-1]
+    try:
+        totalview = jsondata['views']['cumulative']['data'][-1]
+    except:
+        totalview = sum(dailyviews)
     dailyviews = ','.join(map(str, dailyviews))
 
     # try parse daily sharecount and get total shares
     try:
         dailyshares = jsondata['shares']['daily']['data']
-        totalshare = jsondata['shares']['cumulative']['data'][-1]
+        try:
+            totalshare = jsondata['shares']['cumulative']['data'][-1]
+        except:
+            totalshare = sum(dailyshares)
         dailyshares = ','.join(map(str, dailyshares))
     except:
         dailyshares = 'N'
@@ -46,7 +52,10 @@ def parsexml(s):
     # try parse daily watchtime and get average watchtime at the end
     try:
         dailywatches = jsondata['watch-time']['daily']['data']
-        avgwatch = 1.0*jsondata['watch-time']['cumulative']['data'][-1]/totalview
+        try:
+            avgwatch = 1.0*jsondata['watch-time']['cumulative']['data'][-1]/totalview
+        except:
+            avgwatch = 1.0*sum(dailywatches)/totalview
         dailywatches = ','.join(map(str, dailywatches))
     except:
         dailywatches = 'N'
@@ -55,7 +64,10 @@ def parsexml(s):
     # try parse daily subscribercount and get total subscribers
     try:
         dailysubscribers = jsondata['subscribers']['daily']['data']
-        totalsubscriber = jsondata['subscribers']['cumulative']['data'][-1]
+        try:
+            totalsubscriber = jsondata['subscribers']['cumulative']['data'][-1]
+        except:
+            totalsubscriber = sum(dailysubscribers)
         dailysubscribers = ','.join(map(str, dailysubscribers))
     except:
         dailysubscribers = 'N'
