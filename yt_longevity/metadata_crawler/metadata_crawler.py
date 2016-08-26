@@ -8,13 +8,12 @@ Email: Siqi.Wu@anu.edu.au
 
 import sys
 import os
+import json
+import requests
+import time
 from Queue import Queue
 from apiclient import discovery
 from threading import Thread
-import time
-import logging
-import json
-import requests
 
 from yt_longevity.metadata_crawler import APIV3Crawler
 
@@ -26,11 +25,7 @@ class MetadataCrawler(APIV3Crawler):
     def __init__(self, developer_key):
         APIV3Crawler.__init__(self)
         self.set_key(developer_key)
-
-        log_dir = 'log/'
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        logging.basicConfig(filename='{0}/metadatacrawler.log'.format(log_dir), level=logging.DEBUG)
+        self.setup_logger('metadatacrawler')
 
         # Reading all values from options file to ensure we read only required fields
         # responseParts: the parts that you want to extract as per YouTube Data API
@@ -41,7 +36,7 @@ class MetadataCrawler(APIV3Crawler):
                 self.responseParts = lines[1].strip()
                 self.responseFields = lines[3].strip()
         except:
-            logging.error('**> The options file options.txt does not exist! It should be in the conf folder.')
+            self.logger.error('**> The options file options.txt does not exist! It should be in the conf folder.')
             sys.exit()
 
         # Reading categories mapping from categorydict json, otherwise recrawl and log warning
@@ -49,7 +44,7 @@ class MetadataCrawler(APIV3Crawler):
             with open('conf/categorydict.json', 'r') as categorydict:
                 self.category_dict = json.loads(categorydict.readline().rstrip())
         except:
-            logging.warn('**> The mapping file categorydict.json does not exist! It should be in the conf folder. Recrawling...')
+            self.logger.warn('**> The mapping file categorydict.json does not exist! It should be in the conf folder. Recrawling...')
             self.category_dict = self.retrieve_categories()
 
     def retrieve_categories(self, country_code="US"):
@@ -72,9 +67,9 @@ class MetadataCrawler(APIV3Crawler):
 
         # Call the videos().list method to retrieve results matching the specified video term.
         try:
-            video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'),fields=self.responseFields).execute()
+            video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
         except Exception as e:
-            logging.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, e.message))
+            self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, e.message))
             return
 
         # Creating the required json format as per mongodb structure
@@ -85,19 +80,19 @@ class MetadataCrawler(APIV3Crawler):
         try:
             if len(video_data["items"]) == 0:
                 inner_doc["metadata"] = {}
-                logging.warning('Request for {0} request number was empty.'.format(vid))
+                self.logger.warn('Request for {0} request number was empty.'.format(vid))
             else:
                 inner_doc["metadata"] = video_data["items"][0]
         except Exception as e:
-            logging.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
+            self.logger.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
             return
         jsondoc["value"] = inner_doc
 
-        logging.warning(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
+        self.logger.debug(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
         return jsondoc
 
     def start(self, input_file, output_dir):
-        logging.warning('**> Outputting result to files')
+        self.logger.warning('**> Outputting result to files')
 
         # If output directory not exists, create a new one
         if not os.path.exists(output_dir):
@@ -134,7 +129,7 @@ class MetadataCrawler(APIV3Crawler):
                         j = 0
                         i += 1
                 except Exception as e:
-                    logging.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
+                    self.logger.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
                     # in any case, mark the current item as done
                     to_write.task_done()
                     continue
@@ -154,7 +149,7 @@ class MetadataCrawler(APIV3Crawler):
                     to_write.put(jobj)
                     to_process.task_done()
                 except Exception as e:
-                    logging.error('[Input Queue] Error in writing: %s.' % e.message)
+                    self.logger.error('[Input Queue] Error in writing: %s.' % e.message)
                     continue
 
         # start the working threads - 4 of them
@@ -183,5 +178,5 @@ class MetadataCrawler(APIV3Crawler):
         to_write.put(0)
         to_write.join()
 
-        logging.warning('Total time for requests %.05f sec.' % (time.time() - initial_time))
+        self.logger.warning('Total time for requests %.05f sec.' % (time.time() - initial_time))
         sys.exit(1)

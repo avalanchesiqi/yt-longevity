@@ -43,7 +43,7 @@ def batch_crawl():
 
 if __name__ == '__main__':
     developer_key = "AIzaSyBxNpscfnZ5-we_4-PfGEB4LIadRYOjs-M"
-    metadata_crawl('plot/validvids.txt', developer_key)
+    metadata_crawl('feb_vids.txt', developer_key)
     # single_crawl('plot/validvids.txt')
     # indir = 'datasets'
     # outdir = 'plot'
