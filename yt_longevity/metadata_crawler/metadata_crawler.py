@@ -25,7 +25,7 @@ class MetadataCrawler(APIV3Crawler):
     def __init__(self, developer_key):
         APIV3Crawler.__init__(self)
         self.set_key(developer_key)
-        self.setup_logger('metadatacrawler')
+        self._setup_logger('metadatacrawler')
 
         # Reading all values from options file to ensure we read only required fields
         # responseParts: the parts that you want to extract as per YouTube Data API
@@ -45,9 +45,11 @@ class MetadataCrawler(APIV3Crawler):
                 self.category_dict = json.loads(categorydict.readline().rstrip())
         except:
             self.logger.warn('**> The mapping file categorydict.json does not exist! It should be in the conf folder. Recrawling...')
-            self.category_dict = self.retrieve_categories()
+            self.category_dict = self._retrieve_categories()
+            with open('conf/categorydict.json', 'w') as categorydict:
+                json.dump(self.category_dict, categorydict)
 
-    def retrieve_categories(self, country_code="US"):
+    def _retrieve_categories(self, country_code="US"):
         """Populate the categories mapping between category Id and category title
         """
         r = requests.get("https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode={0}&key={1}"
@@ -59,7 +61,7 @@ class MetadataCrawler(APIV3Crawler):
             categories[str(item[u'id'])] = str(item[u'snippet'][u'title'])
         return categories
 
-    def youtube_search(self, vid):
+    def _youtube_search(self, vid):
         """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it.
         """
         start_time = time.time()
@@ -69,30 +71,25 @@ class MetadataCrawler(APIV3Crawler):
         try:
             video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
         except Exception as e:
-            self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, e.message))
+            self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
             return
-
-        # Creating the required json format as per mongodb structure
-        jsondoc = {"vid": vid}
-        inner_doc = {}
 
         # Check to get empty responses handled properly
         try:
             if len(video_data["items"]) == 0:
-                inner_doc["metadata"] = {}
-                self.logger.warn('Request for {0} request number was empty.'.format(vid))
+                self.logger.warning('Request for {0} request number was empty.'.format(vid))
+                return
             else:
-                inner_doc["metadata"] = video_data["items"][0]
+                json_doc = video_data["items"][0]
         except Exception as e:
             self.logger.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
             return
-        jsondoc["value"] = inner_doc
 
         self.logger.debug(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
-        return jsondoc
+        return json_doc
 
     def start(self, input_file, output_dir):
-        self.logger.warning('**> Outputting result to files')
+        self.logger.warning('**> Outputting result to files...')
 
         # If output directory not exists, create a new one
         if not os.path.exists(output_dir):
@@ -102,41 +99,6 @@ class MetadataCrawler(APIV3Crawler):
         to_process = Queue()
         to_write = Queue()
 
-        def writer():
-            """Function to take values from the output queue and write it to a file
-            We roll file after every 100k entries
-            """
-            i = 0
-            output_file = "{0}/videoMetadata_{1}.json".format(output_dir, i)
-            video_metadata = open(output_file, "w")
-            j = 0
-            while True:
-                try:
-                    jobj = to_write.get()
-                    # check for file termination object
-                    if jobj == 0:
-                        video_metadata.close()
-                        to_write.task_done()
-                        continue
-                    elif jobj is not None:
-                        video_metadata.write("{}\n".format(json.dumps(jobj)))  # , sort_keys=True
-
-                    # handle the rolling of the output file, if needed
-                    j += 1
-                    if j == 100000:
-                        video_metadata.close()
-                        video_metadata = open(output_file.format(i + 1), "w")
-                        j = 0
-                        i += 1
-                except Exception as e:
-                    self.logger.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
-                    # in any case, mark the current item as done
-                    to_write.task_done()
-                    continue
-
-            # in any case, mark the current item as done
-            to_write.task_done()
-
         # action executed by the worked threads
         # they input lines from the working queue, process them, obtain the JSON object and put it into writing queue
         def worker():
@@ -145,11 +107,45 @@ class MetadataCrawler(APIV3Crawler):
                 try:
                     vid = to_process.get()
                     # process the file only if it was not already done
-                    jobj = self.youtube_search(vid)
-                    to_write.put(jobj)
+                    jobj = self._youtube_search(vid)
+                    if jobj is not None:
+                        to_write.put(jobj)
                     to_process.task_done()
                 except Exception as e:
                     self.logger.error('[Input Queue] Error in writing: %s.' % e.message)
+                    continue
+
+        def writer():
+            """Function to take values from the output queue and write it to a file
+            We roll file after every 100k entries
+            """
+            i = 0
+            output_path = "{0}/videoMetadata_{1}.json"
+            video_metadata = open(output_path.format(output_dir, i), "w")
+            j = 0
+            while True:
+                try:
+                    jobj = to_write.get()
+                    to_write.task_done()
+                    # check for file termination object
+                    if jobj == 0:
+                        self.logger.warning('**> Termination object received and wait for termination...')
+                        video_metadata.close()
+                        break
+                    elif jobj is not None:
+                        video_metadata.write("{}\n".format(json.dumps(jobj)))  # , sort_keys=True
+
+                    # handle the rolling of the output file, if needed
+                    j += 1
+                    if j == 100000:
+                        video_metadata.close()
+                        video_metadata = open(output_path.format(output_dir, i+1), "w")
+                        j = 0
+                        i += 1
+                except Exception as e:
+                    self.logger.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
+                    # in any case, mark the current item as done
+                    to_write.task_done()
                     continue
 
         # start the working threads - 4 of them
@@ -178,5 +174,5 @@ class MetadataCrawler(APIV3Crawler):
         to_write.put(0)
         to_write.join()
 
-        self.logger.warning('Total time for requests %.05f sec.' % (time.time() - initial_time))
+        self.logger.warning('**> Total time for requests {0:.4f} secs.'.format(time.time() - initial_time))
         sys.exit(1)

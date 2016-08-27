@@ -31,7 +31,7 @@ class APIV3Crawler(object):
         """
         self._num_threads = n
 
-    def setup_logger(self, logger_name):
+    def _setup_logger(self, logger_name):
         log_dir = 'log/'
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
