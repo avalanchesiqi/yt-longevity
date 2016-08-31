@@ -26,7 +26,7 @@ def metadata_crawl(input_file, developer_key):
     """Crawl metadata for vids in input_file from YouTube frontend server with given developer_key
     """
     metadata_crawler = MetadataCrawler(developer_key)
-    metadata_crawler.set_num_thread(30)
+    metadata_crawler.set_num_thread(10)
     metadata_crawler.start(input_file, 'output')
 
 
@@ -48,9 +48,9 @@ if __name__ == '__main__':
     # metadata_crawl('feb_vids.txt', developer_key)
     # single_crawl('plot/validvids.txt')
 
-    combine('datasets/metadata', '../dailydata')
+    # combine('datasets/metadata', '../dailydata')
 
-    # indir = 'datasets'
-    # outdir = 'plot'
-    # proc_num = 4
-    # main(indir, outdir, proc_num)
+    indir = '/data2/proj/youtube-twitter-crawl/bz2-files_2015/'
+    outdir = 'may_2016'
+    proc_num = 12
+    extract(indir, outdir, proc_num)

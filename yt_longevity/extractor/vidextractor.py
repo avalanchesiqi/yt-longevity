@@ -11,6 +11,7 @@ import os
 from multiprocessing import Process, Queue
 import bz2
 import json
+import random
 import cPickle as pickle
 
 from yt_longevity.extractor import Extractor
@@ -56,10 +57,7 @@ class VideoIdExtractor(Extractor):
         if not os.path.exists(filepath):
             os.makedirs(filepath)
 
-    def extract(self):
-        self._extract()
-
-    def _extract(self):
+    def extract(self, sampling_ratio=1):
         print "\nStart extracting video ids from tweet bz2 files...\n"
 
         processes = []
@@ -67,11 +65,12 @@ class VideoIdExtractor(Extractor):
 
         for subdir, _, files in os.walk(self.input_dir):
             for f in files:
-                filepath = os.path.join(subdir, f)
-                filequeue.put(filepath)
+                if f.startswith('2016-05'):
+                    filepath = os.path.join(subdir, f)
+                    filequeue.put(filepath)
 
         for w in xrange(self.proc_num):
-            p = Process(target=self._extract_vid, args=(filequeue,))
+            p = Process(target=self._extract_vid, args=(filequeue, sampling_ratio))
             p.daemon = True
             p.start()
             processes.append(p)
@@ -108,7 +107,7 @@ class VideoIdExtractor(Extractor):
 
         return check_vid(vid)
 
-    def _extract_vid(self, filequeue):
+    def _extract_vid(self, filequeue, sampling_ratio):
         while not filequeue.empty():
             filepath = filequeue.get()
             datafile = bz2.BZ2File(filepath, mode='r')
@@ -120,7 +119,8 @@ class VideoIdExtractor(Extractor):
 
             try:
                 for line in datafile:
-                    if line.rstrip():
+                    # Sampling data
+                    if random.random() < sampling_ratio and line.rstrip():
                         tweet = json.loads(line)
                         try:
                             vid = self._extract_single_vid(tweet)
