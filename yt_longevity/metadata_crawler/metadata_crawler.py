@@ -19,12 +19,10 @@ from yt_longevity.metadata_crawler import APIV3Crawler
 
 
 class MetadataCrawler(APIV3Crawler):
-    """Metadata crawler bases on YouTube API V3 crawler.
-    """
+    """Metadata crawler bases on YouTube API V3 crawler."""
 
-    def __init__(self, developer_key):
+    def __init__(self):
         APIV3Crawler.__init__(self)
-        self.set_key(developer_key)
         self._setup_logger('metadatacrawler')
 
         # Reading all values from options file to ensure we read only required fields
@@ -37,6 +35,16 @@ class MetadataCrawler(APIV3Crawler):
                 self.responseFields = lines[3].strip()
         except:
             self.logger.error('**> The options file options.txt does not exist! It should be in the conf folder.')
+            sys.exit()
+
+        # Reading developer_key from developer.key file from conf, roll over when exceed quota
+        try:
+            with open('conf/developer.key', 'r') as keys:
+                developer_keys = keys.readlines()
+                self.set_keys(developer_keys)
+                self.set_key_index(0)
+        except:
+            self.logger.error('**> The keys file developer.key does not exist! It should be in the conf folder.')
             sys.exit()
 
         # Reading categories mapping from categorydict json, otherwise recrawl and log warning
@@ -53,7 +61,7 @@ class MetadataCrawler(APIV3Crawler):
         """Populate the categories mapping between category Id and category title
         """
         r = requests.get("https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode={0}&key={1}"
-                         .format(country_code, self._developer_key))
+                         .format(country_code, self._keys[self._key_index]))
 
         data = json.loads(r.text)
         categories = {}
@@ -65,13 +73,23 @@ class MetadataCrawler(APIV3Crawler):
         """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it.
         """
         start_time = time.time()
-        youtube = discovery.build(self._api_service, self._api_version, developerKey=self._developer_key)
+        youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[self._key_index])
 
         # Call the videos().list method to retrieve results matching the specified video term.
         try:
             video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
         except Exception as e:
-            self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
+            if 'quota' in str(e):
+                self.logger.error('The request cannot be completed because quota exceeded.')
+                self.logger.error(str(e))
+                if self._key_index+1 > len(self._keys):
+                    self.logger.error('All keys have exceeded quota, exit.')
+                    sys.exit()
+                else:
+                    self.set_key_index(self._key_index+1)
+                    return self._youtube_search(vid)
+            else:
+                self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
             return
 
         # Check to get empty responses handled properly
