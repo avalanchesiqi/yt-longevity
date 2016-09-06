@@ -40,15 +40,16 @@ def batch_crawl():
 
 
 if __name__ == '__main__':
-    input_path = 'input/may_2016_vids.txt'
-    output_dir = 'output/may_2016_metadata'
-    metadata_crawl(input_path, output_dir)
+    input_dir = '/data2/proj/youtube-twitter-crawl/bz2-files_2015/'
+    output_dir = 'may_2016'
+    proc_num = 12
+    sample_ratio = 0.1
+    extract(input_dir, output_dir, proc_num, sample_ratio)
+
+    # input_path = 'input/may_2016_vids.txt'
+    # output_dir = 'output/may_2016_metadata'
+    # metadata_crawl(input_path, output_dir)
+
     # single_crawl('plot/validvids.txt')
 
     # combine('datasets/metadata', '../dailydata')
-
-    # input_dir = '/data2/proj/youtube-twitter-crawl/bz2-files_2015/'
-    # output_dir = 'may_2016'
-    # proc_num = 12
-    # sample_ratio = 0.1
-    # extract(input_dir, output_dir, proc_num, sample_ratio)

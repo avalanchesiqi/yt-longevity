@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""Base class for YouTube API V3 crawler
+"""
+Base class for YouTube API V3 crawler
 
 Author: Siqi Wu
 Email: Siqi.Wu@anu.edu.au
 """
 
-import sys
 import os
 import logging
 import logging.config
