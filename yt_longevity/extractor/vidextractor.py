@@ -15,7 +15,6 @@ from collections import defaultdict
 from multiprocessing import Process, Queue
 
 from yt_longevity.extractor import Extractor
-from yt_longevity.exceptions import InvalidVideoIdError
 
 
 class VideoIdExtractor(Extractor):
@@ -82,11 +81,11 @@ class VideoIdExtractor(Extractor):
     @staticmethod
     def _extract_single_vid(tweet):
         if 'entities' not in tweet.keys():
-            raise InvalidVideoIdError('No entities in tweet')
+            raise Exception('No entities in tweet')
         urls = tweet['entities']['urls']
         num_urls = len(urls)
         if num_urls == 0:
-            raise InvalidVideoIdError('No urls in tweet')
+            raise Exception('No urls in tweet')
         ret = []
         for i in xrange(num_urls):
             expanded_url = urls[i]['expanded_url']
@@ -95,16 +94,13 @@ class VideoIdExtractor(Extractor):
             elif 'youtu.be' in expanded_url:
                 vid = expanded_url.rsplit('/', 1)[-1][:11]
             else:
-                raise InvalidVideoIdError('Invalid video id')
+                continue
             if len(vid) == 11:
                 try:
                     vid.decode('utf-8').encode('ascii')
                     ret.append(vid)
                 except:
-                    raise InvalidVideoIdError('Video id coding issue')
-            else:
-                raise InvalidVideoIdError('Video id length not equals to 11')
-
+                    continue
         return ret
 
     def _extract_vid(self, filequeue, sampling_ratio):
