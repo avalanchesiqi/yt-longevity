@@ -64,8 +64,9 @@ class VideoIdExtractor(Extractor):
 
         for subdir, _, files in os.walk(self.input_dir):
             for f in files:
-                filepath = os.path.join(subdir, f)
-                filequeue.put(filepath)
+                if f.endswith('bz2'):
+                    filepath = os.path.join(subdir, f)
+                    filequeue.put(filepath)
 
         for w in xrange(self.proc_num):
             p = Process(target=self._extract_vid, args=(filequeue, sampling_ratio))
@@ -106,11 +107,12 @@ class VideoIdExtractor(Extractor):
     def _extract_vid(self, filequeue, sampling_ratio):
         while not filequeue.empty():
             filepath = filequeue.get()
-            datafile = bz2.BZ2File(filepath, mode='r')
-            filename, filetype = os.path.basename(os.path.normpath(filepath)).split(".")
-            if filetype != "bz2":
+            try:
+                datafile = bz2.BZ2File(filepath, mode='r')
+            except:
                 self.logger.warn('Exists non-bz2 file {0} in dataset folder'.format(filepath))
                 continue
+            filename, filetype = os.path.basename(os.path.normpath(filepath)).split(".")
 
             ytdict = defaultdict(int)
             for line in datafile:
