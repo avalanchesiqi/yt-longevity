@@ -12,8 +12,9 @@ import json
 import requests
 import time
 from Queue import Queue
-from apiclient import discovery
 from threading import Thread
+import thread
+from apiclient import discovery
 
 from yt_longevity.metadata_crawler import APIV3Crawler
 
@@ -73,38 +74,38 @@ class MetadataCrawler(APIV3Crawler):
         """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it.
         """
         start_time = time.time()
-        youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[self._key_index])
+        if self._key_index >= len(self._keys):
+            self.logger.error('Key index out of range, exit.')
+            thread.interrupt_main()
+        else:
+            youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[self._key_index])
 
-        # Call the videos().list method to retrieve results matching the specified video term.
-        try:
-            video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
-        except Exception as e:
-            if 'quota' in str(e):
-                self.logger.error('The request cannot be completed because quota exceeded.')
-                self.logger.error(str(e))
-                if self._key_index+1 > len(self._keys):
-                    self.logger.error('All keys have exceeded quota, exit.')
-                    sys.exit()
+            # Call the videos().list method to retrieve results matching the specified video term.
+            try:
+                video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
+            except Exception as e:
+                if 'quota' in str(e):
+                    self.logger.error('The request cannot be completed because quota exceeded.')
+                    if self._key_index < len(self._keys):
+                        self.set_key_index(self._key_index+1)
+                        return self._youtube_search(vid)
                 else:
-                    self.set_key_index(self._key_index+1)
-                    return self._youtube_search(vid)
-            else:
-                self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
-            return
-
-        # Check to get empty responses handled properly
-        try:
-            if len(video_data["items"]) == 0:
-                self.logger.warning('Request for {0} request number was empty.'.format(vid))
+                    self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
                 return
-            else:
-                json_doc = video_data["items"][0]
-        except Exception as e:
-            self.logger.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
-            return
 
-        self.logger.debug(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
-        return json_doc
+            # Check to get empty responses handled properly
+            try:
+                if len(video_data["items"]) == 0:
+                    self.logger.warning('Request for {0} request number was empty.'.format(vid))
+                    return
+                else:
+                    json_doc = video_data["items"][0]
+            except Exception as e:
+                self.logger.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
+                return
+
+            self.logger.debug(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
+            return json_doc
 
     def start(self, input_file, output_dir):
         self.logger.warning('**> Outputting result to files...')
@@ -114,6 +115,7 @@ class MetadataCrawler(APIV3Crawler):
             os.makedirs(output_dir)
 
         # define the two queues: one for working jobs, one for results.
+        threads = []
         to_process = Queue()
         to_write = Queue()
 
@@ -130,7 +132,7 @@ class MetadataCrawler(APIV3Crawler):
                         to_write.put(jobj)
                     to_process.task_done()
                 except Exception as e:
-                    self.logger.error('[Input Queue] Error in writing: %s.' % e.message)
+                    self.logger.error('[Input Queue] Error in writing: {0}.'.format(str(e)))
                     continue
 
         def writer():
@@ -171,6 +173,7 @@ class MetadataCrawler(APIV3Crawler):
             t = Thread(target=worker)
             t.daemon = True
             t.start()
+            threads.append(t)
 
         # start the writer thread
         w = Thread(target=writer)
@@ -178,16 +181,16 @@ class MetadataCrawler(APIV3Crawler):
         w.start()
 
         # all is good, start the work
-        # opening bz2 file and reading the video id file to retrieve data
-        datafile = open(input_file, mode='r')
-        initial_time = time.time()
-        for line in datafile:
-            vid = line.strip()
-            to_process.put(vid)
-        datafile.close()
+        # opening vid file and reading the video id file to retrieve data
+        with open(input_file, mode='r') as datafile:
+            initial_time = time.time()
+            for line in datafile:
+                vid = line.strip()
+                to_process.put(vid)
 
         # wait for jobs to be done
-        to_process.join()
+        for t in threads:
+            t.join()
         # give the termination object and wait for termination
         to_write.put(0)
         to_write.join()
