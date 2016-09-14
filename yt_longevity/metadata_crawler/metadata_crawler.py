@@ -12,8 +12,7 @@ import json
 import requests
 import time
 from Queue import Queue
-from threading import Thread
-import thread
+from threading import Thread, Lock
 from apiclient import discovery
 
 from yt_longevity.metadata_crawler import APIV3Crawler
@@ -24,6 +23,7 @@ class MetadataCrawler(APIV3Crawler):
 
     def __init__(self):
         APIV3Crawler.__init__(self)
+        self._mutex_update = Lock()
         self._setup_logger('metadatacrawler')
 
         # Reading all values from options file to ensure we read only required fields
@@ -76,19 +76,25 @@ class MetadataCrawler(APIV3Crawler):
         start_time = time.time()
         if self._key_index >= len(self._keys):
             self.logger.error('Key index out of range, exit.')
-            thread.interrupt_main()
+            os._exit(0)
         else:
             youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[self._key_index])
+            current_key_index = self._key_index
 
             # Call the videos().list method to retrieve results matching the specified video term.
             try:
                 video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
             except Exception as e:
                 if 'quota' in str(e):
-                    self.logger.error('The request cannot be completed because quota exceeded.')
-                    if self._key_index < len(self._keys):
-                        self.set_key_index(self._key_index+1)
-                        return self._youtube_search(vid)
+                    if (not self._mutex_update.lock()) and current_key_index == self._key_index:
+                        self._mutex_update.acquire()
+                        self.logger.error('The request cannot be completed because quota exceeded.')
+                        self.logger.error('Current developer key index {0}.'.format(self._key_index))
+                        if self._key_index < len(self._keys):
+                            self.set_key_index(self._key_index+1)
+                            self.logger.error('Updated developer key index {0}.'.format(self._key_index))
+                        self._mutex_update.release()
+                    return self._youtube_search(vid)
                 else:
                     self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
                 return
@@ -115,7 +121,6 @@ class MetadataCrawler(APIV3Crawler):
             os.makedirs(output_dir)
 
         # define the two queues: one for working jobs, one for results.
-        threads = []
         to_process = Queue()
         to_write = Queue()
 
@@ -173,7 +178,6 @@ class MetadataCrawler(APIV3Crawler):
             t = Thread(target=worker)
             t.daemon = True
             t.start()
-            threads.append(t)
 
         # start the writer thread
         w = Thread(target=writer)
@@ -189,8 +193,7 @@ class MetadataCrawler(APIV3Crawler):
                 to_process.put(vid)
 
         # wait for jobs to be done
-        for t in threads:
-            t.join()
+        to_process.join()
         # give the termination object and wait for termination
         to_write.put(0)
         to_write.join()
