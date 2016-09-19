@@ -77,33 +77,33 @@ def loaddata(filepath):
     print 'Finish loading tweetcount data from {0}.'.format(filepath)
     return ax_x, ax_freq, ax_dcdf
 
-sample_may_x, sample_may_freq, sample_may_dcdf = loaddata('../../data/sampled_may_data/vid_tweetcount.txt')
-# full_may_x, full_may_freq, full_may_dcdf = loaddata('full_data/vid_tweetcount.txt')
-
-# ax3 frequency ~ tweetcount
-# ax3.scatter(full_may_x, full_may_freq, color='blue', s=0.5, label='full may data')
-ax3.scatter(sample_may_x, sample_may_freq, color='red', s=0.5, label='sample may data')
-ax3.set_xscale('symlog')
-ax3.set_yscale('symlog')
-ax3.set_xlim(xmin=0)
-ax3.set_ylim(ymin=0)
-ax3.set_title('Full May vs Sampled May Tweetcount Frequency Distribution')
-ax3.set_xlabel('Tweetcount')
-ax3.set_ylabel('Frequency')
-ax3.legend(loc='best')
-
-# ax4 dcdf ~ tweetcount
-# tc_s, tc_p = stats.ks_2samp(sample_may_dcdf, full_may_dcdf)
-
-# tc_full_may_plot = ax4.plot(full_may_x, full_may_dcdf, color='blue', label='full may data')[0]
-tc_sample_may_plot = ax4.plot(sample_may_x, sample_may_dcdf, color='red', label='sample may data')[0]
-ax4.set_xscale('symlog')
-ax4.set_xlim(xmin=0)
-ax4.set_ylim(ymin=0)
-ax4.set_title('Full May vs Sampled May Tweetcount Discrete CDF')
-ax4.set_xlabel('Tweetcount')
-ax4.set_ylabel('Cumulative Distribution Function')
-# ax4.legend([tc_full_may_plot, tc_sample_may_plot, extra], ('full may data', 'sample may data', 'pvalue of ks test: {0:.4E}'.format(tc_p)), loc='best')
+# sample_may_x, sample_may_freq, sample_may_dcdf = loaddata('../../data/sample_may_data/vid_tweetcount.txt')
+# # full_may_x, full_may_freq, full_may_dcdf = loaddata('full_data/vid_tweetcount.txt')
+#
+# # ax3 frequency ~ tweetcount
+# # ax3.scatter(full_may_x, full_may_freq, color='blue', s=0.5, label='full may data')
+# ax3.scatter(sample_may_x, sample_may_freq, color='red', s=0.5, label='sample may data')
+# ax3.set_xscale('symlog')
+# ax3.set_yscale('symlog')
+# ax3.set_xlim(xmin=0)
+# ax3.set_ylim(ymin=0)
+# ax3.set_title('Full May vs Sampled May Tweetcount Frequency Distribution')
+# ax3.set_xlabel('Tweetcount')
+# ax3.set_ylabel('Frequency')
+# ax3.legend(loc='best')
+#
+# # ax4 dcdf ~ tweetcount
+# # tc_s, tc_p = stats.ks_2samp(sample_may_dcdf, full_may_dcdf)
+#
+# # tc_full_may_plot = ax4.plot(full_may_x, full_may_dcdf, color='blue', label='full may data')[0]
+# tc_sample_may_plot = ax4.plot(sample_may_x, sample_may_dcdf, color='red', label='sample may data')[0]
+# ax4.set_xscale('symlog')
+# ax4.set_xlim(xmin=0)
+# ax4.set_ylim(ymin=0)
+# ax4.set_title('Full May vs Sampled May Tweetcount Discrete CDF')
+# ax4.set_xlabel('Tweetcount')
+# ax4.set_ylabel('Cumulative Distribution Function')
+# # ax4.legend([tc_full_may_plot, tc_sample_may_plot, extra], ('full may data', 'sample may data', 'pvalue of ks test: {0:.4E}'.format(tc_p)), loc='best')
 
 # fig.savefig('figs/full_sample_may_tweets_tweetcount_dist.png', dpi=fig.dpi)
 
