@@ -27,6 +27,10 @@
 
 ## Emerging videos dill in
 
+* Are gaming videos growing more than other categories? [yes] what led to the growth, pokemon?
+* how has the composition of categories changes between 2014 and 2016?
+
+
 What are those emerging videos? Are they predominant Gaming videos? What are those Gaming videos? Are they long-lived games or new ones like Pokemon Go?
 ![video generation growth breakdown](img/video_generation_growth_breakdown.png)
 
