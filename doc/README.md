@@ -22,7 +22,7 @@
 - 10% May dataset: 242758560 tweets, 3706190 distinct youtube videos are mentioned. 3421278 of those can retrieve a useful metadata.
 
 ## How do we measure missing data?
-![approximate missing period](img/approximate_missing_period.png')
+![approximate missing period](img/approximate_missing_period.png)
 
 ## Does YouTube become popular over the years?
 ![temporal youtube upload change](img/temporal_youtube_upload_change.png)
@@ -37,7 +37,7 @@ What are those emerging videos? Are they predominant Gaming videos? What are tho
 ![video generation growth breakdown](img/video_generation_growth_breakdown.png)
 
 ## Temporal tweeting/viewing behavior comparison
-[!temporal diff age distribution](img/temporal_diff_age_distribution.png)
+![temporal diff age distribution](img/temporal_diff_age_distribution.png)
 
 * old videos don't die -- which videos are forgotten between 2014 and 2016, and which ones was 'revived'
 
