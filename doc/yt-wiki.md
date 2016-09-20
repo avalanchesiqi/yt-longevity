@@ -33,6 +33,11 @@ What are those emerging videos? Are they predominant Gaming videos? What are tho
 ## Temporal tweeting/viewing behavior comparison
 [!temporal diff age distribution](img/temporal_diff_age_distribution.png)
 
+* old videos don't die -- which videos are forgotten between 2014 and 2016, and which ones was 'revived'
+
+* "long-lived videos" contain disproportionally more music videos -- (1) qunatify exactly how many (2) explain why this is the case (3) quantify how long any other video category survive. 
+* tweet bots that promote videos -- (1) Hyptothesis: bot activity does not increase viewcount (1.1) identify some bots, or bot-generated tweets, systematically (1.2) plot (#bot-tweets) vs viewcount.  (0) how prevalent is bot-tweets for (some) youtube videos?
+
 ## Granger causality to model hidden factors
 
 ## Rebound effect of later publish
