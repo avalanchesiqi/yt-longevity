@@ -13,6 +13,8 @@
 
 ## Data
 
+### buy some data from GNIP to validate our querying that may be subject to API rate limits
+
 ### 10% Monthly dataset
 
 10% Sample ratio from June-2014 and May-2016 tweets dataset.
