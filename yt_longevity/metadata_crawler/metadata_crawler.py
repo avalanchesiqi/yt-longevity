@@ -10,10 +10,11 @@ import sys
 import os
 import json
 import requests
+import random
 import time
 from Queue import Queue
 from threading import Thread, Lock
-from apiclient import discovery
+from apiclient import discovery, errors
 
 from yt_longevity.metadata_crawler import APIV3Crawler
 
@@ -59,11 +60,10 @@ class MetadataCrawler(APIV3Crawler):
                 json.dump(self.category_dict, categorydict)
 
     def _retrieve_categories(self, country_code="US"):
-        """Populate the categories mapping between category Id and category title
-        """
+        """Populate the categories mapping between category Id and category title."""
+
         r = requests.get("https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode={0}&key={1}"
                          .format(country_code, self._keys[self._key_index]))
-
         data = json.loads(r.text)
         categories = {}
         for item in data['items']:
@@ -71,33 +71,33 @@ class MetadataCrawler(APIV3Crawler):
         return categories
 
     def _youtube_search(self, vid):
-        """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it.
-        """
+        """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it."""
+
         start_time = time.time()
         if self._key_index >= len(self._keys):
             self.logger.error('Key index out of range, exit.')
             os._exit(0)
         else:
-            youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[self._key_index])
             current_key_index = self._key_index
+            youtube = discovery.build(self._api_service, self._api_version, developerKey=self._keys[current_key_index])
 
             # Call the videos().list method to retrieve results matching the specified video term.
             try:
                 video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
-            except Exception as e:
-                if 'quota' in str(e):
+            except errors.HttpError as error:
+                if error.resp.reason in ['userRateLimitExceeded', 'quotaExceeded']:
                     if (not self._mutex_update.lock()) and current_key_index == self._key_index:
                         self._mutex_update.acquire()
                         self.logger.error('The request cannot be completed because quota exceeded.')
-                        self.logger.error('Current developer key index {0}.'.format(self._key_index))
+                        self.logger.error('Current developer key index {0}.'.format(current_key_index))
                         if self._key_index < len(self._keys):
                             self.set_key_index(self._key_index+1)
                             self.logger.error('Updated developer key index {0}.'.format(self._key_index))
                         self._mutex_update.release()
+                    time.sleep(random.random())
                     return self._youtube_search(vid)
                 else:
-                    self.logger.error('Request for {0} request number failed with error {1} at invocation.'.format(vid, str(e)))
-                return
+                    raise error
 
             # Check to get empty responses handled properly
             try:
@@ -107,11 +107,24 @@ class MetadataCrawler(APIV3Crawler):
                 else:
                     json_doc = video_data["items"][0]
             except Exception as e:
-                self.logger.error('Request for {0} request number failed with error {1} while processing.'.format(vid, str(e)))
+                self.logger.error('Request for {0} failed with error {1} while processing.'.format(vid, str(e)))
                 return
 
-            self.logger.debug(('Request for %s request number took %.05f sec.' % (vid, time.time() - start_time)))
+            self.logger.debug(('Request for %s took %.05f sec.' % (vid, time.time() - start_time)))
             return json_doc
+
+    def _youtube_search_with_exponential_backoff(self, vid):
+        """ Implements Exponential backoff on youtube search."""
+        for i in xrange(0, 5):
+            try:
+                return self._youtube_search(vid)
+            except errors.HttpError as error:
+                if error.resp.reason in ['internalServerError', 'backendError']:
+                    time.sleep((2 ** i) + random.random())
+                else:
+                    self.logger.error('Request for {0} failed with error {1} at invocation.'.format(vid, error.resp.reason))
+                    break
+        self.logger.error('Request for {0} request has an error and never succeeded.'.format(vid))
 
     def start(self, input_file, output_dir):
         self.logger.warning('**> Outputting result to files...')
@@ -132,19 +145,19 @@ class MetadataCrawler(APIV3Crawler):
                 try:
                     vid = to_process.get()
                     # process the file only if it was not already done
-                    jobj = self._youtube_search(vid)
+                    jobj = self._youtube_search_with_exponential_backoff(vid)
                     if jobj is not None:
                         to_write.put(jobj)
                     to_process.task_done()
-                except Exception as e:
-                    self.logger.error('[Input Queue] Error in writing: {0}.'.format(str(e)))
+                except Exception as exc:
+                    self.logger.error('[Input Queue] Error in writing: {0}.'.format(str(exc)))
                     continue
 
         def writer():
             """Function to take values from the output queue and write it to a file
             We roll file after every 100k entries
             """
-            i = 0
+            i = 1
             output_path = "{0}/videoMetadata_{1}.json"
             video_metadata = open(output_path.format(output_dir, i), "w")
             j = 0
@@ -173,7 +186,7 @@ class MetadataCrawler(APIV3Crawler):
                     to_write.task_done()
                     continue
 
-        # start the working threads - 4 of them
+        # start the working threads - 10 of them
         for i in range(self._num_threads):
             t = Thread(target=worker)
             t.daemon = True
