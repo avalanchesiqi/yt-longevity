@@ -10,6 +10,7 @@ Email: Siqi.Wu@anu.edu.au
 import os
 import bz2
 import json
+import operator
 import random
 from collections import defaultdict
 from multiprocessing import Process, Queue
@@ -45,9 +46,7 @@ class VideoIdExtractor(Extractor):
         Extractor.__init__(self)
         self.set_input_dir(input_dir)
         self.set_output_dir(output_dir)
-        self.video_ids_path = "{0}/{1}".format(output_dir, "video_ids")
-        self.video_stats_path = "{0}/{1}".format(output_dir, "video_stats")
-        self._mkdirs(self.video_ids_path)
+        self.video_stats_path = "{0}/{1}".format(output_dir, 'video_stats')
         self._mkdirs(self.video_stats_path)
         self._setup_logger('vidextractor')
 
@@ -78,6 +77,10 @@ class VideoIdExtractor(Extractor):
             p.join()
 
         self.logger.debug('**> Finish extracting video ids from tweet bz2 files.')
+
+        self.logger.debug('**> Start aggregating video ids from stats folder...')
+        self._aggregate_ids()
+        self.logger.debug('**> aggregating video ids from stats folder.')
 
     @staticmethod
     def _extract_single_vid(tweet):
@@ -129,13 +132,26 @@ class VideoIdExtractor(Extractor):
                 except:
                     self.logger.error('EOFError: {0} ended before the logical end-of-stream was detected,'.format(filename))
 
-            with open('{0}/{1}.txt'.format(self.video_stats_path, filename), 'wb') as stats:
+            with open('{0}/{1}.txt'.format(self.video_stats_path, filename), 'w') as stats:
                 for k, v in ytdict.items():
                     stats.write('{0}\t{1}\n'.format(k, v))
 
-            with open('{0}/{1}.txt'.format(self.video_ids_path, filename), 'wb') as vids:
-                for vid in ytdict.keys():
-                    vids.write('{0}\n'.format(vid))
-
             datafile.close()
             self.logger.debug('{0} done!'.format(filename))
+
+    def _aggregate_ids(self):
+        tweetcount_dict = defaultdict(int)
+        for subdir, _, files in os.walk(self.video_stats_path):
+            for f in files:
+                if f.endswith('txt'):
+                    filepath = os.path.join(subdir, f)
+                    with open(filepath, 'r') as filedata:
+                        for line in filedata:
+                            if line.rstrip():
+                                vid, tweetcount = line.rstrip().split()
+                                tweetcount_dict[vid] += int(tweetcount)
+
+        with open('{0}/aggregated_ids.txt'.format(self.output_dir), 'w') as aggregated_ids:
+            sorted_tweetcount_tuple = sorted(tweetcount_dict.items(), key=operator.itemgetter(1), reverse=True)
+            for item in sorted_tweetcount_tuple:
+                aggregated_ids.write('{0}\t{1}\n'.format(item[0], item[1]))

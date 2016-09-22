@@ -102,7 +102,7 @@ class MetadataCrawler(APIV3Crawler):
             # Check to get empty responses handled properly
             try:
                 if len(video_data["items"]) == 0:
-                    self.logger.warning('Request for {0} request number was empty.'.format(vid))
+                    self.logger.debug('Request for {0} request number was empty.'.format(vid))
                     return
                 else:
                     json_doc = video_data["items"][0]
@@ -202,7 +202,7 @@ class MetadataCrawler(APIV3Crawler):
         with open(input_file, mode='r') as datafile:
             initial_time = time.time()
             for line in datafile:
-                vid = line.strip()
+                vid = line.rstrip().split()[0]
                 to_process.put(vid)
 
         # wait for jobs to be done
