@@ -85,8 +85,8 @@ class MetadataCrawler(APIV3Crawler):
             try:
                 video_data = youtube.videos().list(part=self.responseParts, id=vid.encode('utf-8'), fields=self.responseFields).execute()
             except errors.HttpError as error:
-                if error.resp.reason in ['userRateLimitExceeded', 'quotaExceeded']:
-                    if (not self._mutex_update.lock()) and current_key_index == self._key_index:
+                if error.resp.status == 403:
+                    if (not self._mutex_update.locked()) and current_key_index == self._key_index:
                         self._mutex_update.acquire()
                         self.logger.error('The request cannot be completed because quota exceeded.')
                         self.logger.error('Current developer key index {0}.'.format(current_key_index))
@@ -102,7 +102,7 @@ class MetadataCrawler(APIV3Crawler):
             # Check to get empty responses handled properly
             try:
                 if len(video_data["items"]) == 0:
-                    self.logger.debug('Request for {0} request number was empty.'.format(vid))
+                    # self.logger.debug('Request for {0} request number was empty.'.format(vid))
                     return
                 else:
                     json_doc = video_data["items"][0]
@@ -110,7 +110,7 @@ class MetadataCrawler(APIV3Crawler):
                 self.logger.error('Request for {0} failed with error {1} while processing.'.format(vid, str(e)))
                 return
 
-            self.logger.debug(('Request for %s took %.05f sec.' % (vid, time.time() - start_time)))
+            # self.logger.debug(('Request for %s took %.05f sec.' % (vid, time.time() - start_time)))
             return json_doc
 
     def _youtube_search_with_exponential_backoff(self, vid):
@@ -119,10 +119,10 @@ class MetadataCrawler(APIV3Crawler):
             try:
                 return self._youtube_search(vid)
             except errors.HttpError as error:
-                if error.resp.reason in ['internalServerError', 'backendError']:
+                if error.resp.status == 500 or error.resp.status == 503:
                     time.sleep((2 ** i) + random.random())
                 else:
-                    self.logger.error('Request for {0} failed with error {1} at invocation.'.format(vid, error.resp.reason))
+                    self.logger.error('Request for {0} failed with error code {1} at invocation.'.format(vid, error.resp.status))
                     break
         self.logger.error('Request for {0} request has an error and never succeeded.'.format(vid))
 
