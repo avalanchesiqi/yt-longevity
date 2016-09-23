@@ -151,7 +151,7 @@ class VideoIdExtractor(Extractor):
                                 vid, tweetcount = line.rstrip().split()
                                 tweetcount_dict[vid] += int(tweetcount)
 
-        with open('{0}/aggregated_ids.txt'.format(self.output_dir), 'w') as aggregated_ids:
+        with open('{0}/vid_tweetcount.txt'.format(self.output_dir), 'w') as aggregated_ids:
             sorted_tweetcount_tuple = sorted(tweetcount_dict.items(), key=operator.itemgetter(1), reverse=True)
             for item in sorted_tweetcount_tuple:
                 aggregated_ids.write('{0}\t{1}\n'.format(item[0], item[1]))
