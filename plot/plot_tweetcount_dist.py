@@ -11,32 +11,37 @@ import matplotlib.pyplot as plt
 
 def plot_basics(filepath, ax, text):
     tweetcounts = np.genfromtxt(filepath, usecols=(1,), comments=None, dtype=np.int32, unpack=True)
-    n = len(tweetcounts)
 
-    tc_freq_dict = defaultdict(int)
-    for tc in tweetcounts:
-        tc_freq_dict[tc] += 1
+    ###
+    x, y = powerlaw.pdf(tweetcounts, linear_bins=True)
+    ind = y > 0
+    y = y[ind]
+    x = x[:-1]
+    x = x[ind]
+    ax.scatter(x, y, color='r', s=.5)
+    powerlaw.plot_pdf(tweetcounts, ax=ax, color='b', linewidth=2)
+    ###
 
-    sorted_x = sorted(tc_freq_dict.keys())
-    x = [i for i in sorted_x]
-    y = [1.0*tc_freq_dict[i]/n for i in x]
+    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+    ax1in = inset_axes(ax, width="30%", height="30%", loc=3)
+    ax1in.hist(tweetcounts, normed=True, color='b')
+    ax1in.set_xticks([])
+    ax1in.set_yticks([])
+
+    ###
+    fit = powerlaw.Fit(tweetcounts, xmin=1, discrete=True)
+    fit.power_law.plot_pdf(ax=ax, linestyle=':', color='g')
 
     ####
-    powerlaw.plot_pdf(tweetcounts, ax=ax, color='b', linewidth=2)
+    fit = powerlaw.Fit(tweetcounts, discrete=True)
+    fit.power_law.plot_pdf(ax=ax, linestyle='--', color='g')
 
-    ax.scatter(x, y, s=1, color='r')
-
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.set_ylim(ymin=10 ** -7)
     ax.set_xlabel(r"Tweetcount")
     ax.set_ylabel(u"p(X)")
 
-    fit = powerlaw.Fit(tweetcounts)
     alpha = fit.power_law.alpha
     xmin = fit.power_law.xmin
-
-    textstr = 'alpha: {0}\nxmin: {1}\nperiod: {2}'.format(alpha, xmin, text)
+    textstr = 'alpha: {0:.4f}\nxmin: {1}\nperiod: {2}'.format(alpha, xmin, text)
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     ax.text(0.5, 0.95, textstr, transform=ax.transAxes, fontsize=14, verticalalignment='top', bbox=props)
     ####
