@@ -11,7 +11,7 @@ BASE_DIR = '../../data/full_jun_data/'
 
 
 def load_age_frequency(filepath):
-    longlived = open(filepath.rsplit('/', 1)[0]+'longlived.txt', 'w')
+    longlived = open(filepath.rsplit('/', 1)[0]+'/longlived.txt', 'w')
     with open(filepath, 'r') as filedata:
         age_freq_dict = defaultdict(lambda: (0, 0))
         for line in filedata:
