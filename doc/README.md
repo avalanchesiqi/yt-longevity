@@ -45,24 +45,24 @@ What are those emerging videos? Are they predominant Gaming videos? What are tho
 
 ## Longlived video analysis
 * "long-lived videos" contain disproportionally more music videos -- (1) quantify exactly how many (2) explain why this is the case (3) quantify how long any other video category survive.
-| Year                  | 2014 | 2015| 2016 |
-| --------------------- | :---:| ---:| ----:|
-| Music                 | 880  | 634 | 442  |
-| People & Blogs        | 528  | 231 | 251  |
-| News & Politics       | 307  | 145 | 249  |
-| Entertainment         | 134  | 184 | 134  |
-| Education             | 134  | 189 | 110  |
-| Sports                | 126  | 52  | 56   |
-| Film & Animation      | 118  | 45  | 52   |
-| Comedy                | 107  | 55  | 78   |
-| Nonprofits & Activism | 92   | 63  | 100  |
-| Howto & Style         | 48   | 50  | 102  |
-| Science & Technology  | 40   | 35  | 10   |
-| Autos & Vehicles      | 27   | 1   | 5    |
-| Travel & Events       | 24   | 7   | 1    |
-| Pets & Animals        | 16   | 8   | 34   |
-| Gaming                | 8    | 7   | 8    |
-| Shows                 | 2    | 4   | 3    |
+ Year                  | 2014 | 2015 | 2016
+ --------------------- | ---- | ---- | ----
+ Music                 | 880  | 634  | 442
+ People & Blogs        | 528  | 231  | 251
+ News & Politics       | 307  | 145  | 249
+ Entertainment         | 134  | 184  | 134
+ Education             | 134  | 189  | 110
+ Sports                | 126  | 52   | 56
+ Film & Animation      | 118  | 45   | 52
+ Comedy                | 107  | 55   | 78
+ Nonprofits & Activism | 92   | 63   | 100
+ Howto & Style         | 48   | 50   | 102
+ Science & Technology  | 40   | 35   | 10
+ Autos & Vehicles      | 27   | 1    | 5
+ Travel & Events       | 24   | 7    | 1
+ Pets & Animals        | 16   | 8    | 34
+ Gaming                | 8    | 7    | 8
+ Shows                 | 2    | 4    | 3
 
 * old videos don't die -- which videos are forgotten between 2014 and 2016, and which ones was 'revived'
 
