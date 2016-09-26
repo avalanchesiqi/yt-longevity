@@ -45,24 +45,26 @@ What are those emerging videos? Are they predominant Gaming videos? What are tho
 
 ## Longlived video analysis
 * "long-lived videos" contain disproportionally more music videos -- (1) quantify exactly how many (2) explain why this is the case (3) quantify how long any other video category survive.
- Year                  | 2014 | 2015 | 2016
- --------------------- | ---- | ---- | ----
- Music                 | 880  | 634  | 442
- People & Blogs        | 528  | 231  | 251
- News & Politics       | 307  | 145  | 249
- Entertainment         | 134  | 184  | 134
- Education             | 134  | 189  | 110
- Sports                | 126  | 52   | 56
- Film & Animation      | 118  | 45   | 52
- Comedy                | 107  | 55   | 78
- Nonprofits & Activism | 92   | 63   | 100
- Howto & Style         | 48   | 50   | 102
- Science & Technology  | 40   | 35   | 10
- Autos & Vehicles      | 27   | 1    | 5
- Travel & Events       | 24   | 7    | 1
- Pets & Animals        | 16   | 8    | 34
- Gaming                | 8    | 7    | 8
- Shows                 | 2    | 4    | 3
+
+| Year                  | 2014 | 2015 | 2016 | 2014   | 2015   | 2016   |
+| --------------------- | :---:| ----:| ----:| :-----:| ------:| ------:|
+| Music                 | 880  | 634  | 442  | 0.3396 | 0.3707 | 0.2703 |
+| People & Blogs        | 528  | 231  | 251  | 0.2037 | 0.1350 | 0.1535 |
+| News & Politics       | 307  | 145  | 249  | 0.1184 | 0.0848 | 0.1522 |
+| Entertainment         | 134  | 184  | 134  | 0.0517 | 0.1076 | 0.0819 |
+| Education             | 134  | 189  | 110  | 0.0517 | 0.1105 | 0.0672 |
+| Sports                | 126  | 52   | 56   | 0.0486 | 0.0304 | 0.0342 |
+| Film & Animation      | 118  | 45   | 52   | 0.0455 | 0.0263 | 0.0318 |
+| Comedy                | 107  | 55   | 78   | 0.0412 | 0.0321 | 0.0477 |
+| Nonprofits & Activism | 92   | 63   | 100  | 0.0355 | 0.0368 | 0.0611 |
+| Howto & Style         | 48   | 50   | 102  | 0.0185 | 0.0292 | 0.0623 |
+| Science & Technology  | 40   | 35   | 10   | 0.0154 | 0.0204 | 0.0061 |
+| Autos & Vehicles      | 27   | 1    | 5    | 0.0104 | 0.0006 | 0.0030 |
+| Travel & Events       | 24   | 7    | 1    | 0.0092 | 0.0041 | 0.0006 |
+| Pets & Animals        | 16   | 8    | 34   | 0.0061 | 0.0047 | 0.0207 |
+| Gaming                | 8    | 7    | 8    | 0.0030 | 0.0041 | 0.0048 |
+| Shows                 | 2    | 4    | 3    | 0.0007 | 0.0023 | 0.0018 |
+| Total                 | 2591 | 1710 | 1635 | 1.0000 | 1.0000 | 1.0000 |
 
 * old videos don't die -- which videos are forgotten between 2014 and 2016, and which ones was 'revived'
 
