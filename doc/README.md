@@ -21,6 +21,7 @@ June data populated from twitter streaming with 1 year apart
 * long-lived 1 -- at least one day w >50 tweets, and at least 500 days old
 * long-lived 2 -- at least one day w >200 tweets, and at least 500 days old
 
+**TODO** plot the age distribution w. calendar on the x-axis
 
 | Dataset           | Tweet       | Sharing    | LLived1 | LLived2|
 | ----------------- |:-----------:| ----------:| -------:| ------:|
