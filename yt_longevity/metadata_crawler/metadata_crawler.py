@@ -168,6 +168,8 @@ class MetadataCrawler(APIV3Crawler):
                     if jobj == 0:
                         self.logger.warning('**> Termination object received and wait for termination...')
                         video_metadata.close()
+                        with open('conf/idx.txt', 'w') as idx_file:
+                            idx_file.write('{0}\n'.format(idx+1))
                         break
                     elif jobj is not None:
                         video_metadata.write("{}\n".format(json.dumps(jobj)))  # , sort_keys=True
