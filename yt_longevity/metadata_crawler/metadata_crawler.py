@@ -12,6 +12,7 @@ import json
 import requests
 import random
 import time
+import socket
 from Queue import Queue
 from threading import Thread, Lock
 from apiclient import discovery, errors
@@ -73,7 +74,7 @@ class MetadataCrawler(APIV3Crawler):
     def _youtube_search(self, vid):
         """Finds the metadata about a specifies videoId from youtube and returns the JSON object associated with it."""
 
-        start_time = time.time()
+        # start_time = time.time()
         if self._key_index >= len(self._keys):
             self.logger.error('Key index out of range, exit.')
             os._exit(0)
@@ -126,7 +127,7 @@ class MetadataCrawler(APIV3Crawler):
                     break
         self.logger.error('Request for {0} request has an error and never succeeded.'.format(vid))
 
-    def start(self, input_file, output_dir):
+    def start(self, input_file, output_dir, idx):
         self.logger.warning('**> Outputting result to files...')
 
         # If output directory not exists, create a new one
@@ -155,12 +156,10 @@ class MetadataCrawler(APIV3Crawler):
 
         def writer():
             """Function to take values from the output queue and write it to a file
-            We roll file after every 100k entries
             """
-            i = 1
-            output_path = "{0}/videoMetadata_{1}.json"
-            video_metadata = open(output_path.format(output_dir, i), "w")
-            j = 0
+            hostname = socket.gethostname()[:-10]
+            output_path = "{0}/{1}-meta{2}.json"
+            video_metadata = open(output_path.format(output_dir, hostname, idx), "w")
             while True:
                 try:
                     jobj = to_write.get()
@@ -172,14 +171,6 @@ class MetadataCrawler(APIV3Crawler):
                         break
                     elif jobj is not None:
                         video_metadata.write("{}\n".format(json.dumps(jobj)))  # , sort_keys=True
-
-                    # handle the rolling of the output file, if needed
-                    j += 1
-                    if j == 100000:
-                        video_metadata.close()
-                        video_metadata = open(output_path.format(output_dir, i+1), "w")
-                        j = 0
-                        i += 1
                 except Exception as e:
                     self.logger.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
                     # in any case, mark the current item as done
@@ -212,4 +203,4 @@ class MetadataCrawler(APIV3Crawler):
         to_write.join()
 
         self.logger.warning('**> Total time for requests {0:.4f} secs.'.format(time.time() - initial_time))
-        sys.exit(1)
+        sys.exit(0)
