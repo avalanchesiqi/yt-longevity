@@ -9,6 +9,7 @@ Email: Siqi.Wu@anu.edu.au
 
 import os
 import bz2
+import re
 import json
 import operator
 import random
@@ -99,12 +100,10 @@ class VideoIdExtractor(Extractor):
                 vid = expanded_url.rsplit('/', 1)[-1][:11]
             else:
                 continue
-            if len(vid) == 11:
-                try:
-                    vid.decode('utf-8').encode('ascii')
-                    ret.append(vid)
-                except:
-                    continue
+            # valid condition: contains only alphanumeric and dash
+            valid = re.match('^[\w-]+$', vid) is not None
+            if valid and len(vid) == 11:
+                ret.append(vid)
         return ret
 
     def _extract_vid(self, filequeue, sampling_ratio):
