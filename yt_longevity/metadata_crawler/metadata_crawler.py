@@ -38,7 +38,7 @@ class MetadataCrawler(APIV3Crawler):
                 self.responseFields = lines[3].strip()
         except:
             self.logger.error('**> The options file options.txt does not exist! It should be in the conf folder.')
-            sys.exit()
+            sys.exit(1)
 
         # Reading developer_key from developer.key file from conf, roll over when exceed quota
         try:
@@ -48,7 +48,7 @@ class MetadataCrawler(APIV3Crawler):
                 self.set_key_index(0)
         except:
             self.logger.error('**> The keys file developer.key does not exist! It should be in the conf folder.')
-            sys.exit()
+            sys.exit(1)
 
         # Reading categories mapping from categorydict json, otherwise recrawl and log warning
         try:
@@ -149,10 +149,9 @@ class MetadataCrawler(APIV3Crawler):
                     jobj = self._youtube_search_with_exponential_backoff(vid)
                     if jobj is not None:
                         to_write.put(jobj)
-                    to_process.task_done()
                 except Exception as exc:
                     self.logger.error('[Input Queue] Error in writing: {0}.'.format(str(exc)))
-                    continue
+                to_process.task_done()
 
         def writer():
             """Function to take values from the output queue and write it to a file
@@ -166,18 +165,16 @@ class MetadataCrawler(APIV3Crawler):
                     to_write.task_done()
                     # check for file termination object
                     if jobj == 0:
+                        with open('conf/idx.txt', 'w') as idx_file:
+                            idx_file.write('{0}\n'.format(idx + 1))
                         self.logger.warning('**> Termination object received and wait for termination...')
                         video_metadata.close()
-                        with open('conf/idx.txt', 'w') as idx_file:
-                            idx_file.write('{0}\n'.format(idx+1))
-                        break
                     elif jobj is not None:
                         video_metadata.write("{}\n".format(json.dumps(jobj)))  # , sort_keys=True
                 except Exception as e:
                     self.logger.error('[Output Queue] Error in writing: {0}.'.format(str(e)))
-                    # in any case, mark the current item as done
-                    to_write.task_done()
-                    continue
+                # in any case, mark the current item as done
+                to_write.task_done()
 
         # start the working threads - 10 of them
         for i in range(self._num_threads):
@@ -192,6 +189,7 @@ class MetadataCrawler(APIV3Crawler):
 
         # all is good, start the work
         # opening vid file and reading the video id file to retrieve data
+        # since we do not roll the output file, make sure not pass a file contains too many vids (<600k)
         with open(input_file, mode='r') as datafile:
             initial_time = time.time()
             for line in datafile:
