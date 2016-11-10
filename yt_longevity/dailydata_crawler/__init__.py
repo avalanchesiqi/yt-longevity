@@ -94,7 +94,7 @@ class Crawler(object):
         """Store parsed response of vid in json format, field to record:
         startdate, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber,
         """
-        raw_outdir = '{0}/raw_data/{1}/{2}/{3}/'.format(self._output_dir, vid[0], vid[1], vid[2])
+        raw_outdir = '{0}/raw_data/{1}/{2}/'.format(self._output_dir, vid[0], vid[1])
         if not os.path.exists(raw_outdir):
             os.makedirs(raw_outdir)
 

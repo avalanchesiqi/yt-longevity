@@ -96,10 +96,6 @@ class SingleCrawler(Crawler):
         :param output_dir: directory that contains possible information
         """
 
-        # If output directory not exists, create a new one
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
         self._input = open(input_file, mode='r')
         self._output_dir = output_dir
 

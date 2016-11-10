@@ -11,11 +11,11 @@ Email: Siqi.Wu@anu.edu.au
 import sys
 import os
 import socket
+import argparse
 
 from yt_longevity.extractor.vidextractor import VideoIdExtractor
 from yt_longevity.metadata_crawler.metadata_crawler import MetadataCrawler
 from yt_longevity.dailydata_crawler.single_crawler import SingleCrawler
-from yt_longevity.combine import combine
 
 
 def extract(input_dir, output_dir, proc_num, sample_ratio):
@@ -25,17 +25,17 @@ def extract(input_dir, output_dir, proc_num, sample_ratio):
     extractor.extract(sample_ratio)
 
 
-def metadata_crawl(input_path, output_dir, idx):
+def metadata_crawl(input_path, output_dir, thread_num, idx):
     """Crawl metadata for vids in input_file from YouTube frontend server."""
     metadata_crawler = MetadataCrawler()
-    metadata_crawler.set_num_thread(10)
+    metadata_crawler.set_num_thread(thread_num)
     metadata_crawler.start(input_path, output_dir, idx)
 
 
-def single_crawl(input_file):
+def single_crawl(input_path, output_dir):
     """Crawl dailydata for vids in input_file from YouTube frontend server in single thread."""
     single_crawler = SingleCrawler()
-    single_crawler.start(input_file, 'output')
+    single_crawler.start(input_path, output_dir)
 
 
 def batch_crawl():
@@ -44,29 +44,40 @@ def batch_crawl():
 
 
 if __name__ == '__main__':
-    # input_dir = '/data2/proj/youtube-twitter-crawl/bz2-files_2015/'
-    # output_dir = 'may_2016'
-    # proc_num = 12
-    # sample_ratio = 0.1
-    # extract(input_dir, output_dir, proc_num, sample_ratio)
+    # Instantiate the parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--function', help='function of conduction', required=True)
+    parser.add_argument('-i', '--input', help='input path of tweets or vids', required=True)
+    parser.add_argument('-o', '--output', help='output dir of tweet stats or vid data', required=True)
+    args = parser.parse_args()
 
-    idx_path = 'conf/idx.txt'
-    if os.path.exists(idx_path):
-        with open(idx_path, 'r') as idx_file:
-            idx = int(idx_file.readline().rstrip())
+    input_path = args.input
+    output_dir = args.output
+
+    # If output directory not exists, create a new one
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    if args.function == 'extract':
+        proc_num = 12
+        sample_ratio = 1.0
+        extract(input_path, output_dir, proc_num, sample_ratio)
+    elif args.function == 'metadata':
+        idx_path = 'conf/idx.txt'
+        if os.path.exists(idx_path):
+            with open(idx_path, 'r') as idx_file:
+                idx = int(idx_file.readline().rstrip())
+        else:
+            with open(idx_path, 'w') as idx_file:
+                idx_file.write('0')
+                idx = 0
+        hostname = socket.gethostname()[:-10]
+
+        input_path = '{0}/{1}-{2}.txt'.format(input_path, hostname, idx)
+        thread_num = 10
+        metadata_crawl(input_path, output_dir, thread_num, idx)
+    elif args.function == 'dailydata':
+        print os.getcwd()
+        single_crawl(input_path, output_dir)
     else:
-        with open(idx_path, 'w') as idx_file:
-            idx_file.write('0')
-            idx = 0
-    hostname = socket.gethostname()[:-10]
-
-    input_path = 'input/{0}-{1}.txt'.format(hostname, idx)
-    if os.path.exists(input_path):
-        output_dir = '/mnt/data/'
-        metadata_crawl(input_path, output_dir, idx)
-    else:
-        sys.exit(1)
-
-    # single_crawl('plot/validvids.txt')
-
-    # combine('datasets/metadata', '../dailydata')
+        print 'You have entered a wrong function!!!'

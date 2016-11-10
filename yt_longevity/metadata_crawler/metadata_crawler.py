@@ -130,10 +130,6 @@ class MetadataCrawler(APIV3Crawler):
     def start(self, input_file, output_dir, idx):
         self.logger.warning('**> Outputting result to files...')
 
-        # If output directory not exists, create a new one
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
         # define the two queues: one for working jobs, one for results.
         to_process = Queue()
         to_write = Queue()
