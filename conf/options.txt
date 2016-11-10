@@ -1,4 +1,4 @@
 #parts to retrieve
-contentDetails,statistics,topicDetails,snippet
+snippet,statistics,topicDetails,contentDetails
 #individual fields to retrieve inside parts
-items(id,snippet(publishedAt,channelId,title,description,channelTitle,categoryId),topicDetails,contentDetails(duration,dimension,definition,caption,regionRestriction))
+items(id,snippet(publishedAt,channelId,title,description,channelTitle,categoryId,tags),statistics,topicDetails,contentDetails(duration,dimension,definition,caption,regionRestriction))

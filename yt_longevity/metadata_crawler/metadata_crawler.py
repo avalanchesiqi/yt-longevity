@@ -162,7 +162,6 @@ class MetadataCrawler(APIV3Crawler):
             while True:
                 try:
                     jobj = to_write.get()
-                    to_write.task_done()
                     # check for file termination object
                     if jobj == 0:
                         with open('conf/idx.txt', 'w') as idx_file:
@@ -189,7 +188,6 @@ class MetadataCrawler(APIV3Crawler):
 
         # all is good, start the work
         # opening vid file and reading the video id file to retrieve data
-        # since we do not roll the output file, make sure not pass a file contains too many vids (<600k)
         with open(input_file, mode='r') as datafile:
             initial_time = time.time()
             for line in datafile:
