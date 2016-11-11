@@ -33,16 +33,20 @@ def fit_multiple_lines(lst, head=0, prev=0):
         m = len(lines)
         last_elms = np.array([lines[j][-1] for j in xrange(m)])
         if comer <= min(last_elms):
-            if head == 0 or comer < 100:
+            if (head == 0 and cnt < 20) or comer < 100:
                 lines.append([comer])
                 orders.append([cnt])
         else:
             last_elms[comer <= last_elms] = 0
             k = np.argmin(comer-last_elms)
-            # detect unusual increment
             lines[k].append(comer)
             orders[k].append(cnt)
         cnt += 1
+
+    # filter out segment with less than 25 points
+    orders = [order for order in orders if len(order) > 25]
+    lines = [line for line in lines if len(line) > 25]
+
     t = len(lines)
     print 'number of inner segments:', t, len(orders)
     if head == 0:
@@ -81,13 +85,13 @@ def get_disconnect_window(arr, width):
             windows.append([val])
         elif len(box) < width and (min(box)-val) > 2500 and val < 100:
             # detect drop 1, not full, decrease sharply, hard threshold
-            print 'detect drop #1: {0} {1} {2} {3}'.format(val, len(box), min(box), box)
+            # print 'detect drop #1: {0} {1} {2} {3}'.format(val, len(box), min(box), box)
             # reset box
             box = deque(maxlen=width)
             windows.append([val])
         elif len(box) == width and min(box) > val and val < 100:
             # detect drop 2, full, smaller than min in box, hard threshold
-            print 'detect drop #2: {0} {1} {2} {3}'.format(val, len(box), min(box), box)
+            # print 'detect drop #2: {0} {1} {2} {3}'.format(val, len(box), min(box), box)
             # reset box
             box = deque(maxlen=width)
             windows.append([val])
@@ -95,6 +99,7 @@ def get_disconnect_window(arr, width):
             windows[-1].append(val)
         box.append(val)
 
+    windows = [w for w in windows if len(w) > 100]
     n = len(windows)
     print 'number of connections:', n
     return windows
@@ -116,7 +121,7 @@ def get_miss_num(loc):
             date = path.rstrip()[-18:-8]
             print '-----------------'
             print date
-            width = 50
+            width = 20
             non_disconnect_windows = get_disconnect_window(tracks, width)
             total_miss_max, total_miss_sum = get_miss_num_controller(non_disconnect_windows)
 
@@ -162,15 +167,15 @@ if __name__ == '__main__':
     file_loc2 = '../../data/rate_limit'
     filepath1 = os.path.join(file_loc1, 'sample_ratio.log')
 
-    # retrieve_map = get_retrieve_num(filepath1)
-    # miss_max_map, miss_sum_map = get_miss_num(file_loc2)
+    retrieve_map = get_retrieve_num(filepath1)
+    miss_max_map, miss_sum_map = get_miss_num(file_loc2)
 
-    # with open(os.path.join(file_loc1, r'retrieve_map.pickle'), 'wb') as output1:
-    #     pickle.dump(retrieve_map, output1)
-    # with open(os.path.join(file_loc1, r'miss_max_map.pickle'), 'wb') as output2:
-    #     pickle.dump(miss_max_map, output2)
-    # with open(os.path.join(file_loc1, r'miss_sum_map.pickle'), 'wb') as output3:
-    #     pickle.dump(miss_sum_map, output3)
+    with open(os.path.join(file_loc1, r'retrieve_map.pickle'), 'wb') as output1:
+        pickle.dump(retrieve_map, output1)
+    with open(os.path.join(file_loc1, r'miss_max_map.pickle'), 'wb') as output2:
+        pickle.dump(miss_max_map, output2)
+    with open(os.path.join(file_loc1, r'miss_sum_map.pickle'), 'wb') as output3:
+        pickle.dump(miss_sum_map, output3)
 
     with open(os.path.join(file_loc1, r'retrieve_map.pickle'), 'rb') as input1:
         retrieve_map = pickle.load(input1)
@@ -181,7 +186,6 @@ if __name__ == '__main__':
 
     # del retrieve_map['2014-05-28']
     del retrieve_map['2014-12-26']
-    del retrieve_map['2016-04-03']
     date_axis = [datetime(2014, 6, 1)+timedelta(days=i) for i in xrange(len(retrieve_map)+115)]
     retrieve_axis = [retrieve_map[date2str(d)] if date2str(d) in retrieve_map else np.nan for d in date_axis]
     restore_axis1 = [retrieve_map[date2str(d)]+miss_max_map[date2str(d)] if date2str(d) in retrieve_map and date2str(d) in miss_max_map else np.nan for d in date_axis]
