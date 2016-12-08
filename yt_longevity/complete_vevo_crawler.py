@@ -13,7 +13,7 @@ import cookielib
 import time
 from apiclient import discovery, errors
 
-from yt_longevity.dailydata_crawler.xmlparser import parsexml
+from dailydata_crawler.xmlparser import parsexml
 
 
 YOUTUBE_API_SERVICE_NAME = "youtube"
@@ -40,19 +40,19 @@ def list_channel_videos(youtube, channel_id):
         maxResults=50,
     ).execute()
 
-    videos = []
+    videos = set()
 
     if 'nextPageToken' in search_response:
         next_pagetoken = search_response['nextPageToken']
     else:
         next_pagetoken = None
     for search_result in search_response.get("items", []):
-        videos.append(search_result["id"]["videoId"])
+        videos.add(search_result["id"]["videoId"])
 
     while next_pagetoken is not None:
         search_response = youtube.search().list(
             part="snippet",
-            id=channel_id,
+            channelId=channel_id,
             maxResults=50,
             type='video',
             pageToken=next_pagetoken
@@ -62,7 +62,7 @@ def list_channel_videos(youtube, channel_id):
         else:
             next_pagetoken = None
         for search_result in search_response.get("items", []):
-            videos.append(search_result["id"]["videoId"])
+            videos.add(search_result["id"]["videoId"])
 
     return videos
 
@@ -157,21 +157,21 @@ if __name__ == "__main__":
                         try:
                             response = opener.open(url, data, timeout=5).read()
                             csvstring = parsexml(response)
+
+                            startdate, dailyview, totalview, dailyshare, totalshare, dailywatch, avgwatch, dailysubscriber, totalsubscriber = csvstring.split()
+                            video_data['statistics'] = {}
+                            video_data['statistics']['startDate'] = startdate
+                            video_data['statistics']['dailyView'] = dailyview
+                            video_data['statistics']['totalView'] = totalview
+                            video_data['statistics']['dailyShare'] = dailyshare
+                            video_data['statistics']['totalShare'] = totalshare
+                            video_data['statistics']['dailyWatch'] = dailywatch
+                            video_data['statistics']['avgWatch'] = avgwatch
+                            video_data['statistics']['dailySubscriber'] = dailysubscriber
+                            video_data['statistics']['totalSubscriber'] = totalsubscriber
+
+                            output.write('{0}\n'.format(json.dumps(video_data)))
                         except Exception, e:
-                            print "Video historical crawler: An error occurred:\n%s" % (str(e))
-
-                        startdate, dailyview, totalview, dailyshare, totalshare, dailywatch, avgwatch, dailysubscriber, totalsubscriber = csvstring.split()
-                        video_data['statistics'] = {}
-                        video_data['statistics']['startDate'] = startdate
-                        video_data['statistics']['dailyView'] = dailyview
-                        video_data['statistics']['totalView'] = totalview
-                        video_data['statistics']['dailyShare'] = dailyshare
-                        video_data['statistics']['totalShare'] = totalshare
-                        video_data['statistics']['dailyWatch'] = dailywatch
-                        video_data['statistics']['avgWatch'] = avgwatch
-                        video_data['statistics']['dailySubscriber'] = dailysubscriber
-                        video_data['statistics']['totalSubscriber'] = totalsubscriber
-
-                        output.write('{0}\n'.format(json.dumps(video_data)))
+                            print 'Video historical crawler: An error occurred when crawl {0}:\n{1}'.format(vid, str(e))
                 except errors.HttpError, e:
-                    print "Channel videos crawler: An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+                    print 'Channel videos crawler: An HTTP error {0} occurred when crawl {1}:\n{2}'.format(e.resp.status, cid, e.content)
