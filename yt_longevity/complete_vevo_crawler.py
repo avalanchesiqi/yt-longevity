@@ -110,6 +110,7 @@ def get_url(vid):
 def get_post_data(sessiontoken):
     return urllib.urlencode({'session_token': sessiontoken})
 
+
 # Get the request header for single crawler
 def get_header(cookie, vid):
     headers = []
@@ -122,12 +123,42 @@ def get_header(cookie, vid):
     return headers
 
 
+# Make a request to YouTube server to get historical data
+def request(opener, vid, cookie, postdata):
+    url = get_url(vid)
+    header = get_header(cookie, vid)
+    opener.addheaders = header
+
+    try:
+        response = opener.open(url, postdata, timeout=5)
+    except:
+        print ('Video historical crawler: : {0} server is down, can not get response, retry...\n'.format(vid))
+        return 0, None
+
+    try:
+        content = response.read()
+    except:
+        print ('Video historical crawler: : {0} response read time out, retry...\n'.format(vid))
+        return 0, None
+
+    time.sleep(random.uniform(0.1, 1))
+
+    try:
+        csvstring = parsexml(content)
+    except Exception, e:
+        print ('Video historical crawler: : {0} {1}\n'.format(vid, str(e)))
+        return 1, None
+
+    return 1, csvstring
+
+
 if __name__ == "__main__":
     base_dir = '../'
     developer_key = open(base_dir+'conf/developer.key').readline().rstrip()
     youtube = discovery.build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
     opener = urllib2.build_opener()
     cookie, sessiontoken = get_cookie_and_sessiontoken()
+    postdata = get_post_data(sessiontoken)
 
     if not os.path.exists(base_dir+'data/vevo/'):
         os.makedirs(base_dir+'data/vevo/')
@@ -144,20 +175,20 @@ if __name__ == "__main__":
                         try:
                             video_data = list_video_metadata(youtube, vid)
                         except errors.HttpError, e:
-                            print "Video metadata crawler: An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+                            print 'Video metadata crawler: An HTTP error {0} occurred when crawl {1}:\n{2}'.format(e.resp.status, vid, e.content)
 
                         # crawl historical data
-                        url = get_url(vid)
-                        data = get_post_data(sessiontoken)
-                        header = get_header(cookie, vid)
-                        opener.addheaders = header
+                        flag, csvstring = request(opener, vid, cookie, postdata)
+                        # fail over 5 times, pass
+                        cnt = 0
+                        while not flag:
+                            if cnt > 5:
+                                print ('Video historical crawler: : {0} failed over 5 times\n'.format(vid))
+                                break
+                            flag, csvstring = request(opener, vid, cookie, postdata)
+                            cnt += 1
 
-                        time.sleep(random.uniform(0.1, 1))
-
-                        try:
-                            response = opener.open(url, data, timeout=5).read()
-                            csvstring = parsexml(response)
-
+                        if csvstring is not None:
                             startdate, dailyview, totalview, dailyshare, totalshare, dailywatch, avgwatch, dailysubscriber, totalsubscriber = csvstring.split()
                             video_data['statistics'] = {}
                             video_data['statistics']['startDate'] = startdate
@@ -169,9 +200,9 @@ if __name__ == "__main__":
                             video_data['statistics']['avgWatch'] = avgwatch
                             video_data['statistics']['dailySubscriber'] = dailysubscriber
                             video_data['statistics']['totalSubscriber'] = totalsubscriber
+                        else:
+                            print ('Video historical crawler: : {0} failed to crawl historical data\n'.format(vid))
 
-                            output.write('{0}\n'.format(json.dumps(video_data)))
-                        except Exception, e:
-                            print 'Video historical crawler: An error occurred when crawl {0}:\n{1}'.format(vid, str(e))
+                        output.write('{0}\n'.format(json.dumps(video_data)))
                 except errors.HttpError, e:
                     print 'Channel videos crawler: An HTTP error {0} occurred when crawl {1}:\n{2}'.format(e.resp.status, cid, e.content)
