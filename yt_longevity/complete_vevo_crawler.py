@@ -3,6 +3,7 @@
 # Usage example:
 # python channel_localizations.py --action='<action>' --channel_id='<channel_id>'
 
+import sys
 import os
 import re
 import random
@@ -12,6 +13,8 @@ import urllib
 import cookielib
 import time
 from apiclient import discovery, errors
+from selenium import webdriver
+from bs4 import BeautifulSoup
 
 from dailydata_crawler.xmlparser import parsexml
 
@@ -67,6 +70,40 @@ def list_channel_videos(youtube, channel_id):
     return videos
 
 
+# Simulate a browser behavior via selenium
+def list_channel_videos_selenium(channel_id):
+    target_page = 'https://www.youtube.com/channel/{0}/videos'.format(channel_id)
+
+    if sys.platform == 'win32':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe')
+    elif sys.platform == 'darwin':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64')
+    elif sys.maxsize > 2**32:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64')
+    else:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32')
+    driver.get(target_page)
+
+    while True:
+        try:
+            loadmore_btn = driver.find_element_by_xpath("//button[contains(@aria-label,'Load more')]")
+            time.sleep(random.uniform(2, 3))
+            loadmore_btn.click()
+            time.sleep(random.uniform(2, 3))
+        except:
+            print 'Hit end of video page.'
+            break
+    time.sleep(1)
+
+    vids = []
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+    video_divs = soup.find_all("div", class_="yt-lockup-content")
+    for video_div in video_divs:
+        vids.append(video_div.find('a')['href'][-11:])
+    driver.quit()
+    return vids
+
+
 # Call the API's videos.list method to list the existing video metadata.
 def list_video_metadata(youtube, video_id):
     list_response = youtube.videos().list(
@@ -118,8 +155,7 @@ def get_header(cookie, vid):
     headers.append(('Cookie', cookie))
     headers.append(('Origin', 'https://www.youtube.com'))
     headers.append(('Referer', 'https://www.youtube.com/watch?v=' + vid))
-    headers.append(('User-Agent',
-                    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36'))
+    headers.append(('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36'))
     return headers
 
 
@@ -168,7 +204,12 @@ if __name__ == "__main__":
             cid = cid.rstrip()
             with open(base_dir+'data/vevo/{0}'.format(cid), 'w') as output:
                 try:
+                    # get video ids from YouTube Data3 API
                     videos = list_channel_videos(youtube, cid)
+                    # get video ids from selenium
+                    # videos = list_channel_videos_selenium(cid)
+
+                    print '{0} videos are waiting to be crawled'.format(len(videos))
 
                     for vid in videos:
                         # crawl video metadata
