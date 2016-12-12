@@ -46,12 +46,13 @@ def list_channel_videos(youtube, channel_id):
     """Call the API's search.list method to list the existing channel videos."""
     for i in xrange(0, 5):
         try:
-            videos = set()
+            videos = []
 
             search_response = youtube.search().list(
-                type='video',
                 part="snippet",
                 channelId=channel_id,
+                type='video',
+                order='date',
                 maxResults=50,
             ).execute()
 
@@ -60,14 +61,15 @@ def list_channel_videos(youtube, channel_id):
             else:
                 next_pagetoken = None
             for search_result in search_response.get("items", []):
-                videos.add(search_result["id"]["videoId"])
+                videos.append(search_result["id"]["videoId"])
 
             while next_pagetoken is not None:
                 search_response = youtube.search().list(
                     part="snippet",
                     channelId=channel_id,
-                    maxResults=50,
                     type='video',
+                    order='date',
+                    maxResults=50,
                     pageToken=next_pagetoken
                 ).execute()
                 if 'nextPageToken' in search_response:
@@ -75,7 +77,7 @@ def list_channel_videos(youtube, channel_id):
                 else:
                     next_pagetoken = None
                 for search_result in search_response.get("items", []):
-                    videos.add(search_result["id"]["videoId"])
+                    videos.append(search_result["id"]["videoId"])
 
             return videos
         except:
