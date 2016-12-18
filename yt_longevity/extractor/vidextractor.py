@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Extract YouTube video id from Tweet's expanded_url field
+Extract YouTube video ids from Tweet's urls
 
 Author: Siqi Wu
 Email: Siqi.Wu@anu.edu.au
@@ -27,20 +27,24 @@ class VideoIdExtractor(Extractor):
 
     For a tweet, the dictionaries must include the following fields:
 
-    id:             The integer representation of the unique identifier for this Tweet.
+    id:               The integer representation of the unique identifier for this Tweet.
     ******
-    entities:       Entities provide structured data from Tweets including resolved URLs, media, hashtags
-                    and mentions without having to parse the text to extract that information.
-                    ******
-                    # We only care about urls information at this moment.
-                    urls:       Optional. The URL of the video file
-                                Potential fields:
-                                * url           The t.co URL that was extracted from the Tweet text
-                                * expanded_url	The resolved URL
-                                * display_url	Not a valid URL but a string to display instead of the URL
-                                * indices	    The character positions the URL was extracted from
-                    ******
+    entities:         Entities provide structured data from Tweets including resolved URLs, media, hashtags
+                      and mentions without having to parse the text to extract that information.
+                      ******
+                      # We only care about urls information at this moment.
+                      urls:       Optional. The URL of the video file
+                                  Potential fields:
+                                  * url           The t.co URL that was extracted from the Tweet text
+                                  * expanded_url	The resolved URL
+                                  * display_url	Not a valid URL but a string to display instead of the URL
+                                  * indices	    The character positions the URL was extracted from
+                      ******
     ******
+    retweeted_status: entities: urls: expanded_url
+                      extended_tweet: entities: urls: expanded_url
+    ******
+    quoted_status:    entities: urls: expanded_url
     """
 
     def __init__(self, input_dir, output_dir):
@@ -69,7 +73,7 @@ class VideoIdExtractor(Extractor):
                     filequeue.put(filepath)
 
         for w in xrange(self.proc_num):
-            p = Process(target=self._extract_vid, args=(filequeue, sampling_ratio))
+            p = Process(target=self._extract_tweet, args=(filequeue, sampling_ratio))
             p.daemon = True
             p.start()
             processes.append(p)
@@ -84,48 +88,61 @@ class VideoIdExtractor(Extractor):
         self.logger.debug('**> aggregating video ids from stats folder.')
 
     @staticmethod
-    def _extract_single_vid(tweet):
-        if 'entities' not in tweet.keys():
-            raise Exception('No entities in tweet')
-        urls = tweet['entities']['urls']
-        num_urls = len(urls)
-        if num_urls == 0:
-            raise Exception('No urls in tweet')
-        ret = []
-        for i in xrange(num_urls):
-            expanded_url = urls[i]['expanded_url']
-            if 'watch?' in expanded_url and 'v=' in expanded_url:
-                vid = expanded_url.split('v=')[1][:11]
-            elif 'youtu.be' in expanded_url:
-                vid = expanded_url.rsplit('/', 1)[-1][:11]
-            else:
-                continue
-            # valid condition: contains only alphanumeric and dash
-            valid = re.match('^[\w-]+$', vid) is not None
-            if valid and len(vid) == 11:
-                ret.append(vid)
-        return ret
+    def _extract_vid_from_expanded_url(expanded_url):
+        if 'watch?' in expanded_url and 'v=' in expanded_url:
+            vid = expanded_url.split('v=')[1][:11]
+        elif 'youtu.be' in expanded_url:
+            vid = expanded_url.rsplit('/', 1)[-1][:11]
+        else:
+            return None
+        # valid condition: contains only alphanumeric, dash or underline
+        valid = re.match('^[\w-]+$', vid) is not None
+        if valid and len(vid) == 11:
+            return vid
+        return None
 
-    def _extract_vid(self, filequeue, sampling_ratio):
+    def _extract_vids(self, tweet):
+        urls = []
+        if 'entities' in tweet.keys() and 'urls' in tweet['entities']:
+            urls.extend(tweet['entities']['urls'])
+        if 'retweeted_status' in tweet.keys():
+            if 'entities' in tweet['retweeted_status'] and 'urls' in tweet['retweeted_status']['entities']:
+                urls.extend(tweet['retweeted_status']['entities']['urls'])
+            if 'extended_tweet' in tweet['retweeted_status']:
+                if 'entities' in tweet['retweeted_status']['extended_tweet'] and 'urls' in tweet['retweeted_status']['extended_tweet']['entities']:
+                    urls.extend(tweet['retweeted_status']['extended_tweet']['entities']['urls'])
+        if 'quoted_status' in tweet.keys():
+            if 'entities' in tweet['quoted_status'] and 'urls' in tweet['quoted_status']['entities']:
+                urls.extend(tweet['quoted_status']['entities']['urls'])
+        expanded_urls = []
+        for url in urls:
+            if url['expanded_url'] is not None:
+                expanded_urls.append(url['expanded_url'])
+
+        vids = set()
+        for expanded_url in expanded_urls:
+            vid = self._extract_vid_from_expanded_url(expanded_url)
+            if vid is not None:
+                vids.add(vid)
+        return vids
+
+    def _extract_tweet(self, filequeue, sampling_ratio):
         while not filequeue.empty():
             filepath = filequeue.get()
             try:
-                datafile = bz2.BZ2File(filepath, mode='r')
+                filedata = bz2.BZ2File(filepath, mode='r')
             except:
                 self.logger.warn('Exists non-bz2 file {0} in dataset folder'.format(filepath))
                 continue
             filename, filetype = os.path.basename(os.path.normpath(filepath)).split(".")
 
             ytdict = defaultdict(int)
-            for line in datafile:
+            for line in filedata:
                 try:
                     # Sampling data
                     if line.rstrip() and (sampling_ratio == 1 or random.random() < sampling_ratio):
                         tweet = json.loads(line)
-                        try:
-                            vids = self._extract_single_vid(tweet)
-                        except:
-                            continue
+                        vids = self._extract_vids(tweet)
                         for vid in vids:
                             ytdict[vid] += 1
                 except:
@@ -135,7 +152,7 @@ class VideoIdExtractor(Extractor):
                 for k, v in ytdict.items():
                     stats.write('{0}\t{1}\n'.format(k, v))
 
-            datafile.close()
+            filedata.close()
             self.logger.debug('{0} done!'.format(filename))
 
     def _aggregate_ids(self):
