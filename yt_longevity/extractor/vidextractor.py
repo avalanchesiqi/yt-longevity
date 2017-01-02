@@ -149,8 +149,9 @@ class VideoIdExtractor(Extractor):
                     self.logger.error('EOFError: {0} ended before the logical end-of-stream was detected,'.format(filename))
 
             with open('{0}/{1}.txt'.format(self.video_stats_path, filename), 'w') as stats:
-                for k, v in ytdict.items():
-                    stats.write('{0}\t{1}\n'.format(k, v))
+                sorted_yt_tuple = sorted(ytdict.items(), key=operator.itemgetter(1), reverse=True)
+                for item in sorted_yt_tuple:
+                    stats.write('{0}\t{1}\n'.format(item[0], item[1]))
 
             filedata.close()
             self.logger.debug('{0} done!'.format(filename))
