@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Usage example:
-# python parse_crawl_file.py --input='<input_file>' --output='<output_file>'
+# python parse_crawl_file.py --input='<input_file>' --output='<output_file>' --start='<start_timestamp>' --end='<end_timestamp>'
 
 import os
 import argparse
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                                         output_data.write('{0}: {1}\n'.format('id', id))
                                         if vids is not None and not len(vids) == 0:
                                             for vid in vids:
-                                                output_data.write('{0}: {1}\n'.format('tweet_url', vid))
+                                                output_data.write('{0}: {1}\n'.format('video_id', vid))
                                         output_data.write('{0}: {1}\n'.format('posted_time', created_at))
                                         output_data.write('----------\n')
     output_data.close()
