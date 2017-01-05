@@ -23,6 +23,8 @@ if __name__ == '__main__':
     # Sample format, may contain multiple tweet_url
     #
     # Unit Metadata:
+    #  username
+    #  StreetPrezFanz
     #  id
     #  tag:search.twitter.com,2005:809271132603957256
     #  tweet_url
@@ -37,35 +39,27 @@ if __name__ == '__main__':
     output_data = open(output_path, 'a+')
     with open(input_path, 'r') as input_data:
         for line in input_data:
-            line = line.rstrip()
-            if line == ' id' or line == ' tweet_url' or line == ' posted_time':
-                to_write = True
-                category = line.rstrip()[1:]
-                continue
-            if to_write:
-                if category == 'id':
-                    write_content = line.split(':')[2]
-                elif category == 'tweet_url':
+            line = line.strip()
+            if line:
+                if line.startswith('username'):
+                    username = line.split()[1]
+                    output_data.write('{0}: {1}\n'.format('username', username))
+                elif line.startswith('id'):
+                    id = line.rsplit(':', 1)[1]
+                    output_data.write('{0}: {1}\n'.format('id', id))
+                elif line.startswith('tweet_url'):
                     if 'watch?' in line and 'v=' in line:
                         vid = line.split('v=')[1][:11]
                     elif 'youtu.be' in line:
                         vid = line.rsplit('/', 1)[-1][:11]
                     else:
                         vid = None
-
-                    if vid is None:
-                        to_write = False
-                        continue
-                    else:
+                    if vid:
                         valid = re.match('^[\w-]+$', vid) is not None
                         if valid and len(vid) == 11:
-                            write_content = vid
-                elif category == 'posted_time':
-                    write_content = line
-                if write_content is not None:
-                    output_data.write('{0}: {1}\n'.format(category, write_content))
-                if category == 'posted_time':
+                            output_data.write('{0}: {1}\n'.format('video_id', vid))
+                elif line.startswith('posted_time'):
+                    posted_time = line.split(' ', 1)[1]
+                    output_data.write('{0}: {1}\n'.format('posted_time', posted_time))
                     output_data.write('----------\n')
-                to_write = False
-
     output_data.close()
