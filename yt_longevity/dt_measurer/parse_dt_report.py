@@ -20,6 +20,12 @@ if __name__ == '__main__':
     input_path = os.path.join(BASE_DIR, args.input)
     output_path = os.path.join(BASE_DIR, args.output)
 
+    # remove output file if exists
+    try:
+        os.remove(output_path)
+    except OSError:
+        pass
+
     # Sample format, may contain multiple tweet_url
     #
     # Unit Metadata:

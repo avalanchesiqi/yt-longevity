@@ -61,6 +61,12 @@ if __name__ == '__main__':
     start = args.start
     end = args.end
 
+    # remove output file if exists
+    try:
+        os.remove(output_path)
+    except OSError:
+        pass
+
     output_data = open(output_path, 'a+')
     for subdir, _, files in os.walk(input_dir):
         for f in sorted(files):
