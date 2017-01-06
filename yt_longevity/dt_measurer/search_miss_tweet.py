@@ -19,9 +19,7 @@ CONSUMER_SECRET = '6ZqBdSAD4hdd6hJGZTmbyicVcmB3LtvCiehLdBJB5Mp15A0egk'
 BASE_DIR = '../..'
 
 
-output = open(os.path.join(BASE_DIR, 'data/miss_tweets_json.txt'), 'a+')
-
-def search_tweet(username, tweet_id):
+def search_tweets(username, tweet_ids):
     cnt = 0
     try:
         iterator = twitter_search.search.tweets(q='from:{0} since:2017-01-05 until:2017-01-07'.format(username), result_type='recent', count=100)
@@ -29,19 +27,16 @@ def search_tweet(username, tweet_id):
         if 'Rate limit exceeded' in e.message:
             time.sleep(960)
         iterator = twitter_search.search.tweets(q='from:{0} since:2017-01-05 until:2017-01-07'.format(username), result_type='recent', count=100)
-    flag = False
 
     if 'statuses' in iterator:
         for tweet in iterator['statuses']:
             cnt += 1
-            if tweet['id_str'] == tweet_id:
+            if tweet['id_str'] in tweet_ids:
                 output.write(json.dumps(tweet))
                 output.write('\n')
-                # print json.dumps(tweet)
-                flag = True
-                break
+                tweet_ids.remove(tweet['id_str'])
 
-    while 'next_results' in iterator['search_metadata'] and not flag:
+    while 'next_results' in iterator['search_metadata'] and not len(tweet_ids) == 0:
         next_results = iterator['search_metadata']['next_results']
         max_id_ = next_results.split('max_id=')[1][:18]
         try:
@@ -53,21 +48,21 @@ def search_tweet(username, tweet_id):
         if 'statuses' in iterator:
             cnt += 1
             for tweet in iterator['statuses']:
-                if tweet['id_str'] == tweet_id:
+                if tweet['id_str'] in tweet_ids:
                     output.write(json.dumps(tweet))
                     output.write('\n')
-                    flag = True
-                    break
-    if flag:
-        print 'find out-of-sample tweet {0} {1}'.format(username, tweet_id)
-    else:
-        print 'CAUTION: not find tweet {0} {1}'.format(username, tweet_id)
-    print 'search from {0} tweets'.format(cnt)
+                    tweet_ids.remove(tweet['id_str'])
+
+    if len(tweet_ids) > 0:
+        print 'CAUTION: fail to find tweet {0} {1}'.format(username, tweet_ids)
+    print '{0} search from {1} tweets'.format(username, cnt)
     print '--------------------'
 
 
 if __name__ == '__main__':
     oauth = OAuth(ACCESS_TOKEN, ACCESS_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
+
+    output = open(os.path.join(BASE_DIR, 'data/miss_tweets_json.txt'), 'a+')
 
     # Initiate the connection to Twitter Streaming API
     # twitter_stream = TwitterStream(auth=oauth)
@@ -83,5 +78,6 @@ if __name__ == '__main__':
             to_search[username].append(tweet_id)
 
     for username in to_search:
-        for tweet_id in to_search[username]:
-            search_tweet(username, tweet_id)
+        search_tweets(username, to_search[username])
+
+    output.close()
