@@ -46,8 +46,8 @@ def search_tweets(username, tweet_ids):
                 time.sleep(960)
             iterator = twitter_search.search.tweets(q='from:{0} since:2017-01-05 until:2017-01-07'.format(username), result_type='recent', count=100, max_id=max_id_)
         if 'statuses' in iterator:
-            cnt += 1
             for tweet in iterator['statuses']:
+                cnt += 1
                 if tweet['id_str'] in tweet_ids:
                     output.write(json.dumps(tweet))
                     output.write('\n')
@@ -62,7 +62,13 @@ def search_tweets(username, tweet_ids):
 if __name__ == '__main__':
     oauth = OAuth(ACCESS_TOKEN, ACCESS_SECRET, CONSUMER_KEY, CONSUMER_SECRET)
 
-    output = open(os.path.join(BASE_DIR, 'data/miss_tweets_json.txt'), 'a+')
+    miss_tweets_content = os.path.join(BASE_DIR, 'data/miss_tweets_content.txt')
+    # remove output file if exists
+    try:
+        os.remove(miss_tweets_content)
+    except OSError:
+        pass
+    output = open(miss_tweets_content, 'a+')
 
     # Initiate the connection to Twitter Streaming API
     # twitter_stream = TwitterStream(auth=oauth)
