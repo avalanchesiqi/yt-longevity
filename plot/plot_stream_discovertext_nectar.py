@@ -4,6 +4,7 @@
 # python parse_dt_report.py --input='<input_file>' --output='<output_file>'
 
 import os
+import json
 from datetime import datetime
 from collections import defaultdict
 import matplotlib.pyplot as plt
@@ -38,7 +39,7 @@ if __name__ == '__main__':
 
     x_axis1 = sorted(dt_dict.keys())
     y_axis1 = [len(dt_dict[k]) for k in x_axis1]
-    ax1.plot_date(x_axis1, y_axis1, 'o-', c='b', ms=2, label='discovertext')
+    ax1.plot_date(x_axis1, y_axis1, 'o-', c='b', ms=4, label='discovertext')
 
     with open(input_path2, 'r') as input_data2:
         for line in input_data2:
@@ -50,11 +51,16 @@ if __name__ == '__main__':
                 nectar_dict[dt_obj].append(id)
 
     y_axis2 = [len(nectar_dict[k]) for k in x_axis1]
-    ax1.plot_date(x_axis1, y_axis2, 'x-', c='r', ms=2, label='Public Streaming')
+    ax1.plot_date(x_axis1, y_axis2, 'o-', c='r', ms=4, label='Public Streaming')
 
-    # rate_limits = [0, 0, 0, 0, 1, 0, 0, 7, 1, 0, 0, 0, 10, 0, 4, 2, 0, 3, 4, 0, 16, 4, 0, 0, 1, 6, 0, 8, 5, 0]
-    # y_axis3 = [y_axis2[i]+rate_limits[i] for i in xrange(len(x_axis2))]
-    # ax1.plot_date(x_axis2, y_axis3, '+-', c='g', ms=3, label='Public Streaming + rate limit')
+    dt_rate_dict = defaultdict(int)
+    with open(os.path.join(BASE_DIR, 'data/rate_dict.json'), 'r') as rate_json:
+        rate_dict = json.loads(rate_json.readline().rstrip())
+        for t in sorted(rate_dict.keys()):
+            dt_rate_dict[datetime.utcfromtimestamp(int(t))] = rate_dict[t]
+
+    y_axis3 = [len(nectar_dict[k])+dt_rate_dict[k] if k in dt_rate_dict else len(nectar_dict[k]) for k in x_axis1]
+    ax1.plot_date(x_axis1, y_axis3, 'o-', c='g', ms=4, label='Public Streaming + rate limit')
 
     miss_tweets_path = os.path.join(BASE_DIR, 'data/miss_tweets_new.txt')
     # remove output file if exists
@@ -78,9 +84,7 @@ if __name__ == '__main__':
         print 'tweets in discovertext but not in nectar: {0}'.format(len(tmp))
         for id in tmp:
             miss_tweets.write('{0} {1}\n'.format(id_username_dict[id], id))
-        # for i in tmp:
-        #     print int(i)
-        # print 'tweets missed from down sampling: {0}'.format(rate_limits[rate_idx])
+        print 'tweets missed from down sampling: {0}'.format(dt_rate_dict[d])
         tmp = nectar
         tmp = tmp.difference(discovert)
         print 'tweets in nectar but not in discovertext: {0}'.format(len(tmp))
