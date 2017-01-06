@@ -43,17 +43,21 @@ if __name__ == '__main__':
     to_write = False
     category = None
     output_data = open(output_path, 'a+')
+
     with open(input_path, 'r') as input_data:
         for line in input_data:
             line = line.strip()
-            if line:
-                if line.startswith('username'):
-                    username = line.split()[1]
+            if line == 'username' or line == 'id' or line == 'tweet_url' or line == 'posted_time':
+                to_write = True
+                category = line
+            elif to_write:
+                if category == 'username':
+                    username = line
                     output_data.write('{0}: {1}\n'.format('username', username))
-                elif line.startswith('id'):
+                elif category == 'id':
                     id = line.rsplit(':', 1)[1]
                     output_data.write('{0}: {1}\n'.format('id', id))
-                elif line.startswith('tweet_url'):
+                elif category == 'tweet_url':
                     if 'watch?' in line and 'v=' in line:
                         vid = line.split('v=')[1][:11]
                     elif 'youtu.be' in line:
@@ -64,8 +68,35 @@ if __name__ == '__main__':
                         valid = re.match('^[\w-]+$', vid) is not None
                         if valid and len(vid) == 11:
                             output_data.write('{0}: {1}\n'.format('video_id', vid))
-                elif line.startswith('posted_time'):
-                    posted_time = line.split(' ', 1)[1]
+                elif category == 'posted_time':
+                    posted_time = line
                     output_data.write('{0}: {1}\n'.format('posted_time', posted_time))
                     output_data.write('----------\n')
+                to_write = False
+
+    # with open(input_path, 'r') as input_data:
+    #     for line in input_data:
+    #         line = line.strip()
+    #         if line:
+    #             if line.startswith('username'):
+    #                 username = line.split()[1]
+    #                 output_data.write('{0}: {1}\n'.format('username', username))
+    #             elif line.startswith('id	 tag'):
+    #                 id = line.rsplit(':', 1)[1]
+    #                 output_data.write('{0}: {1}\n'.format('id', id))
+    #             elif line.startswith('tweet_url'):
+    #                 if 'watch?' in line and 'v=' in line:
+    #                     vid = line.split('v=')[1][:11]
+    #                 elif 'youtu.be' in line:
+    #                     vid = line.rsplit('/', 1)[-1][:11]
+    #                 else:
+    #                     vid = None
+    #                 if vid:
+    #                     valid = re.match('^[\w-]+$', vid) is not None
+    #                     if valid and len(vid) == 11:
+    #                         output_data.write('{0}: {1}\n'.format('video_id', vid))
+    #             elif line.startswith('posted_time'):
+    #                 posted_time = line.split(' ', 1)[1]
+    #                 output_data.write('{0}: {1}\n'.format('posted_time', posted_time))
+    #                 output_data.write('----------\n')
     output_data.close()

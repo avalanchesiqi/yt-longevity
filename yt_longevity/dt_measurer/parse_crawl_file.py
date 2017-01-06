@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Usage example:
-# python parse_crawl_file.py --input='<input_file>' --output='<output_file>' --start='<start_timestamp>' --end='<end_timestamp>'
+# python parse_crawl_file.py --input='<input_dir>' --output='<output_file>' --start='<start_timestamp>' --end='<end_timestamp>'
 
 import os
 import argparse
