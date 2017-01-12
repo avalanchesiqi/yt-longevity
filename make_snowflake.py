@@ -1,4 +1,5 @@
 import datetime
+from collections import defaultdict
 import json
 import os
 import bz2
@@ -16,6 +17,7 @@ max_worker_id = 1 << worker_id_bits
 max_sequence_id = 1 << sequence_id_bits
 max_timestamp = 1 << (64L - datacenter_id_bits - worker_id_bits - sequence_id_bits)
 
+
 def make_snowflake(timestamp_ms, datacenter_id, worker_id, sequence_id, twepoch=twepoch):
     """generate a twitter-snowflake id, based on
     https://github.com/twitter/snowflake/blob/master/src/main/scala/com/twitter/service/snowflake/IdWorker.scala
@@ -28,6 +30,7 @@ def make_snowflake(timestamp_ms, datacenter_id, worker_id, sequence_id, twepoch=
 
     return sid
 
+
 def melt(snowflake_id, twepoch=twepoch):
     """inversely transform a snowflake id back to its parts."""
     sequence_id = snowflake_id & (max_sequence_id - 1)
@@ -38,13 +41,14 @@ def melt(snowflake_id, twepoch=twepoch):
 
     return (timestamp_ms, int(datacenter_id), int(worker_id), int(sequence_id))
 
-def local_datetime(timestamp_ms):
-    """convert millisecond timestamp to local datetime object."""
-    return datetime.datetime.fromtimestamp(timestamp_ms / 1000.)
+
+def utc_datetime(timestamp_ms):
+    """convert millisecond timestamp to utc datetime object."""
+    return datetime.datetime.utcfromtimestamp(timestamp_ms / 1000.)
 
 
 # Determine whether a tweet matches "youtube" or "youtu" filter
-def _match_filter(tweet):
+def match_filter(tweet):
     id = tweet['id_str']
     text = tweet['text'].lower()
     text = [word.strip(string.punctuation) for word in text.split()]
@@ -69,82 +73,132 @@ def _match_filter(tweet):
                 return id, True
     if 'retweeted_status' in tweet.keys():
         retweeted_status = tweet['retweeted_status']
-        _, flag = _match_filter(retweeted_status)
+        _, flag = match_filter(retweeted_status)
         if flag:
             return id, True
         if 'extended_tweet' in tweet['retweeted_status']:
             extended_tweet = tweet['retweeted_status']['extended_tweet']
-            _, flag = _match_filter(extended_tweet)
+            _, flag = match_filter(extended_tweet)
             if flag:
                 return id, True
     if 'quoted_status' in tweet.keys():
         quoted_status = tweet['quoted_status']
-        _, flag = _match_filter(quoted_status)
+        _, flag = match_filter(quoted_status)
         if flag:
             return id, True
     return id, False
 
 
 if __name__ == '__main__':
-    import time
-    # t0 = int(time.time() * 1000)
-    # print local_datetime(t0)
-    # assert(melt(make_snowflake(t0, 0, 0, 0))[0] == t0)
-
-    from collections import defaultdict
-
-    stat = defaultdict(int)
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    # fig, ax1 = plt.subplots(1, 1)
+    tweet_stat = defaultdict(int)
 
     datacenter_worker_set = set()
 
-    # with bz2.BZ2File('../data/twitter-sampling/nectar_2016-12-14.bz2', 'r') as filedata:
+    # with bz2.BZ2File('../data/twitter-sampling/2017-01-10.bz2', 'r') as filedata:
     #     for line in filedata:
     #         try:
     #             tweet = json.loads(line.rstrip())
     #             timestamp = int(tweet['timestamp_ms'])
     #             id = int(tweet['id_str'])
-    #             print datetime.datetime.fromtimestamp(melt(id)[0] / 1000.0), melt(id)[1:-1], melt(id)[-1]
+    #             # print datetime.datetime.fromtimestamp(melt(id)[0] / 1000.0), melt(id)[1:-1], melt(id)[-1]
     #             datacenter_worker_set.add(melt(id)[1:-1])
-    #             stat[timestamp % 1000] += 1
+    #             tweet_stat[timestamp % 1000] += 1
     #         except:
     #             continue
 
     for subdir, _, files in os.walk('data/nectar_zips'):
         for f in sorted(files):
-            if f.endswith('000.txt'):
+            if f.endswith('142860000.txt'):
                 with open(os.path.join(subdir, f), 'r') as filedata:
                     for line in filedata:
                         try:
                             tweet = json.loads(line.rstrip())
-                            timestamp = int(tweet['timestamp_ms'])
-                            id = int(tweet['id_str'])
-                            print datetime.datetime.fromtimestamp(melt(id)[0]/1000.0), melt(id)[1:-1], melt(id)[-1]
-                            datacenter_worker_set.add(melt(id)[1:-1])
-                            stat[timestamp%1000] += 1
+                            timestamp_ms = int(tweet['timestamp_ms'])
+                            # tweet_stat[timestamp_ms] += 1
+                            ax1.scatter(timestamp_ms, 1, c='b', s=10, marker='o', lw = 0)
+                            # print melt(id)[0], melt(id)[1:-1]
                         except:
                             continue
 
     with open('data/miss_tweets_content.txt') as f:
         for line in f:
             tweet = json.loads(line.rstrip())
-            id, flag = _match_filter(tweet)
+            id, flag = match_filter(tweet)
             if flag:
-                stat[melt(int(id))[0]%1000] += 1
+                tweet_stat[melt(int(id))[0]%1000] += 1
+                ax1.scatter(melt(int(id))[0], 1, c='r', s=30, marker='s', lw = 0)
+                # print melt(int(id))[0], melt(int(id))[1:-1]
+                # if 656 < melt(int(id))[0]%1000 < 667:
+                #     print "caution!!!", id, melt(int(id))[0]
 
-    print sorted(list(datacenter_worker_set))
-    print len(datacenter_worker_set)
+    with open('data/rate.txt') as f:
+        for line in f:
+            rate = json.loads(line.rstrip())
+            timestamp_ms = rate['limit']['timestamp_ms']
+            ax1.scatter(timestamp_ms, 1, c='g', s=30, marker='D', lw = 0)
 
-    fig, ax1 = plt.subplots(1, 1)
-    for d in sorted(stat.keys()):
-        if d > 656:
-            ax1.scatter(d-1000, stat[d], s=5)
-        else:
-            ax1.scatter(d, stat[d], s=5)
+    ax1.plot((1483661032657L, 1483661032657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661033657L, 1483661033657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661034657L, 1483661034657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661035657L, 1483661035657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661036657L, 1483661036657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661037657L, 1483661037657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661038657L, 1483661038657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661039657L, 1483661039657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661040657L, 1483661040657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661041657L, 1483661041657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661042657L, 1483661042657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661043657L, 1483661043657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661044657L, 1483661044657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661045657L, 1483661045657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661046657L, 1483661046657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661047657L, 1483661047657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661048657L, 1483661048657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661049657L, 1483661049657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661050657L, 1483661050657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661051657L, 1483661051657L), (0.999, 1.001), 'm')
+    ax1.plot((1483661052657L, 1483661052657L), (0.999, 1.001), 'm')
 
-    for i in xrange(657, 667):
-        print stat[i]
+    ax1.plot((1483661032666L, 1483661032666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661033666L, 1483661033666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661034666L, 1483661034666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661035666L, 1483661035666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661036666L, 1483661036666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661037666L, 1483661037666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661038666L, 1483661038666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661039666L, 1483661039666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661040666L, 1483661040666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661041666L, 1483661041666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661042666L, 1483661042666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661043666L, 1483661043666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661044666L, 1483661044666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661045666L, 1483661045666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661046666L, 1483661046666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661047666L, 1483661047666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661048666L, 1483661048666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661049666L, 1483661049666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661050666L, 1483661050666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661051666L, 1483661051666L), (0.999, 1.001), 'y')
+    ax1.plot((1483661052666L, 1483661052666L), (0.999, 1.001), 'y')
 
+    # print sorted(list(datacenter_worker_set))
+    # print len(datacenter_worker_set)
+
+    for d in tweet_stat.keys():
+        # if d < 657:
+        #     ax2.scatter(d+1000, tweet_stat[d], s=5, c='r')
+        ax2.scatter(d, tweet_stat[d], s=5, c='b')
+
+    ax1.set_xlim(xmin=1483661031657L)
+    ax1.set_xlim(xmax=1483661053666L)
     ax1.set_xlabel('Timestamp in millisecond')
     ax1.set_ylabel('Number of tweets')
-    ax1.set_title('Figure 1: number of tweets allocated in 1000 millisecond buckets')
+    ax1.set_title('Figure 1: number of tweets in 1000 millisecond buckets, 20s period')
+
+    ax2.set_xlabel('Timestamp in millisecond')
+    ax2.set_ylabel('Number of tweets')
+    ax2.set_title('Figure 2: number of miss tweets in 1000 millisecond buckets, discovertext period')
+
     plt.show()
