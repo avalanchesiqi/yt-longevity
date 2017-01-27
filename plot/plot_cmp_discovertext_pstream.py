@@ -105,6 +105,7 @@ if __name__ == '__main__':
                 dt_dict[dt_obj].append(id)
 
     x_axis1 = sorted(dt_dict.keys())
+    x_axis1 = x_axis1[20:-1]
     y_axis1 = [len(set(dt_dict[d])) for d in x_axis1]
     # ax1.plot_date(x_axis1, y_axis1, '-', c='b', ms=1, label='discovertext')
 
@@ -179,20 +180,20 @@ if __name__ == '__main__':
     distortions = []
     for benchmark in benchmarks:
         ret = []
-        for k in xrange(20, len(x_axis1) - 1):
+        for k in xrange(len(x_axis1)):
             ret.append(100.0 * abs(y_axis3[k] - benchmark[k]) / benchmark[k])
         distortions.append(np.mean(ret))
 
     ax2.plot((x_axis1[0], x_axis1[-1]), (0, 0), 'k-')
     ax2.plot_date(x_axis1, upper_bound, '-', c='m', ms=1, label='(discovertext - mismatch) - (public streaming + rate limit)')
-    ax2.text(datetime(2017, 1, 5, 23, 59, 40), -150, r'mean: {0:2.2f}, std: {1:2.2f}, 1qr: {2:2.2f}, 3qr: {3:2.2f}, $\tau$: {4:2.2f}%'
+    ax2.text(datetime(2017, 1, 6, 0, 0, 0), -150, r'mean: {0:2.2f}, std: {1:2.2f}, 1qr: {2:2.2f}, 3qr: {3:2.2f}, $\tau$: {4:2.2f}%'
              .format(np.mean(upper_bound), np.std(upper_bound), np.percentile(upper_bound, 25), np.percentile(upper_bound, 75), distortions[0]), fontsize=14)
 
     ax2.plot_date(x_axis1, lower_bound, '-', c='c', ms=1, label='(discovertext - mismatch - attrition) - (public streaming + rate limit)')
-    ax2.text(datetime(2017, 1, 5, 23, 59, 40), -168, r'mean: {0:2.2f}, std: {1:2.2f}, 1qr: {2:2.2f}, 3qr: {3:2.2f}, $\tau$: {4:2.2f}%'
+    ax2.text(datetime(2017, 1, 6, 0, 0, 0), -168, r'mean: {0:2.2f}, std: {1:2.2f}, 1qr: {2:2.2f}, 3qr: {3:2.2f}, $\tau$: {4:2.2f}%'
              .format(np.mean(lower_bound), np.std(lower_bound), np.percentile(lower_bound, 25), np.percentile(lower_bound, 75), distortions[1]), fontsize=14)
 
-    ax2.text(datetime(2017, 1, 5, 23, 59, 40), -186, r'match tweets in miss tweets: {0:2.2f}%, mismatch tweets in miss tweets: {1:2.2f}%'
+    ax2.text(datetime(2017, 1, 6, 0, 0, 0), -186, r'match tweets in miss tweets: {0:2.2f}%, mismatch tweets in miss tweets: {1:2.2f}%'
              .format(100.0*len(match_tweets)/(len(match_tweets)+len(mismatch_tweets)), 100.0*len(mismatch_tweets)/(len(match_tweets)+len(mismatch_tweets))), fontsize=14)
 
     ax1.set_ylabel('Number of tweets')
