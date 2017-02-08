@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 # Usage example:
-# python plot_sampling_kendall_tau.py --file1='<file1>' --file2='<file2>'
-# python plot_sampling_kendall_tau.py -f1 data/complete_tweetcount.txt -f2 data/sample_tweetcount.txt -d data/simulate_tweetcount
+# python plot_sampling_recall_topn.py --file1='<file1>' --file2='<file2>'
 
 import os
 import argparse
@@ -16,39 +15,26 @@ import matplotlib.pyplot as plt
 BASE_DIR = '../'
 
 
-def get_kendall_tau(path1, path2):
-    item_ranking = defaultdict(list)
+def get_recall(path1, path2):
+    video_list1 = []
     with open(path1, 'r') as f1:
         for line in f1:
             vid, tweetcount = line.rstrip().split()
-            item_ranking[vid].append(int(tweetcount))
+            video_list1.append(vid)
 
+    video_list2 = []
     with open(path2, 'r') as f2:
         for line in f2:
             vid, tweetcount = line.rstrip().split()
-            if vid not in item_ranking:
-                item_ranking[vid].append(0)
-            item_ranking[vid].append(int(tweetcount))
+            video_list2.append(vid)
 
-    # fill zero in vid not appear in file2
-    for tweetcounts in item_ranking.values():
-        if len(tweetcounts) == 1:
-            tweetcounts.append(0)
-
-    # sort by value of file1
-    sorted_item_ranking = sorted(item_ranking.items(), key=operator.itemgetter(1), reverse=True)
-    file1_list = []
-    file2_list = []
-    for item in sorted_item_ranking:
-        file1_list.append(item[1][0])
-        file2_list.append(item[1][1])
-
-    taus = []
+    recalls = []
     for i in xrange(start, end + 1, jump):
-        tau, p_value = stats.kendalltau(file1_list[:i], file2_list[:i])
-        taus.append(tau)
+        video_set1 = set(video_list1[:i])
+        video_set2 = set(video_list2[:i])
+        recalls.append(1.0*len(video_set1.intersection(video_set2))/i)
 
-    return taus
+    return recalls
 
 
 def plot_errorbar(taus_list, color, label_text):
@@ -75,7 +61,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f1', '--file1', help='firehose path, relative to base dir', required=True)
     parser.add_argument('-f2', '--file2', help='streaming path, relative to base dir', required=True)
-    parser.add_argument('-d', '--dir', help='directory path, relative to base dir', required=True)
+    parser.add_argument('-d', '--dir', help='directory path, relative to base dir')
     args = parser.parse_args()
 
     fig, ax1 = plt.subplots(1, 1)
@@ -83,27 +69,27 @@ if __name__ == '__main__':
     end = 1000
     jump = 10
     # simulate and filter streaming
-    taus_list1 = []
+    recall_list1 = []
     # simulate and firehose
-    taus_list2 = []
+    recall_list2 = []
 
     file1_path = os.path.join(BASE_DIR, args.file1)
 
     file2_path = os.path.join(BASE_DIR, args.file2)
-    taus = get_kendall_tau(file1_path, file2_path)
-    ax1.plot(np.arange(start, end+1, jump), taus, c='r', label='firehose and filter streaming')
+    recalls = get_recall(file1_path, file2_path)
+    ax1.plot(np.arange(start, end + 1, jump), recalls, c='r', label='firehose and filter streaming')
 
     dir_path = os.path.join(BASE_DIR, args.dir)
     for subdir, _, files in os.walk(dir_path):
         for f in files:
-            taus_list2.append(get_kendall_tau(file1_path, os.path.join(subdir, f)))
+            recall_list2.append(get_recall(file1_path, os.path.join(subdir, f)))
 
-        plot_errorbar(taus_list2, 'b', 'firehose and simulated data')
+    plot_errorbar(recall_list2, 'b', 'firehose and simulated data')
 
     ax1.set_ylim(ymin=0)
     ax1.set_xlabel('n')
-    ax1.set_ylabel('tau')
-    ax1.set_title('Figure 1: Kendall tau of most tweeted videos')
+    ax1.set_ylabel('recall')
+    ax1.set_title('Figure 1: recall of top n tweeted videos')
 
     plt.legend(loc='best')
     plt.show()
