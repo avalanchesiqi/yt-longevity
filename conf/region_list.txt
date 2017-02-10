@@ -1,0 +1,90 @@
+DZ  Algeria
+AR  Argentina
+AU  Australia
+AT  Austria
+AZ  Azerbaijan
+BH  Bahrain
+BY  Belarus
+BE  Belgium
+BA  Bosnia and Herzegovina
+BR  Brazil
+BG  Bulgaria
+CA  Canada
+CL  Chile
+CO  Colombia
+HR  Croatia
+CZ  Czechia
+DK  Denmark
+EG  Egypt
+EE  Estonia
+FI  Finland
+FR  France
+GE  Georgia
+DE  Germany
+GH  Ghana
+GR  Greece
+HK  Hong Kong
+HU  Hungary
+IS  Iceland
+IN  India
+ID  Indonesia
+IQ  Iraq
+IE  Ireland
+IL  Israel
+IT  Italy
+JM  Jamaica
+JP  Japan
+JO  Jordan
+KZ  Kazakhstan
+KE  Kenya
+KW  Kuwait
+LV  Latvia
+LB  Lebanon
+LY  Libya
+LT  Lithuania
+LU  Luxembourg
+MK  Macedonia
+MY  Malaysia
+MX  Mexico
+ME  Montenegro
+MA  Morocco
+NP  Nepal
+NL  Netherlands
+NZ  New Zealand
+NG  Nigeria
+NO  Norway
+OM  Oman
+PK  Pakistan
+PE  Peru
+PH  Philippines
+PL  Poland
+PT  Portugal
+PR  Puerto Rico
+QA  Qatar
+RO  Romania
+RU  Russia
+SA  Saudi Arabia
+SN  Senegal
+RS  Serbia
+SG  Singapore
+SK  Slovakia
+SI  Slovenia
+ZA  South Africa
+KR  South Korea
+ES  Spain
+LK  Sri Lanka
+SE  Sweden
+CH  Switzerland
+TW  Taiwan
+TZ  Tanzania
+TH  Thailand
+TN  Tunisia
+TR  Turkey
+UG  Uganda
+UA  Ukraine
+AE  United Arab Emirates
+GB  United Kingdom
+US  United States
+VN  Vietnam
+YE  Yemen
+ZW  Zimbabwe
