@@ -13,7 +13,7 @@ import sys
 import random
 from datetime import datetime
 
-from yt_longevity.dailydata_crawler import Crawler
+from yt_longevity.insights_crawler import Crawler
 from logger import Logger
 
 

@@ -14,8 +14,8 @@ import socket
 import argparse
 
 from yt_longevity.extractor.vidextractor import VideoIdExtractor
-from yt_longevity.metadata_crawler.metadata_crawler import MetadataCrawler
-from yt_longevity.dailydata_crawler.single_crawler import SingleCrawler
+from yt_longevity.v3api_crawler.metadata_crawler import MetadataCrawler
+from yt_longevity.insights_crawler.single_crawler import SingleCrawler
 
 
 def extract(input_dir, output_dir, proc_num, sample_ratio):
@@ -73,7 +73,8 @@ if __name__ == '__main__':
                 idx = 0
         hostname = socket.gethostname()[:-10]
 
-        input_path = '{0}/{1}-{2}.txt'.format(input_path, hostname, idx)
+        # input_path = '{0}/{1}-{2}.txt'.format(input_path, hostname, idx)
+        input_path = input_path
         thread_num = 10
         metadata_crawl(input_path, output_dir, thread_num, idx)
     elif args.function == 'dailydata':

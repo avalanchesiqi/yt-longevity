@@ -17,7 +17,7 @@ from Queue import Queue
 from threading import Thread, Lock
 from apiclient import discovery, errors
 
-from yt_longevity.metadata_crawler import APIV3Crawler
+from yt_longevity.v3api_crawler import APIV3Crawler
 
 
 class MetadataCrawler(APIV3Crawler):

@@ -18,7 +18,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import logging
 
-from dailydata_crawler.xmlparser import parsexml
+from insights_crawler.xmlparser import parsexml
 
 
 YOUTUBE_API_SERVICE_NAME = "youtube"
