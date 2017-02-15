@@ -30,6 +30,10 @@ def parsexml(s):
     startdate = datetime.date(1970, 1, 1) + datetime.timedelta(jsondata['day']['data'][0]/86400000)
     startdate = startdate.strftime("%Y-%m-%d")
 
+    # get days with stats
+    days = [(d - jsondata['day']['data'][0]) / 86400000 for d in jsondata['day']['data']]
+    days = ','.join(map(str, days))
+
     # get total views
     try:
         totalview = jsondata['views']['cumulative']['data'][-1]
@@ -73,5 +77,5 @@ def parsexml(s):
         dailysubscribers = 'N'
         totalsubscriber = 'N'
 
-    return '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n'\
-        .format(startdate, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber)
+    return '{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\n'\
+        .format(startdate, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber)
