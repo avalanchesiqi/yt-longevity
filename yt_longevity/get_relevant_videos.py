@@ -48,24 +48,31 @@ def search_relevant_videos_api(vid, pageToken=None):
         search_relevant_videos_api(vid, pageToken=next_pagetoken)
 
 
+def get_webdriver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--mute-audio")
+
+    if sys.platform == 'win32':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe', chrome_options=chrome_options)
+    elif sys.platform == 'darwin':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64', chrome_options=chrome_options)
+    elif sys.maxsize > 2 ** 32:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64', chrome_options=chrome_options)
+    else:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32', chrome_options=chrome_options)
+    return driver
+
+
 def search_relevant_videos_selenium(video_id):
     """Simulate a browser behavior to get relevant video list via selenium."""
     target_page = 'https://www.youtube.com/watch?v={0}'.format(video_id)
 
-    if sys.platform == 'win32':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe')
-    elif sys.platform == 'darwin':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64')
-    elif sys.maxsize > 2**32:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64')
-    else:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32')
     # driver.delete_all_cookies()
     driver.get(target_page)
 
     try:
         showmore_btn = driver.find_element_by_xpath("//button[contains(@id,'watch-more-related-button')]")
-        time.sleep(2)
+        time.sleep(3)
         showmore_btn.click()
         time.sleep(3)
     except Exception as e:
@@ -78,7 +85,7 @@ def search_relevant_videos_selenium(video_id):
     for video_div in relevant_videos:
         vids.append(video_div.find('a')['href'][-11:])
 
-    driver.quit()
+    driver.close()
     with open(BASE_DIR+'log/{0}_sidebar_list.txt'.format(video_id), 'a+') as f:
         f.write(' '.join(vids))
         f.write('\n')
@@ -93,7 +100,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.f == 'selenium':
+        driver = get_webdriver()
         search_relevant_videos_selenium(args.v)
+        driver.quit()
     elif args.f == 'api':
         search_relevant_videos_api(args.v)
 

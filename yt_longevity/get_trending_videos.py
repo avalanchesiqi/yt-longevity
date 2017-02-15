@@ -58,5 +58,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     output_name = datetime.strftime(datetime.utcnow(), "%Y-%m-%d-%H")+'.txt'
-    youtube = discovery.build(API_SERVICE, API_VERSION, developerKey=DEVELOPER_KEY)
+    youtube = discovery.build(API_SERVICE, API_VERSION, developerKey=DEVELOPER_KEY, cache_discovery=False)
     get_trending_videos_api(args.o)

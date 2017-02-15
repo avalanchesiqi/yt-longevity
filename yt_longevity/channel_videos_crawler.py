@@ -84,18 +84,25 @@ def list_channel_videos(youtube, channel_id):
             time.sleep((2 ** i) + random.random())
 
 
+def get_webdriver():
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--mute-audio")
+
+    if sys.platform == 'win32':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe', chrome_options=chrome_options)
+    elif sys.platform == 'darwin':
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64', chrome_options=chrome_options)
+    elif sys.maxsize > 2 ** 32:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64', chrome_options=chrome_options)
+    else:
+        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32', chrome_options=chrome_options)
+    return driver
+
+
 def list_channel_videos_selenium(channel_id):
     """Simulate a browser behavior to click button via selenium"""
     target_page = 'https://www.youtube.com/channel/{0}/videos'.format(channel_id)
 
-    if sys.platform == 'win32':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe')
-    elif sys.platform == 'darwin':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64')
-    elif sys.maxsize > 2**32:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64')
-    else:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32')
     driver.get(target_page)
 
     while True:
@@ -114,7 +121,7 @@ def list_channel_videos_selenium(channel_id):
     video_divs = soup.find_all("div", class_="yt-lockup-content")
     for video_div in video_divs:
         vids.append(video_div.find('a')['href'][-11:])
-    driver.quit()
+    driver.close()
     return vids
 
 
@@ -186,6 +193,8 @@ def request(opener, vid, cookie, postdata):
     header = get_header(cookie, vid)
     opener.addheaders = header
 
+    time.sleep(random.uniform(0.1, 1))
+
     try:
         response = opener.open(url, postdata, timeout=5)
     except:
@@ -216,7 +225,7 @@ if __name__ == "__main__":
 
     # Instantiate the parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='input file path of video ids, relative to base dir', required=True)
+    parser.add_argument('-i', '--input', help='input file path of channel ids, relative to base dir', required=True)
     parser.add_argument('-o', '--output', help='output dir path of video data, relative to base dir', required=True)
     parser.add_argument('--selenium', dest='selenium', action='store_true', help='crawl video list via selenium')
     parser.add_argument('--v3api', dest='selenium', action='store_false', help='crawl video list via datav3 api, default')
@@ -228,6 +237,9 @@ if __name__ == "__main__":
 
     if not os.path.exists(BASE_DIR+output_dir):
         os.makedirs(BASE_DIR+output_dir)
+
+    if use_selenium:
+        driver = get_webdriver()
 
     with open(BASE_DIR+input_path, 'r') as channel_ids:
         for cid in channel_ids:
@@ -276,3 +288,6 @@ if __name__ == "__main__":
                         output.write('{0}\n'.format(json.dumps(video_data)))
                 except Exception, e:
                     logging.debug('Channel videos crawler: Error occurred when crawl {0}:\n{1}'.format(cid, str(e)))
+
+    if use_selenium:
+        driver.quit()
