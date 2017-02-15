@@ -10,7 +10,6 @@ Email: Siqi.Wu@anu.edu.au
 
 import sys
 import os
-import socket
 import argparse
 
 from yt_longevity.extractor.vidextractor import VideoIdExtractor
@@ -26,11 +25,11 @@ def extract(input_dir, output_dir, proc_num, sample_ratio):
     extractor.extract(sample_ratio)
 
 
-def metadata_crawl(input_path, output_dir, idx, thread_num=1):
+def metadata_crawl(input_path, output_dir, thread_num=1):
     """Crawl metadata for vids in input_file from YouTube frontend server."""
     metadata_crawler = MetadataCrawler()
     metadata_crawler.set_num_thread(thread_num)
-    metadata_crawler.start(input_path, output_dir, idx)
+    metadata_crawler.start(input_path, output_dir)
 
 
 def relevant_crawl(input_path, output_dir, thread_num=1):
@@ -71,23 +70,12 @@ if __name__ == '__main__':
         sample_ratio = 1.0
         extract(input_path, output_dir, proc_num, sample_ratio)
     elif args.function == 'metadata':
-        idx_path = 'conf/idx.txt'
-        if os.path.exists(idx_path):
-            with open(idx_path, 'r') as idx_file:
-                idx = int(idx_file.readline().rstrip())
-        else:
-            with open(idx_path, 'w') as idx_file:
-                idx_file.write('0')
-                idx = 0
-        hostname = socket.gethostname()[:-10]
-
-        # input_path = '{0}/{1}-{2}.txt'.format(input_path, hostname, idx)
-        input_path = input_path
-        thread_num = 10
-        metadata_crawl(input_path, output_dir, idx, thread_num=thread_num)
+        thread_num = 1
+        metadata_crawl(input_path, output_dir, thread_num=thread_num)
     elif args.function == 'dailydata':
         single_crawl(input_path, output_dir)
     elif args.function == 'relevant':
-        relevant_crawl(input_path, output_dir)
+        thread_num = 1
+        relevant_crawl(input_path, output_dir, thread_num=thread_num)
     else:
         print 'You have entered a wrong function!!!'
