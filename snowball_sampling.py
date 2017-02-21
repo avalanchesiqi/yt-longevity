@@ -1,6 +1,3 @@
-import json
-
-
 def encode_vids(path):
     ret = {}
     idx = 1
@@ -9,16 +6,6 @@ def encode_vids(path):
             ret[line.rstrip()] = idx
             idx += 1
     return ret
-
-
-def extract_node_label(path, out_path):
-    output_data = open(out_path, 'w')
-    output_data.write('Id,Label\n')
-    with open(path, 'r') as data:
-        for line in data:
-            metadata = json.loads(line.rstrip())
-            output_data.write('{0},{1};{2}'.format(metadata['id'], metadata['statistics']['viewCount'], metadata['snippet']['title']))
-        output_data.close()
 
 
 def _get_exponential_vids(graph_path, videos):
@@ -33,7 +20,7 @@ def _get_exponential_vids(graph_path, videos):
     return vids
 
 
-def get_exponential_vid(graph_path, video, cap=None):
+def get_exponential_vid(graph_path, video):
     vids = set()
     vids.add(video)
     with open(graph_path, 'r') as graph:
@@ -43,12 +30,12 @@ def get_exponential_vid(graph_path, video, cap=None):
                 if target in label_id_dict.values():
                     vids.add(target)
     # second layer
-    vids = _get_exponential_vids(graph_path, vids, cap)
+    vids_2nd = _get_exponential_vids(graph_path, vids)
     # third layer
-    vids = _get_exponential_vids(graph_path, vids, cap)
-    # # fourth layer
-    # vids = _get_exponential_vids(graph_path, vids, cap)
-    return vids
+    vids_3rd = _get_exponential_vids(graph_path, vids_2nd)
+    # fourth layer
+    vids_4th = _get_exponential_vids(graph_path, vids_3rd)
+    return vids_3rd, vids_4th
 
 
 if __name__ == '__main__':
@@ -63,16 +50,16 @@ if __name__ == '__main__':
             id, label, weight = line.rstrip().split(',')
             label_id_dict[label] = id
 
-    chosen_videos_set = get_exponential_vid(graph_path, label_id_dict[vid])
+    chosen_videos_set, chosen_videos_set_outer = get_exponential_vid(graph_path, label_id_dict[vid])
 
-    with open('../data/chosen_nodes.csv', 'w') as f1:
+    with open('../data/chosen_nodes_{0}.csv'.format(vid), 'w') as f1:
         f1.write('Id,Label,Weight\n')
         with open(node_path, 'r') as data:
             for line in data:
-                if line.rstrip().split(',')[0] in chosen_videos_set:
+                if line.rstrip().split(',')[0] in chosen_videos_set_outer:
                     f1.write(line)
 
-    with open('../data/chosen_edges.csv', 'w') as f2:
+    with open('../data/chosen_edges_{0}.csv'.format(vid), 'w') as f2:
         f2.write('Source,Target\n')
         with open(graph_path, 'r') as data:
             for line in data:
