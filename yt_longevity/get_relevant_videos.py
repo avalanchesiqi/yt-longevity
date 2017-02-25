@@ -31,6 +31,7 @@ def search_relevant_videos_api(vid, pageToken=None):
         for video in relevant_videos:
             try:
                 id = video['id']['videoId']
+                print video['snippet']['title']
                 output.write('{0}\n'.format(id))
             except Exception as e:
                 print 'parse and write failed'
@@ -67,23 +68,32 @@ def search_relevant_videos_selenium(video_id):
     """Simulate a browser behavior to get relevant video list via selenium."""
     target_page = 'https://www.youtube.com/watch?v={0}'.format(video_id)
 
-    # driver.delete_all_cookies()
+    driver.delete_all_cookies()
     driver.get(target_page)
 
-    try:
-        showmore_btn = driver.find_element_by_xpath("//button[contains(@id,'watch-more-related-button')]")
-        time.sleep(3)
-        showmore_btn.click()
-        time.sleep(3)
-    except Exception as e:
-        print 'click show more button fail'
-        print str(e)
+    # click show more button
+    # try:
+    #     showmore_btn = driver.find_element_by_xpath("//button[contains(@id,'watch-more-related-button')]")
+    #     time.sleep(3)
+    #     showmore_btn.click()
+    #     time.sleep(3)
+    # except Exception as e:
+    #     print 'click show more button fail'
+    #     print str(e)
+
+    # wait till browser load
+    time.sleep(3)
 
     vids = []
     soup = BeautifulSoup(driver.page_source, 'lxml')
-    relevant_videos = soup.find_all("div", class_="content-wrapper")
-    for video_div in relevant_videos:
-        vids.append(video_div.find('a')['href'][-11:])
+    relevant_videos_wrapper = soup.find_all('div', class_='content-wrapper')
+    for video_div in relevant_videos_wrapper:
+        video_a = video_div.find('a')
+        vids.append(video_a['href'][-11:])
+        stat_view = video_a.find('span', class_='stat view-count').text
+        print video_a['title']
+        print stat_view
+        print
 
     driver.close()
     with open(BASE_DIR+'log/{0}_sidebar_list.txt'.format(video_id), 'a+') as f:
@@ -105,4 +115,3 @@ if __name__ == '__main__':
         driver.quit()
     elif args.f == 'api':
         search_relevant_videos_api(args.v)
-
