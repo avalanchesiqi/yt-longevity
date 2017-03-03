@@ -108,28 +108,28 @@ class SingleCrawler(Crawler):
         print '\nStart crawling video ids from tweet video id files...\n'
         self._logger.log_log('Start crawling video ids from tweet video id files...')
 
-        offset_file = os.path.join(output_dir, 'tmp_offset')
+        # offset_file = os.path.join(output_dir, 'tmp_offset')
+        #
+        # if not os.path.exists(offset_file):
+        #     offset = 0
+        # else:
+        #     with open(offset_file, 'r') as f:
+        #         offset = int(f.readline().strip())
 
-        if not os.path.exists(offset_file):
-            offset = 0
-        else:
-            with open(offset_file, 'r') as f:
-                offset = int(f.readline().strip())
-
-        cnt1 = 0
+        # cnt1 = 0
         for line in self._input:
-            cnt1 += 1
-            if cnt1 < offset:
-                continue
-            elif cnt1 > (offset+30000):
-                with open(offset_file, 'w+') as f:
-                    f.write(str(offset+30000))
-                self._input.close()
-                self._logger.log_log('Hit the {0} margin'.format(offset+30000))
-                self._logger.log_log('Current program exits, restart...\n')
-                print '\nHit the {0} margin\nCurrent program exits, restart...\n'.format(offset+30000)
-                self._logger.close()
-                sys.exit()
+            # cnt1 += 1
+            # if cnt1 < offset:
+            #     continue
+            # elif cnt1 > (offset+100000):
+            #     with open(offset_file, 'w+') as f:
+            #         f.write(str(offset+100000))
+            #     self._input.close()
+            #     self._logger.log_log('Hit the {0} margin'.format(offset+100000))
+            #     self._logger.log_log('Current program exits, restart...\n')
+            #     print '\nHit the {0} margin\nCurrent program exits, restart...\n'.format(offset+100000)
+            #     self._logger.close()
+            #     sys.exit()
 
             vid = line.rstrip('\t\n')
 
@@ -145,8 +145,8 @@ class SingleCrawler(Crawler):
                 cnt2 += 1
             continue
 
-        with open(offset_file, 'w+') as f:
-            f.write(str(offset + cnt1))
+        # with open(offset_file, 'w+') as f:
+        #     f.write(str(offset + cnt1))
         self._input.close()
         print '\nFinish crawling video ids from tweet video id files.\n'
         self._logger.log_log('Finish crawling video ids from tweet video id files.')
