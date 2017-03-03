@@ -10,8 +10,8 @@ procnum=`ps -ef | grep "run.py" | grep -v grep | wc -l`
 if [ $procnum -eq 1 ]; then
     kill $(ps -ef | grep "run.py" | grep -v grep | awk '{print $2}')
     let oldidx=$(cat $idxfile)
-    oldfilename='/mnt/data/'$host'-meta'$oldidx'.json'
-    tmpfilename='/mnt/data/'$host'-metatmp.json'
+    oldfilename='/mnt/data/metadata_mar_2017/'$host'-meta'$oldidx'.json'
+    tmpfilename='/mnt/data/metadata_mar_2017/'$host'-metatmp.json'
     head -n -1 $oldfilename > $tmpfilename
     mv $tmpfilename $oldfilename
     let idx=$(($oldidx + 1))
@@ -21,7 +21,7 @@ fi
 
 # get last output filename
 transidx=$(($(cat $idxfile) - 1))
-filename='/mnt/data/'$host'-meta'$transidx'.json'
+filename='/mnt/data/metadata_mar_2017/'$host'-meta'$transidx'.json'
 
 
 # sleep random second to prevent peer connection reset
@@ -29,9 +29,8 @@ sleep $((RANDOM % 10))
 
 
 # start transform
-scp -i /home/ec2-user/yt-longevity/conf/siqwu.key $filename ec2-user@130.56.249.25:/home/ec2-user/data/metadata/
+scp -i /home/ec2-user/yt-longevity/conf/siqwu.key $filename ec2-user@130.56.249.25:/home/ec2-user/data/metadata/crawled_mar_2017/
 
 
 # start new job
-nohup python /home/ec2-user/yt-longevity/run.py &
-
+nohup python /home/ec2-user/yt-longevity/run.py -f metadata -i /home/ec2-user/yt-longevity/input/ -o /mnt/data/metadata_mar_2017/ &

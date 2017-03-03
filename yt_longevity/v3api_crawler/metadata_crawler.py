@@ -127,7 +127,7 @@ class MetadataCrawler(APIV3Crawler):
                     break
         self.logger.error('Request for {0} request has an error and never succeeded.'.format(vid))
 
-    def start(self, input_file, output_dir):
+    def start(self, input_file, output_dir, idx):
         self.logger.warning('**> Outputting result to files...')
 
         # define the two queues: one for working jobs, one for results.
@@ -152,13 +152,16 @@ class MetadataCrawler(APIV3Crawler):
         def writer():
             """Function to take values from the output queue and write it to a file
             """
-            output_path = '{0}/metadata.json'
-            video_metadata = open(output_path.format(output_dir), 'w')
+            hostname = socket.gethostname()[:-10]
+            output_path = "{0}/{1}-meta{2}.json"
+            video_metadata = open(output_path.format(output_dir, hostname, idx), "w")
             while True:
                 try:
                     jobj = to_write.get()
                     # check for file termination object
                     if jobj == 0:
+                        with open('conf/idx.txt', 'w') as idx_file:
+                            idx_file.write('{0}\n'.format(idx + 1))
                         self.logger.warning('**> Termination object received and wait for termination...')
                         video_metadata.close()
                     elif jobj is not None:
