@@ -33,4 +33,5 @@ scp -i /home/ec2-user/yt-longevity/conf/siqwu.key $filename ec2-user@130.56.249.
 
 
 # start new job
+cd /home/ec2-user/yt-longevity/
 nohup python /home/ec2-user/yt-longevity/run.py -f metadata -i /home/ec2-user/yt-longevity/input/ -o /mnt/data/metadata_mar_2017/
