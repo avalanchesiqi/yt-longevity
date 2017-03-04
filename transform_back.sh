@@ -36,4 +36,5 @@ scp -i /home/ec2-user/yt-longevity/conf/siqwu.key $filename ec2-user@130.56.249.
 cd /home/ec2-user/yt-longevity/
 nohup python -u /home/ec2-user/yt-longevity/run.py -f metadata -i /home/ec2-user/yt-longevity/input/ -o /mnt/data/metadata_mar_2017/ > /home/ec2-user/yt-longevity/log/metadata.log &
 python /home/ec2-user/yt-longevity/yt_longevity/extract_vids.py $filename /home/ec2-user/yt-longevity/vids
-nohup python -u /home/ec2-user/yt-longevity/run.py -f dailydata -i /home/ec2-user/yt-longevity/vids -o /mnt/data/insightdata_mar_2017/ > /home/ec2-user/yt-longevity/log/insightdata.log &
+mkdir /mnt/data/insightdata_mar_2017/$host-daily$transidx
+nohup python -u /home/ec2-user/yt-longevity/run.py -f dailydata -i /home/ec2-user/yt-longevity/vids -o /mnt/data/insightdata_mar_2017/$host-daily$transidx/ > /home/ec2-user/yt-longevity/log/insightdata.log &
