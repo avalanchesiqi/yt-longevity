@@ -6,7 +6,7 @@ idxfile=/home/ec2-user/yt-longevity/conf/idx.txt
 host=$(echo $(hostname) | cut -d. -f1)
 
 # kill old job if not finish
-procnum=`ps -ef | grep "run.py" | grep -v grep | wc -l`
+procnum=`ps -ef | grep "run.py" | grep "metadata" | grep -v grep | wc -l`
 if [ $procnum -eq 1 ]; then
     kill $(ps -ef | grep "run.py" | grep -v grep | awk '{print $2}')
     let oldidx=$(cat $idxfile)
