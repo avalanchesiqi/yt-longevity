@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 def plot_errorbar(watch_list, color='b', label_text=None):
     z_critical = stats.norm.ppf(q=0.95)
-    sample_size = len(watch_list[0])
 
     mean_list = []
     error_list = []
@@ -25,15 +24,17 @@ def plot_errorbar(watch_list, color='b', label_text=None):
         else:
             mean = np.mean(watches)
             std = np.std(watches)
-            error = z_critical * (std / math.sqrt(sample_size))
+            error = z_critical * (std / math.sqrt(len(watches)))
             mean_list.append(mean)
             error_list.append(error)
 
     ax1.errorbar(np.arange(1200), mean_list, yerr=error_list, c=color, fmt='o-', markersize='2', label=label_text)
     ax1.set_ylim(ymin=0)
-    ax1.set_ylim(ymax=1)
+    # ax1.set_ylim(ymax=1)
+    ax1.set_xlim(xmin=0)
+    ax1.set_xlim(xmax=1200)
     ax1.set_xlabel('video duration (*10s)')
-    ax1.set_ylabel('watch percentage')
+    ax1.set_ylabel('average watch time (1s)')
 
 
 if __name__ == '__main__':
@@ -68,6 +69,7 @@ if __name__ == '__main__':
 
     print 'success: {0}, invalid: {1}, unavailable: {2}'.format(cnt0, cnt1, cnt2)
 
-    plot_errorbar(matrix, 'y')
+    plot_errorbar(matrix, color='y', label_text='Overall')
 
+    plt.legend(loc='upper right')
     plt.show()

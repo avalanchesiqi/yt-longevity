@@ -29,7 +29,6 @@ def safe_div(a, b):
 
 def plot_errorbar(watch_list, color='b', label_text=None):
     z_critical = stats.norm.ppf(q=0.95)
-    sample_size = len(watch_list[0])
 
     mean_list = []
     error_list = []
@@ -41,11 +40,11 @@ def plot_errorbar(watch_list, color='b', label_text=None):
         else:
             mean = np.mean(watches)
             std = np.std(watches)
-            error = z_critical * (std / math.sqrt(sample_size))
+            error = z_critical * (std / math.sqrt(len(watches)))
             mean_list.append(mean)
             error_list.append(error)
 
-    ax1.errorbar(np.arange(4300), mean_list, yerr=error_list, c=color, fmt='o-', markersize='2', label=label_text)
+    ax1.errorbar(np.arange(len(watch_list)), mean_list, yerr=error_list, c=color, fmt='o-', markersize='2', label=label_text)
     ax1.set_ylim(ymin=0)
     ax1.set_ylim(ymax=1)
     ax1.set_xlabel('video age')
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     cnt1 = 0
     cnt2 = 0
 
-    matrix = [[] for _ in np.arange(4300)]
+    matrix = [[] for _ in np.arange(1800)]
     for subdir, _, files in os.walk(data_loc):
         for f in files:
             filepath = os.path.join(subdir, f)
@@ -79,15 +78,18 @@ if __name__ == '__main__':
                     watches = read_as_float_array(video['insights']['dailyWatch'])
                     watch_percent = safe_div(watches*60, views*duration)
                     for idx, day in enumerate(days):
-                        if watch_percent[idx] <= 1:
-                            matrix[day].append(watch_percent[idx])
-                            cnt0 += 1
-                        else:
-                            matrix[day].append(1)
-                            cnt1 += 1
+                        if day < 1800:
+                            if watch_percent[idx] <= 1:
+                                matrix[day].append(watch_percent[idx])
+                                cnt0 += 1
+                            else:
+                                matrix[day].append(1)
+                                cnt1 += 1
 
     print 'success: {0}, invalid: {1}, unavailable: {2}'.format(cnt0, cnt1, cnt2)
 
-    plot_errorbar(matrix, 'r')
+    valid_matrix = [x for x in matrix if x]
+    plot_errorbar(valid_matrix, color='r', label_text='Overall')
 
+    plt.legend(loc='upper right')
     plt.show()
