@@ -10,6 +10,8 @@ import isodate
 from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+import math
+from scipy import stats
 
 category_dict = {"42": "Shorts", "29": "Nonprofits & Activism", "24": "Entertainment", "25": "News & Politics", "26": "Howto & Style", "27": "Education", "20": "Gaming", "21": "Videoblogging", "22": "People & Blogs", "23": "Comedy", "44": "Trailers", "28": "Science & Technology", "43": "Shows", "40": "Sci-Fi/Fantasy", "41": "Thriller", "1": "Film & Animation", "2": "Autos & Vehicles", "10": "Music", "39": "Horror", "38": "Foreign", "15": "Pets & Animals", "17": "Sports", "19": "Travel & Events", "18": "Short Movies", "31": "Anime/Animation", "30": "Movies", "37": "Family", "36": "Drama", "35": "Documentary", "34": "Comedy", "33": "Classics", "32": "Action/Adventure"}
 
@@ -34,12 +36,8 @@ def safe_div(a, b):
     return c
 
 
-if __name__ == '__main__':
-    category_id = '17'
-    data_loc = '../../data/byCategory/{0}.json'.format(category_id)
-
-    age_duration_matrix = defaultdict(dict)
-    with open(data_loc, 'r') as filedata:
+def update_matrix(filepath):
+    with open(filepath, 'r') as filedata:
         for line in filedata:
             video = json.loads(line.rstrip())
             if video['insights']['dailyWatch'] == 'N':
@@ -50,7 +48,8 @@ if __name__ == '__main__':
                 published_at = video['snippet']['publishedAt'][:10]
                 if published_at[:4] == '2016':
                     start_date = video['insights']['startDate']
-                    time_diff = (datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
+                    time_diff = (
+                    datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
                     days = read_as_int_array(video['insights']['days']) + time_diff
                     views = read_as_int_array(video['insights']['dailyView'])
                     watches = read_as_float_array(video['insights']['dailyWatch'])
@@ -59,9 +58,9 @@ if __name__ == '__main__':
                         # for videos before age 400 days
                         if 0 <= age < 400:
                             # age idx
-                            age_idx = age/10
+                            age_idx = age / 10
                             # duration idx
-                            duration_idx = duration/60
+                            duration_idx = duration / 60
                             if watch_percent[idx] <= 1:
                                 wp_value = watch_percent[idx]
                             else:
@@ -70,10 +69,28 @@ if __name__ == '__main__':
                                 age_duration_matrix[age_idx][duration_idx] = []
                             age_duration_matrix[age_idx][duration_idx].append(wp_value)
 
+
+if __name__ == '__main__':
+    category_id = '25'
+    data_loc = '../../data/byCategory/{0}.json'.format(category_id)
+
+    age_duration_matrix = defaultdict(dict)
+
+    if os.path.isdir(data_loc):
+        for subdir, _, files in os.walk(data_loc):
+            for f in files:
+                filepath = os.path.join(subdir, f)
+                update_matrix(filepath)
+    else:
+        update_matrix(data_loc)
+
     age_duration_mean_matrix = defaultdict(dict)
     for age_idx in age_duration_matrix.keys():
         for duration_idx in age_duration_matrix[age_idx].keys():
-            age_duration_mean_matrix[age_idx][duration_idx] = np.mean(age_duration_matrix[age_idx][duration_idx])
+            mean = np.mean(age_duration_matrix[age_idx][duration_idx])
+            # std = np.std(age_duration_matrix[age_idx][duration_idx])
+            # z_critical = stats.norm.ppf(q=0.95)
+            age_duration_mean_matrix[age_idx][duration_idx] = mean
 
     # change to list presentation
     age_list = []
@@ -97,7 +114,7 @@ if __name__ == '__main__':
     plt.subplot(1, 1, 1)
     plt.pcolor(xi, yi, zi, vmin=0, vmax=1)
     # plt.scatter(age_list, duration_list, c=watch_percent_list)
-    plt.title('heatmap of category {0}'.format(category_dict[category_id]))
+    plt.title('heatmap of {0}'.format(category_dict[category_id]))
     plt.xlim(0, 40)
     plt.ylim(0, 60)
     plt.gca().xaxis.set_major_formatter(FuncFormatter(x_fmt))
