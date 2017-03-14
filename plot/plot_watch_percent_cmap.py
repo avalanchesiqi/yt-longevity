@@ -21,11 +21,11 @@ def x_fmt(x, p):
 
 
 def read_as_int_array(content):
-    return np.array(map(int, content.split(',')))
+    return np.array(map(int, content.split(',')), dtype=np.uint32)
 
 
 def read_as_float_array(content):
-    return np.array(map(float, content.split(',')))
+    return np.array(map(float, content.split(',')), dtype=np.float64)
 
 
 def safe_div(a, b):

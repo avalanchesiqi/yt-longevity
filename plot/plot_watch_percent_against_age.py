@@ -14,11 +14,11 @@ category_dict = {"42": "Shorts", "29": "Nonprofits & Activism", "24": "Entertain
 
 
 def read_as_int_array(content):
-    return np.array(map(int, content.split(',')))
+    return np.array(map(int, content.split(',')), dtype=np.uint32)
 
 
 def read_as_float_array(content):
-    return np.array(map(float, content.split(',')))
+    return np.array(map(float, content.split(',')), dtype=np.float64)
 
 
 def safe_div(a, b):
@@ -35,7 +35,7 @@ def plot_errorbar(watch_list, color='b', label_text=None):
     mean_list = []
     error_list = []
 
-    for watches in watch_list:
+    for idx, watches in enumerate(watch_list):
         if len(watches) == 0:
             mean_list.append(0)
             error_list.append(0)
@@ -45,6 +45,7 @@ def plot_errorbar(watch_list, color='b', label_text=None):
             error = z_critical * (std / math.sqrt(len(watches)))
             mean_list.append(mean)
             error_list.append(error)
+            # print 10*idx, 10*idx+9, mean, std, error
 
     ax1.errorbar(np.arange(len(watch_list)), mean_list, yerr=error_list, c=color, fmt='o-', markersize='2', label=label_text)
     ax1.set_ylim(ymin=0)
@@ -64,8 +65,7 @@ def update_matrix(filepath):
             published_at = video['snippet']['publishedAt'][:10]
             start_date = video['insights']['startDate']
             if published_at[:4] == '2016':
-                time_diff = (
-                datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
+                time_diff = (datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
                 days = read_as_int_array(video['insights']['days']) + time_diff
                 views = read_as_int_array(video['insights']['dailyView'])
                 watches = read_as_float_array(video['insights']['dailyWatch'])
