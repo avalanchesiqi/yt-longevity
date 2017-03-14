@@ -31,43 +31,48 @@ def get_centroid_neighbor_dict(filepath):
 
 def create_neighbor_matrix(source_id):
     filepath = os.path.join(insight_data_loc, source_id[0], source_id[1], source_id)
-    with open(filepath, 'r') as insight:
-        content = insight.readline().rstrip()
-        date, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = content.split()
-        days = map(int, days.split(','))
-        dailyviews = map(int, dailyviews.split(','))
-        startdate = datetime(*map(int, date.split('-')))
-        duration = days[-1] + 1
-        matrix = np.array([0] * duration)
-        for cnt, day in enumerate(days):
-            matrix[day] = dailyviews[cnt]
-
-    neighbor_vids = centroid_neighbor_dict[source_id]
-
-    for vid in neighbor_vids:
-        filepath = os.path.join(insight_data_loc, vid[0], vid[1], vid)
+    if os.path.isfile(filepath):
         with open(filepath, 'r') as insight:
             content = insight.readline().rstrip()
             date, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = content.split()
             days = map(int, days.split(','))
             dailyviews = map(int, dailyviews.split(','))
-            date = datetime(*map(int, date.split('-')))
-            time_gap = (startdate - date).days
-            trainings = np.array([0] * duration)
+            startdate = datetime(*map(int, date.split('-')))
+            duration = days[-1] + 1
+            matrix = np.array([0] * duration)
             for cnt, day in enumerate(days):
-                if time_gap <= day < duration + time_gap:
-                    trainings[day - time_gap] = dailyviews[cnt]
-            matrix = np.vstack((matrix, trainings))
+                matrix[day] = dailyviews[cnt]
 
-    matrix = matrix.transpose()
+        neighbor_vids = centroid_neighbor_dict[source_id]
 
-    np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, delimiter=',', fmt='%d')
+        for vid in neighbor_vids:
+            filepath = os.path.join(insight_data_loc, vid[0], vid[1], vid)
+            if os.path.isfile(filepath):
+                with open(filepath, 'r') as insight:
+                    content = insight.readline().rstrip()
+                    date, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = content.split()
+                    days = map(int, days.split(','))
+                    dailyviews = map(int, dailyviews.split(','))
+                    date = datetime(*map(int, date.split('-')))
+                    time_gap = (startdate - date).days
+                    trainings = np.array([0] * duration)
+                    for cnt, day in enumerate(days):
+                        if time_gap <= day < duration + time_gap:
+                            trainings[day - time_gap] = dailyviews[cnt]
+                    matrix = np.vstack((matrix, trainings))
+
+        matrix = matrix.transpose()
+
+        np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, delimiter=',', fmt='%d')
 
 
 if __name__ == '__main__':
-    id_label_path = 'vevo_id_label_weight.txt'
-    encoded_graph_path = 'encoded_graph.csv'
-    insight_data_loc = 'vevo_insight_data/raw_data'
+    id_label_path = 'input/vevo_id_label_weight.txt'
+    encoded_graph_path = 'input/encoded_graph.csv'
+    insight_data_loc = '/mnt/data/vevo/vevo_insight_data/raw_data'
+
+    if not os.path.exists('ego_networks'):
+        os.makedirs('ego_networks')
 
     id_label_dict = get_id_label_dict(id_label_path)
 
