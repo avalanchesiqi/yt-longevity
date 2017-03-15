@@ -30,6 +30,8 @@ def get_centroid_neighbor_dict(filepath):
 
 
 def create_neighbor_matrix(source_id):
+    header = []
+    header.append(source_id)
     filepath = os.path.join(insight_data_loc, source_id[0], source_id[1], source_id)
     if os.path.isfile(filepath):
         with open(filepath, 'r') as insight:
@@ -46,6 +48,7 @@ def create_neighbor_matrix(source_id):
         neighbor_vids = centroid_neighbor_dict[source_id]
 
         for vid in neighbor_vids:
+            header.append(vid)
             filepath = os.path.join(insight_data_loc, vid[0], vid[1], vid)
             if os.path.isfile(filepath):
                 with open(filepath, 'r') as insight:
@@ -63,7 +66,7 @@ def create_neighbor_matrix(source_id):
 
         matrix = matrix.transpose()
 
-        np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, delimiter=',', fmt='%d')
+        np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, header=','.join(header), delimiter=',', fmt='%d')
 
 
 if __name__ == '__main__':
