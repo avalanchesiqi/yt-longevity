@@ -66,7 +66,7 @@ def create_neighbor_matrix(source_id):
 
         matrix = matrix.transpose()
 
-        np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, header=','.join(header), delimiter=',', fmt='%d')
+        np.savetxt('ego_networks/ego_network_{0}.txt'.format(source_id), matrix, header=','.join(header), delimiter=',', fmt='%d', comments='')
 
 
 if __name__ == '__main__':
