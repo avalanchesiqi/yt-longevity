@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import os
 import json
 import numpy as np
@@ -45,6 +46,7 @@ def save_five_number_summary(week_bin_matrix, title_text=None):
         ax1.set_xlabel('video duration percentile')
         ax1.set_ylabel('watch percentage')
         fig.savefig(os.path.join(output_loc, 'week{0}.png'.format(week_idx+1)), format='eps', dpi=1000)
+        fig = None
 
 
 def add_duration_bin(filepath):
@@ -70,8 +72,8 @@ def update_matrix(filepath):
             if video['insights']['avgWatch'] == 'N':
                 continue
             duration = isodate.parse_duration(video['contentDetails']['duration']).seconds
-            if duration > 0:
-                published_at = video['snippet']['publishedAt'][:10]
+            published_at = video['snippet']['publishedAt'][:10]
+            if published_at[:4] == '2016' and duration > 0:
                 start_date = video['insights']['startDate']
                 time_diff = (datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
                 ages = read_as_int_array(video['insights']['days'])[:7*week_num] + time_diff
@@ -94,11 +96,15 @@ def update_matrix(filepath):
 
 if __name__ == '__main__':
     category_id = '43'
-    data_loc = '../../data/byCategory/{0}.json'.format(category_id)
+    data_loc = '/mnt/data/2016_most_tweeted/byCategory/{0}.json'.format(category_id)
 
-    output_loc = '../../data/wp_movie/{0}_wp'.format(folder_dict[category_id])
-    # make output dir
-    if not os.path.exists(output_loc):
+    output_loc = '../linux_figs/wp_movie/{0}_wp'.format(folder_dict[category_id])
+
+    # make output dir if not exists, otherwise skip the program
+    if os.path.exists(output_loc):
+        print 'output directory already exists! change output dir...'
+        sys.exit(1)
+    else:
         os.makedirs(output_loc)
 
     # 2.5 percentile or 5 percentile
