@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import sys
 import os
 import json
 import numpy as np
-import math
-from scipy import stats
 import isodate
 from datetime import datetime
+from scipy import stats
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 category_dict = {"42": "Shorts", "29": "Nonprofits & Activism", "24": "Entertainment", "25": "News & Politics", "26": "Howto & Style", "27": "Education", "20": "Gaming", "21": "Videoblogging", "22": "People & Blogs", "23": "Comedy", "44": "Trailers", "28": "Science & Technology", "43": "Shows", "40": "Sci-Fi/Fantasy", "41": "Thriller", "1": "Film & Animation", "2": "Autos & Vehicles", "10": "Music", "39": "Horror", "38": "Foreign", "15": "Pets & Animals", "17": "Sports", "19": "Travel & Events", "18": "Short Movies", "31": "Anime/Animation", "30": "Movies", "37": "Family", "36": "Drama", "35": "Documentary", "34": "Comedy", "33": "Classics", "32": "Action/Adventure"}
+folder_dict = {"42": "Shorts", "29": "Nonprofits", "24": "Entertainment", "25": "News", "26": "Howto", "27": "Education", "20": "Gaming", "21": "Videoblogging", "22": "People", "23": "Comedy", "44": "Trailers", "28": "Science", "43": "Shows", "40": "SciFi", "41": "Thriller", "1": "Film", "2": "Autos", "10": "Music", "39": "Horror", "38": "Foreign", "15": "Pets", "17": "Sports", "19": "Travel", "18": "ShortMovies", "31": "Anime", "30": "Movies", "37": "Family", "36": "Drama", "35": "Documentary", "34": "Comedy", "33": "Classics", "32": "Action"}
 
 
 def read_as_int_array(content):
@@ -38,11 +40,22 @@ def is_valid_video(arr):
     return True
 
 
+def get_lin_coef(x):
+    lr = LinearRegression()
+    lr.fit(np.arange(1, len(x) + 1).reshape(-1, 1), np.array(x).reshape(-1, 1))
+    return lr.coef_[0][0], lr.intercept_[0]
+
+
 def plot_data(watch_percent, weekly_view, weekly_watch, video):
-    fig, ax1 = plt.subplots(1, 1)
+    ax1 = fig.add_subplot(111)
     ax2 = ax1.twinx()
-    ax1.plot(np.arange(1, len(weekly_view) + 1), weekly_view, 'o-', c='r')
-    ax2.plot(np.arange(1, len(watch_percent) + 1), watch_percent, 'o-', c='b')
+    x_axis = np.arange(1, len(watch_percent) + 1)
+    lns1 = ax1.plot(x_axis, weekly_view, 'D-', c='r', ms=3, mfc='None', mec='r', mew=1, label='weekly viewership')
+    lns2 = ax2.plot(x_axis, watch_percent, 'o-', c='b', ms=3, mfc='None', mec='b', mew=1, label='weekly watch percentage')
+
+    coef, intercept = get_lin_coef(watch_percent)
+    output_stats_file.write('{0}\t{1}\t{2}\n'.format(video['id'], coef, intercept))
+    lns3 = ax2.plot(x_axis, [coef*x+intercept for x in x_axis], 's--', c='g', ms=3, mfc='None', mec='g', mew=1, label='fitted watch percentage')
 
     ax1.set_xlim(xmin=0)
     ax1.set_xlim(xmax=week_num+1)
@@ -56,12 +69,19 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video):
     ax2.tick_params('y', colors='b')
 
     title = video['snippet']['title'].encode('ascii', 'ignore').decode('ascii')
+    vid = video['id']
     duration = video['contentDetails']['duration']
     category = category_dict[video['snippet']['categoryId']]
-    ax2.text(2, 0.85, '{0}\n{1}, {2}\n{3}, {4:.2f}h'.format(title, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60), bbox={'facecolor': 'green', 'alpha': 0.5})
+    ax2.text(3, 0.83, '{0}\n{1}, {2}\n{3}, {4:.2f}h\n{5:.8f}, {6:.8f}'
+             .format(vid, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60, coef, intercept),
+             bbox={'facecolor': 'green', 'alpha': 0.5})
 
+    lns = lns1 + lns2 + lns3
+    labs = [l.get_label() for l in lns]
+    plt.legend(lns, labs, loc='upper right', fontsize='small')
     fig.savefig(os.path.join(output_loc, video['id']))
     # plt.show()
+    plt.clf()
 
 
 def update_matrix(filepath):
@@ -94,13 +114,20 @@ def update_matrix(filepath):
 
 
 if __name__ == '__main__':
-    category_id = '25'
+    category_id = '43'
     data_loc = '../../data/byCategory/{0}.json'.format(category_id)
-    output_loc = '../linux_figs/detailed_videos/'
-
-    mean_list = []
-    std_list = []
+    output_loc = '../linux_figs/detailed_videos/{0}'.format(folder_dict[category_id])
+    output_stats_file = open('../linux_figs/detailed_videos/{0}_stats.txt'.format(folder_dict[category_id]), 'w')
     week_num = 52
+
+    fig = plt.figure()
+
+    # make output dir if not exists, otherwise skip the program
+    if os.path.exists(output_loc):
+        print 'output directory already exists! change output dir...'
+        sys.exit(1)
+    else:
+        os.makedirs(output_loc)
 
     if os.path.isdir(data_loc):
         for subdir, _, files in os.walk(data_loc):
@@ -109,3 +136,5 @@ if __name__ == '__main__':
                 update_matrix(filepath)
     else:
         update_matrix(data_loc)
+
+    output_stats_file.close()
