@@ -9,7 +9,10 @@ import isodate
 from datetime import datetime
 from scipy import stats
 from sklearn.linear_model import LinearRegression
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 category_dict = {"42": "Shorts", "29": "Nonprofits & Activism", "24": "Entertainment", "25": "News & Politics", "26": "Howto & Style", "27": "Education", "20": "Gaming", "21": "Videoblogging", "22": "People & Blogs", "23": "Comedy", "44": "Trailers", "28": "Science & Technology", "43": "Shows", "40": "Sci-Fi/Fantasy", "41": "Thriller", "1": "Film & Animation", "2": "Autos & Vehicles", "10": "Music", "39": "Horror", "38": "Foreign", "15": "Pets & Animals", "17": "Sports", "19": "Travel & Events", "18": "Short Movies", "31": "Anime/Animation", "30": "Movies", "37": "Family", "36": "Drama", "35": "Documentary", "34": "Comedy", "33": "Classics", "32": "Action/Adventure"}
 folder_dict = {"42": "Shorts", "29": "Nonprofits", "24": "Entertainment", "25": "News", "26": "Howto", "27": "Education", "20": "Gaming", "21": "Videoblogging", "22": "People", "23": "Comedy", "44": "Trailers", "28": "Science", "43": "Shows", "40": "SciFi", "41": "Thriller", "1": "Film", "2": "Autos", "10": "Music", "39": "Horror", "38": "Foreign", "15": "Pets", "17": "Sports", "19": "Travel", "18": "ShortMovies", "31": "Anime", "30": "Movies", "37": "Family", "36": "Drama", "35": "Documentary", "34": "Comedy", "33": "Classics", "32": "Action"}
 
@@ -35,15 +38,21 @@ def safe_div(a, b, duration):
 def is_valid_video(arr):
     m = len(arr)
     n = sum([1 for x in arr if x < 100])
-    if n > m/3 or len(arr) < 8:
+    if n > m/2 or len(arr) < 8:
         return False
     return True
 
 
+def get_mse(y_true, y_predict):
+    return np.sum((y_true - y_predict)**2) / len(y_true)
+
+
 def get_lin_coef(x):
     lr = LinearRegression()
-    lr.fit(np.arange(1, len(x) + 1).reshape(-1, 1), np.array(x).reshape(-1, 1))
-    return lr.coef_[0][0], lr.intercept_[0]
+    features = np.arange(1, len(x) + 1).reshape(-1, 1)
+    label = np.array(x).reshape(-1, 1)
+    lr.fit(features, label)
+    return lr.coef_[0][0], lr.intercept_[0], get_mse(label, lr.predict(features))
 
 
 def plot_data(watch_percent, weekly_view, weekly_watch, video):
@@ -53,8 +62,8 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video):
     lns1 = ax1.plot(x_axis, weekly_view, 'D-', c='r', ms=3, mfc='None', mec='r', mew=1, label='weekly viewership')
     lns2 = ax2.plot(x_axis, watch_percent, 'o-', c='b', ms=3, mfc='None', mec='b', mew=1, label='weekly watch percentage')
 
-    coef, intercept = get_lin_coef(watch_percent)
-    output_stats_file.write('{0}\t{1}\t{2}\n'.format(video['id'], coef, intercept))
+    coef, intercept, mse = get_lin_coef(watch_percent)
+    output_stats_file.write('{0}\t{1}\t{2}\t{3}\n'.format(video['id'], coef, intercept, mse))
     lns3 = ax2.plot(x_axis, [coef*x+intercept for x in x_axis], 's--', c='g', ms=3, mfc='None', mec='g', mew=1, label='fitted watch percentage')
 
     ax1.set_xlim(xmin=0)
@@ -72,8 +81,8 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video):
     vid = video['id']
     duration = video['contentDetails']['duration']
     category = category_dict[video['snippet']['categoryId']]
-    ax2.text(3, 0.83, '{0}\n{1}, {2}\n{3}, {4:.2f}h\n{5:.8f}, {6:.8f}'
-             .format(vid, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60, coef, intercept),
+    ax2.text(3, 0.83, '{0}\n{1}, {2}\n{3}, {4:.2f}d\n{5:.6f}, {6:.6f}, {7:.6f}'
+             .format(vid, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60/24, coef, intercept, mse),
              bbox={'facecolor': 'green', 'alpha': 0.5})
 
     lns = lns1 + lns2 + lns3
@@ -117,10 +126,6 @@ if __name__ == '__main__':
     category_id = '43'
     data_loc = '../../data/byCategory/{0}.json'.format(category_id)
     output_loc = '../linux_figs/detailed_videos/{0}'.format(folder_dict[category_id])
-    output_stats_file = open('../linux_figs/detailed_videos/{0}_stats.txt'.format(folder_dict[category_id]), 'w')
-    week_num = 52
-
-    fig = plt.figure()
 
     # make output dir if not exists, otherwise skip the program
     if os.path.exists(output_loc):
@@ -128,6 +133,11 @@ if __name__ == '__main__':
         sys.exit(1)
     else:
         os.makedirs(output_loc)
+
+    output_stats_file = open('../linux_figs/detailed_videos/{0}_stats.txt'.format(folder_dict[category_id]), 'w')
+    week_num = 52
+
+    fig = plt.figure()
 
     if os.path.isdir(data_loc):
         for subdir, _, files in os.walk(data_loc):
