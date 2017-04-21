@@ -9,6 +9,7 @@ import isodate
 from datetime import datetime
 from scipy import stats
 from sklearn.linear_model import LinearRegression
+from sklearn import metrics
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -43,16 +44,13 @@ def is_valid_video(arr):
     return True
 
 
-def get_mse(y_true, y_predict):
-    return np.sum((y_true - y_predict)**2) / len(y_true)
-
-
-def get_lin_coef(x):
+def get_lin_coef(arr):
     lr = LinearRegression()
-    features = np.arange(1, len(x) + 1).reshape(-1, 1)
-    label = np.array(x).reshape(-1, 1)
-    lr.fit(features, label)
-    return lr.coef_[0][0], lr.intercept_[0], get_mse(label, lr.predict(features))
+    x = np.arange(1, len(arr) + 1).reshape(-1, 1)
+    y = np.array(arr).reshape(-1, 1)
+    lr.fit(x, y)
+    y_pred = lr.predict(x)
+    return lr.coef_[0][0], lr.intercept_[0], metrics.mean_squared_error(y, y_pred), metrics.r2_score(y, y_pred)
 
 
 def plot_data(watch_percent, weekly_view, weekly_watch, video):
@@ -62,8 +60,8 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video):
     lns1 = ax1.plot(x_axis, weekly_view, 'D-', c='r', ms=3, mfc='None', mec='r', mew=1, label='weekly viewership')
     lns2 = ax2.plot(x_axis, watch_percent, 'o-', c='b', ms=3, mfc='None', mec='b', mew=1, label='weekly watch percentage')
 
-    coef, intercept, mse = get_lin_coef(watch_percent)
-    output_stats_file.write('{0}\t{1}\t{2}\t{3}\n'.format(video['id'], coef, intercept, mse))
+    coef, intercept, mse, r2 = get_lin_coef(watch_percent)
+    output_stats_file.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(video['id'], coef, intercept, mse, r2))
     lns3 = ax2.plot(x_axis, [coef*x+intercept for x in x_axis], 's--', c='g', ms=3, mfc='None', mec='g', mew=1, label='fitted watch percentage')
 
     ax1.set_xlim(xmin=0)
@@ -81,8 +79,8 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video):
     vid = video['id']
     duration = video['contentDetails']['duration']
     category = category_dict[video['snippet']['categoryId']]
-    ax2.text(3, 0.83, '{0}\n{1}, {2}\n{3}, {4:.2f}d\n{5:.6f}, {6:.6f}, {7:.6f}'
-             .format(vid, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60/24, coef, intercept, mse),
+    ax2.text(3, 0.83, '{0}\n{1}, {2}\n{3}, {4:.2f}d\n{5:.5f}, {6:.5f}, {7:.5f}, {8:.5f}'
+             .format(vid, category, duration, sum(weekly_view[:8]), sum(weekly_watch[:8])/60/24, coef, intercept, mse, r2),
              bbox={'facecolor': 'green', 'alpha': 0.5})
 
     lns = lns1 + lns2 + lns3
