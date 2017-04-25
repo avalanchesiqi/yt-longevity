@@ -83,13 +83,14 @@ if __name__ == '__main__':
     print '2016 vevo videos:', len(vevo_wp_list)
     print '2016 billboard videos:', len(billboard_wp_list)
 
-    sns.set_style('whitegrid')
-    sns.kdeplot(billboard_wp_list, bw=0.5, label='Billboard')
-    sns.kdeplot(music_wp_list, bw=0.5, label='Music')
-    sns.kdeplot(vevo_wp_list, bw=0.5, label='VEVO')
+    sns.set_style('white')
+    sns.kdeplot(billboard_wp_list, bw=0.05, label='Billboard')
+    sns.kdeplot(music_wp_list, bw=0.05, label='Music')
+    sns.kdeplot(vevo_wp_list, bw=0.05, label='VEVO')
 
+    plt.xlim([0, 1])
     plt.xlabel('watch percentage')
-    plt.ylabel('probability')
-    plt.legend(loc='upper right')
+    plt.ylabel('probability density')
+    plt.legend(loc='upper left')
 
     plt.show()
