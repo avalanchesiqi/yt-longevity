@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: ./nonstop_insight_crawler.sh
+# usage: nohup ./nonstop_insight_crawler.sh
 
 # get idx
 # create idx.txt with value 16 to initialise
