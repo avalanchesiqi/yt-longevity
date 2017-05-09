@@ -28,7 +28,7 @@ def rep(i, c):
 
 def cost_function(params, x, y):
     """
-    Regularized cost function for HIP model
+    Non-regularized cost function for HIP model
     :param params: model parameters, mu, theta, C, c, gamma, eta
     :param x: observed sharecount
     :param y: observed viewcount
@@ -41,13 +41,29 @@ def cost_function(params, x, y):
     return cost
 
 
-def grad_descent(params, x, y):
+def reg_cost_function(params, x, y, params0):
     """
-    Gradient function for HIP model
+    Regularized cost function for HIP model
     :param params: model parameters, mu, theta, C, c, gamma, eta
     :param x: observed sharecount
     :param y: observed viewcount
-    # :param w: regularization strength
+    :param params0: reference values from non-regularized model
+    :return: cost function value
+    """
+    mu, theta, C, c, gamma, eta = params
+    mu0, C0, gamma0, eta0, w = params0
+    view_predict = predict(params, x)
+    cost_vector = view_predict - y
+    cost = np.sum(cost_vector ** 2) / 2
+    return cost + w/2*((mu/mu0)**2+(C/C0)**2+(gamma/gamma0)**2+(eta/eta0)**2)
+
+
+def grad_descent(params, x, y):
+    """
+    Non-regularized gradient function for HIP model
+    :param params: model parameters, mu, theta, C, c, gamma, eta
+    :param x: observed sharecount
+    :param y: observed viewcount
     :return: cost function value
     """
     mu, theta, C, c, gamma, eta = params
@@ -89,6 +105,58 @@ def grad_descent(params, x, y):
     for i in xrange(1, n):
         grad_eta_vector[i] = 1 + C*np.sum(grad_eta_vector[:i] * (rep(i, c)**(-1-theta)))
     grad_eta = np.sum((view_predict-y)*grad_eta_vector)/n
+    return np.array([grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta])
+
+
+def reg_grad_descent(params, x, y, params0):
+    """
+    Regularized gradient function for HIP model
+    :param params: model parameters, mu, theta, C, c, gamma, eta
+    :param x: observed sharecount
+    :param y: observed viewcount
+    :param params0: reference values from non-regularized model
+    :return: cost function value
+    """
+    mu, theta, C, c, gamma, eta = params
+    mu0, C0, gamma0, eta0, w = params0
+    view_predict = predict(params, x)
+    n = len(x)
+    # partial derivative for mu
+    grad_mu_vector = np.zeros(n)
+    grad_mu_vector[0] = x[0]
+    for i in xrange(1, n):
+        grad_mu_vector[i] = x[i] + C*np.sum(grad_mu_vector[:i] * (rep(i, c)**(-1-theta)))
+    grad_mu = np.sum((view_predict-y)*grad_mu_vector)/n + w*mu/mu0/mu0
+    # partial derivative for theta
+    grad_theta_vector = np.zeros(n)
+    grad_theta_vector[0] = 0
+    for i in xrange(1, n):
+        grad_theta_vector[i] = C*np.sum((grad_theta_vector[:i]-view_predict[:i]*np.log(rep(i, c))) * (rep(i, c)**(-1-theta)))
+    grad_theta = np.sum((view_predict-y)*grad_theta_vector)/n
+    # partial derivative for C
+    grad_C_vector = np.zeros(n)
+    grad_C_vector[0] = 0
+    for i in xrange(1, n):
+        grad_C_vector[i] = np.sum((C*grad_C_vector[:i]+view_predict[:i]) * (rep(i, c)**(-1-theta)))
+    grad_C = np.sum((view_predict-y)*grad_C_vector)/n + w*C/C0/C0
+    # partial derivative for c
+    grad_c_vector = np.zeros(n)
+    grad_c_vector[0] = 0
+    for i in xrange(1, n):
+        grad_c_vector[i] = C*np.sum((grad_c_vector[:i]-(1+theta)*view_predict[:i]/rep(i, c)) * (rep(i, c)**(-1-theta)))
+    grad_c = np.sum((view_predict-y)*grad_c_vector)/n
+    # partial derivative for gamma
+    grad_gamma_vector = np.zeros(n)
+    grad_gamma_vector[0] = 1
+    for i in xrange(1, n):
+        grad_gamma_vector[i] = C*np.sum(grad_gamma_vector[:i] * (rep(i, c)**(-1-theta)))
+    grad_gamma = np.sum((view_predict-y)*grad_gamma_vector)/n + w*gamma/gamma0/gamma0
+    # partial derivative for eta
+    grad_eta_vector = np.zeros(n)
+    grad_eta_vector[0] = 0
+    for i in xrange(1, n):
+        grad_eta_vector[i] = 1 + C*np.sum(grad_eta_vector[:i] * (rep(i, c)**(-1-theta)))
+    grad_eta = np.sum((view_predict-y)*grad_eta_vector)/n + w*eta/eta0/eta0
     return np.array([grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta])
 
 
@@ -216,20 +284,53 @@ if __name__ == '__main__':
         test_params, dailyshare, dailyview = test_cases[vid]
         # setting parameters
         iteration = 100
-        num_train = 90
+        num_train = 75
+        num_cv = 15
+        num_test = 30
+
+        x_train = dailyshare[: num_train]
+        y_train = dailyview[: num_train]
+        x_cv = dailyshare[num_train: num_train+num_cv]
+        y_cv = dailyview[num_train: num_train+num_cv]
+        x_observe = dailyshare[: num_train+num_cv]
+        y_observe = dailyview[: num_train+num_cv]
+        x_test = dailyshare[num_train+num_cv: num_train+num_cv+num_test]
+        y_test = dailyview[num_train+num_cv: num_train+num_cv+num_test]
 
         # initialize weights
         initial_theta = rand_initialize_weights(6)
 
         # perform regularize linear regression with l-bfgs
         optimizer = optimize.minimize(cost_function, initial_theta, jac=grad_descent, method='L-BFGS-B',
-                                      args=(dailyshare[:num_train], dailyview[:num_train]),
+                                      args=(x_train, y_train),
                                       options={'disp': None, 'maxiter': iteration})
 
-        pred_view = predict(optimizer.x, dailyshare[:num_train])
-        print 'target cost value for test case {0}: {1}'.format(idx+1, cost_function(test_params, dailyshare[:num_train], dailyview[:num_train]))
-        print ' final cost value for test case {0}: {1}'.format(idx+1, cost_function(optimizer.x, dailyshare[:num_train], dailyview[:num_train]))
-        test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=optimizer.x)
+        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_train, y_train))
+        print 'non-regularized cost for {0}: {1}'.format(vid, optimizer.fun)
+        # test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=optimizer.x)
+
+        # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
+        mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
+        J0 = optimizer.fun
+        best_w = 0
+        best_cost = np.inf
+        for w in np.arange(np.log(10**-4*J0), np.log(10*J0)):
+            reg_param0 = np.array([mu0, C0, gamma0, eta0, w])
+            reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
+                                              args=(x_cv, y_cv, reg_param0),
+                                              options={'disp': None, 'maxiter': iteration})
+            if reg_optimizer.fun < best_cost:
+                best_w = w
+                best_cost = reg_optimizer.fun
+
+        # train with optimal w
+        reg_param0 = np.array([mu0, C0, gamma0, eta0, best_w])
+        reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
+                                          args=(x_cv, y_cv, reg_param0),
+                                          options={'disp': None, 'maxiter': iteration})
+        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv))
+        print '    regularized cost for {0}: {1} @w: {2}'.format(vid, reg_optimizer.fun, best_w)
+        test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
     plt.tight_layout()
