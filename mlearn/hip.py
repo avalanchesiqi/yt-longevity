@@ -26,17 +26,19 @@ def rep(i, c):
     return np.arange(1, i+1)[::-1]+c
 
 
-def cost_function(params, x, y):
+def cost_function(params, x, y, num_cv=None):
     """
     Non-regularized cost function for HIP model
     :param params: model parameters, mu, theta, C, c, gamma, eta
     :param x: observed sharecount
     :param y: observed viewcount
-    # :param w: regularization strength
+    :param num_cv: number of cross validation set
     :return: cost function value
     """
     view_predict = predict(params, x)
     cost_vector = view_predict - y
+    if num_cv is not None:
+        cost_vector = cost_vector[-num_cv:]
     cost = np.sum(cost_vector ** 2) / 2
     return cost
 
@@ -126,7 +128,7 @@ def reg_grad_descent(params, x, y, params0):
     grad_mu_vector[0] = x[0]
     for i in xrange(1, n):
         grad_mu_vector[i] = x[i] + C*np.sum(grad_mu_vector[:i] * (rep(i, c)**(-1-theta)))
-    grad_mu = np.sum((view_predict-y)*grad_mu_vector)/n + w*mu/mu0/mu0
+    grad_mu = (np.sum((view_predict-y)*grad_mu_vector) + w*mu/mu0/mu0)/n
     # partial derivative for theta
     grad_theta_vector = np.zeros(n)
     grad_theta_vector[0] = 0
@@ -138,7 +140,7 @@ def reg_grad_descent(params, x, y, params0):
     grad_C_vector[0] = 0
     for i in xrange(1, n):
         grad_C_vector[i] = np.sum((C*grad_C_vector[:i]+view_predict[:i]) * (rep(i, c)**(-1-theta)))
-    grad_C = np.sum((view_predict-y)*grad_C_vector)/n + w*C/C0/C0
+    grad_C = (np.sum((view_predict-y)*grad_C_vector) + w*C/C0/C0)/n
     # partial derivative for c
     grad_c_vector = np.zeros(n)
     grad_c_vector[0] = 0
@@ -150,13 +152,13 @@ def reg_grad_descent(params, x, y, params0):
     grad_gamma_vector[0] = 1
     for i in xrange(1, n):
         grad_gamma_vector[i] = C*np.sum(grad_gamma_vector[:i] * (rep(i, c)**(-1-theta)))
-    grad_gamma = np.sum((view_predict-y)*grad_gamma_vector)/n + w*gamma/gamma0/gamma0
+    grad_gamma = (np.sum((view_predict-y)*grad_gamma_vector) + w*gamma/gamma0/gamma0)/n
     # partial derivative for eta
     grad_eta_vector = np.zeros(n)
     grad_eta_vector[0] = 0
     for i in xrange(1, n):
         grad_eta_vector[i] = 1 + C*np.sum(grad_eta_vector[:i] * (rep(i, c)**(-1-theta)))
-    grad_eta = np.sum((view_predict-y)*grad_eta_vector)/n + w*eta/eta0/eta0
+    grad_eta = (np.sum((view_predict-y)*grad_eta_vector) + w*eta/eta0/eta0)/n
     return np.array([grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta])
 
 
@@ -190,11 +192,12 @@ def test_predict(params, x, y, title, idx, pred_params=None):
     :return: 
     """
     # visualise sample data
-    ax1 = fig.add_subplot(121+idx)
+    ax1 = fig.add_subplot(131+idx)
     ax2 = ax1.twinx()
     ax1.plot(np.arange(1, 121), y, 'k--', label='observed #views')
     ax2.plot(np.arange(1, 121), x, 'r-', label='#share')
 
+    ax1.set_ylim(ymin=max(0, ax1.get_ylim()[0]))
     ax2.set_ylim(ymax=3*max(x))
     ax1.set_xlabel('video age (day)')
     ax1.set_ylabel('Number of views', color='k')
@@ -203,7 +206,7 @@ def test_predict(params, x, y, title, idx, pred_params=None):
     ax2.tick_params('y', colors='r')
 
     mu, theta, C, c, gamma, eta = params
-    ax2.text(0.03, 0.82, 'WWW\n$\mu$={0:.2f}, $\\theta$={1:.2f}\nC={2:.3f}, c={3:.2f}\n$\gamma$={4:.2f}, $\eta$={5}'
+    ax2.text(0.03, 0.82, 'WWW\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
              .format(mu, theta, C, c, gamma, eta), transform=ax1.transAxes)
 
     x_www = predict(params, x)
@@ -212,14 +215,14 @@ def test_predict(params, x, y, title, idx, pred_params=None):
 
     if pred_params is not None:
         pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta = pred_params
-        ax2.text(0.63, 0.82, 'HIP\n$\mu$={0:.2f}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2f}, $\eta$={5:.2e}'
+        ax2.text(0.58, 0.82, 'HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
                  .format(pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta), transform=ax1.transAxes)
         x_predict = predict(pred_params, x)
         ax1.plot(np.arange(1, 121), x_predict, 'g-', label='HIP popularity')
 
 
 if __name__ == '__main__':
-    fig = plt.figure(figsize=(16, 6))
+    fig = plt.figure(figsize=(22, 6))
 
     # == == == == == == == == Part 1: Generate test cases == == == == == == == == #
     # test case 1: YoutubeID bUORBT9iFKc
@@ -271,8 +274,35 @@ if __name__ == '__main__':
     dailyview2 = np.array(dailyview2[:120])
     test_params2 = [4.285222e+01, 0.413187407, 9.593957e-01, 3.267503e+00, 1.316225e+01, 4.359545e-10]
 
+    # test case 3: YoutubeID 3UTHH8GRuQY
+    dailyshare3 = [45, 201, 237, 175, 77, 47, 39, 20, 18, 8, 4, 5, 20, 17, 12, 8, 4, 12, 12, 10, 6, 9, 7, 10, 8, 6, 4,
+                   10, 3, 8, 10, 7, 4, 6, 14, 9, 5, 6, 2, 10, 8, 9, 6, 10, 5, 3, 13, 8, 12, 12, 12, 14, 11, 5, 17, 14,
+                   11, 8, 5, 7, 7, 4, 8, 16, 11, 13, 14, 3, 14, 14, 21, 17, 10, 10, 21, 17, 17, 22, 14, 8, 9, 12, 13,
+                   10, 10, 9, 8, 15, 6, 5, 11, 8, 12, 10, 5, 7, 10, 13, 16, 15, 9, 11, 10, 12, 9, 6, 13, 16, 9, 5, 6,
+                   18, 14, 10, 11, 17, 6, 17, 14, 19, 15, 21, 6, 19, 11, 17, 26, 28, 26, 21, 22, 13, 20, 38, 25, 25, 19,
+                   8, 22, 34, 35, 42, 43, 44, 22, 31, 52, 44, 37, 26, 28, 24, 41, 32, 41, 34, 27, 26, 15, 25, 25, 34,
+                   30, 28, 24, 15, 22, 15, 19, 22, 29, 10, 11, 19, 14, 16, 13, 16, 12, 6, 10, 16, 6, 16, 12, 21, 9, 5,
+                   7, 8, 3, 2, 5, 5, 7, 5, 3, 3, 3, 6, 5, 4, 10, 2, 3, 0, 5, 1, 3]
+    dailyview3 = [4079, 58295, 44519, 51725, 26461, 18558, 12439, 5853, 3199, 2088, 1822, 2252, 3381, 3166, 2107, 1743,
+                  1710, 3287, 1905, 1952, 2226, 2314, 1972, 2466, 2025, 1920, 2074, 1948, 1962, 1915, 1573, 1759, 1587,
+                  2073, 2414, 2080, 1576, 1175, 1319, 1179, 1398, 1814, 1072, 1110, 658, 598, 660, 829, 713, 806, 688,
+                  686, 605, 524, 567, 720, 726, 656, 675, 683, 541, 630, 771, 713, 782, 728, 673, 655, 822, 1043, 1056,
+                  1164, 1023, 888, 816, 916, 1066, 931, 960, 813, 773, 579, 622, 708, 594, 564, 471, 497, 444, 561, 601,
+                  482, 509, 445, 541, 456, 463, 540, 500, 762, 531, 363, 410, 491, 666, 669, 618, 671, 549, 604, 618,
+                  787, 772, 757, 794, 722, 684, 809, 954, 904, 945, 941, 729, 695, 829, 1055, 1159, 1273, 1446, 1098,
+                  1110, 1137, 1679, 2366, 1420, 1338, 1219, 1206, 1480, 1611, 1629, 1764, 1506, 1404, 1358, 1647, 1563,
+                  2022, 1707, 1521, 1501, 1547, 1954, 1857, 1615, 1575, 1290, 1087, 1051, 1434, 1401, 1411, 1456, 1378,
+                  1091, 921, 1115, 1449, 1176, 985, 1053, 867, 688, 859, 901, 856, 750, 757, 583, 520, 1280, 1787, 1585,
+                  694, 536, 527, 548, 530, 588, 370, 230, 246, 400, 351, 491, 395, 330, 214, 219, 274, 314, 287, 270,
+                  328, 242, 278, 209, 270, 248]
+    # trim to the first 120 days
+    dailyshare3 = np.array(dailyshare3[:120])
+    dailyview3 = np.array(dailyview3[:120])
+    test_params3 = [5.208709e+01, 21.795834351, 6.111318e-01, 4.848469e+00, 2.131529e-13, 3.995517e-01]
+
     test_cases = {'bUORBT9iFKc': [test_params1, dailyshare1, dailyview1],
-                  'WKJoBeeSWhc': [test_params2, dailyshare2, dailyview2]}
+                  'WKJoBeeSWhc': [test_params2, dailyshare2, dailyview2],
+                  '3UTHH8GRuQY': [test_params3, dailyshare3, dailyview3]}
 
     # # == == == == == == == == Part 2: Test predict function == == == == == == == == #
     # for idx, vid in enumerate(test_cases.keys()):
@@ -287,22 +317,21 @@ if __name__ == '__main__':
         num_train = 75
         num_cv = 15
         num_test = 30
+        bounds = [(0, None), (0, None), (0, None), (None, None), (None, None), (None, None)]
 
         x_train = dailyshare[: num_train]
         y_train = dailyview[: num_train]
-        x_cv = dailyshare[num_train: num_train+num_cv]
-        y_cv = dailyview[num_train: num_train+num_cv]
-        x_observe = dailyshare[: num_train+num_cv]
-        y_observe = dailyview[: num_train+num_cv]
-        x_test = dailyshare[num_train+num_cv: num_train+num_cv+num_test]
-        y_test = dailyview[num_train+num_cv: num_train+num_cv+num_test]
+        x_cv = dailyshare[: num_train+num_cv]
+        y_cv = dailyview[: num_train+num_cv]
+        x_test = dailyshare[: num_train+num_cv+num_test]
+        y_test = dailyview[: num_train+num_cv+num_test]
 
         # initialize weights
         initial_theta = rand_initialize_weights(6)
 
         # perform regularize linear regression with l-bfgs
         optimizer = optimize.minimize(cost_function, initial_theta, jac=grad_descent, method='L-BFGS-B',
-                                      args=(x_train, y_train),
+                                      args=(x_train, y_train), bounds=bounds,
                                       options={'disp': None, 'maxiter': iteration})
 
         print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_train, y_train))
@@ -312,24 +341,28 @@ if __name__ == '__main__':
         # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
         mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
         J0 = optimizer.fun
-        best_w = 0
+        best_w = None
         best_cost = np.inf
         for w in np.arange(np.log(10**-4*J0), np.log(10*J0)):
-            reg_param0 = np.array([mu0, C0, gamma0, eta0, w])
+            w0 = np.exp(w)
+            reg_param0 = np.array([mu0, C0, gamma0, eta0, w0])
             reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
-                                              args=(x_cv, y_cv, reg_param0),
+                                              args=(x_train, y_train, reg_param0), bounds=bounds,
                                               options={'disp': None, 'maxiter': iteration})
-            if reg_optimizer.fun < best_cost:
-                best_w = w
-                best_cost = reg_optimizer.fun
+            # cross validate by using cv dataset
+            x_predict = predict(reg_optimizer.x, x_cv)
+            cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv)
+            if cv_cost < best_cost:
+                best_w = w0
+                best_cost = cv_cost
 
         # train with optimal w
-        reg_param0 = np.array([mu0, C0, gamma0, eta0, best_w])
+        best_reg_param0 = np.array([mu0, C0, gamma0, eta0, best_w])
         reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
-                                          args=(x_cv, y_cv, reg_param0),
+                                          args=(x_train, y_train, best_reg_param0), bounds=bounds,
                                           options={'disp': None, 'maxiter': iteration})
-        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv))
-        print '    regularized cost for {0}: {1} @w: {2}'.format(vid, reg_optimizer.fun, best_w)
+        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv, num_cv=num_cv))
+        print '    regularized cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv), best_w)
         test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
