@@ -26,19 +26,19 @@ def rep(i, c):
     return np.arange(1, i+1)[::-1]+c
 
 
-def cost_function(params, x, y, num_cv=None):
+def cost_function(params, x, y, num_split=None):
     """
     Non-regularized cost function for HIP model
     :param params: model parameters, mu, theta, C, c, gamma, eta
     :param x: observed sharecount
     :param y: observed viewcount
-    :param num_cv: number of cross validation set
+    :param num_split: number of test set
     :return: cost function value
     """
     view_predict = predict(params, x)
     cost_vector = view_predict - y
-    if num_cv is not None:
-        cost_vector = cost_vector[-num_cv:]
+    if num_split is not None:
+        cost_vector = cost_vector[-num_split:]
     cost = np.sum(cost_vector ** 2) / 2
     return cost
 
@@ -358,8 +358,8 @@ if __name__ == '__main__':
                                       args=(x_train, y_train), bounds=bounds,
                                       options={'disp': None, 'maxiter': iteration})
 
-        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_train, y_train))
-        print 'non-regularized cost for {0}: {1}'.format(vid, optimizer.fun)
+        print '          target cost for {0}: {1}'.format(vid, cost_function(test_params, x_train, y_train))
+        print ' non-regularized cost for {0}: {1}'.format(vid, optimizer.fun)
         # test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=optimizer.x)
 
         # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
@@ -375,7 +375,7 @@ if __name__ == '__main__':
                                               options={'disp': None, 'maxiter': iteration})
             # cross validate by using cv dataset
             x_predict = predict(reg_optimizer.x, x_cv)
-            cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv)
+            cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_split=num_cv)
             if cv_cost < best_cost:
                 best_w = w0
                 best_cost = cv_cost
@@ -383,10 +383,10 @@ if __name__ == '__main__':
         # train with optimal w
         best_reg_param0 = np.array([mu0, C0, gamma0, eta0, best_w])
         reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
-                                          args=(x_train, y_train, best_reg_param0), bounds=bounds,
+                                          args=(x_cv, y_cv, best_reg_param0), bounds=bounds,
                                           options={'disp': None, 'maxiter': iteration})
-        print '      target cv cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv, num_cv=num_cv))
-        print ' regularized cv cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv), best_w)
+        print '     target test cost for {0}: {1}'.format(vid, cost_function(test_params, x_test, y_test, num_split=num_test))
+        print 'regularized test cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_test, y_test, num_split=num_test), best_w)
         test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
