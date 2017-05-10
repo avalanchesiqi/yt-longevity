@@ -192,7 +192,7 @@ def test_predict(params, x, y, title, idx, pred_params=None):
     :return: 
     """
     # visualise sample data
-    ax1 = fig.add_subplot(131+idx)
+    ax1 = fig.add_subplot(221+idx)
     ax2 = ax1.twinx()
     ax1.plot(np.arange(1, 121), y, 'k--', label='observed #views')
     ax2.plot(np.arange(1, 121), x, 'r-', label='#share')
@@ -206,7 +206,7 @@ def test_predict(params, x, y, title, idx, pred_params=None):
     ax2.tick_params('y', colors='r')
 
     mu, theta, C, c, gamma, eta = params
-    ax2.text(0.03, 0.82, 'WWW\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
+    ax2.text(0.03, 0.80, 'WWW\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
              .format(mu, theta, C, c, gamma, eta), transform=ax1.transAxes)
 
     x_www = predict(params, x)
@@ -215,14 +215,14 @@ def test_predict(params, x, y, title, idx, pred_params=None):
 
     if pred_params is not None:
         pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta = pred_params
-        ax2.text(0.58, 0.82, 'HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
+        ax2.text(0.55, 0.80, 'HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}'
                  .format(pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta), transform=ax1.transAxes)
         x_predict = predict(pred_params, x)
         ax1.plot(np.arange(1, 121), x_predict, 'g-', label='HIP popularity')
 
 
 if __name__ == '__main__':
-    fig = plt.figure(figsize=(22, 6))
+    fig = plt.figure(figsize=(14, 10))
 
     # == == == == == == == == Part 1: Generate test cases == == == == == == == == #
     # test case 1: YoutubeID bUORBT9iFKc
@@ -300,9 +300,33 @@ if __name__ == '__main__':
     dailyview3 = np.array(dailyview3[:120])
     test_params3 = [5.208709e+01, 21.795834351, 6.111318e-01, 4.848469e+00, 2.131529e-13, 3.995517e-01]
 
+    # test case 4: YoutubeID 1PuvXpv0yDM
+    dailyshare4 = [0, 0, 0, 0, 1, 0, 1, 0, 0, 6, 11, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                   0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                   0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+                   0, 0, 0, 27, 68, 17, 20, 7, 5, 7, 14, 12, 10, 8, 5, 0, 17, 8, 2, 0, 2, 3, 1, 0, 4, 4, 0, 0, 2, 1, 0,
+                   1, 0, 0, 0, 1, 18, 5, 0, 3, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 0, 1, 0, 0, 0, 0,
+                   2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 16, 6, 7]
+    dailyview4 = [196, 120, 11, 5, 49, 189, 40, 19, 12, 695, 1587, 563, 190, 52, 60, 62, 92, 43, 58, 66, 59, 57, 77, 60,
+                  78, 57, 66, 69, 76, 77, 134, 122, 105, 110, 140, 132, 115, 125, 115, 136, 131, 133, 148, 139, 145,
+                  155, 142, 142, 208, 183, 167, 163, 300, 173, 125, 159, 124, 171, 195, 201, 166, 152, 315, 187, 201,
+                  198, 194, 172, 216, 190, 197, 199, 206, 208, 174, 191, 222, 239, 243, 224, 212, 165, 169, 209, 220,
+                  256, 254, 297, 277, 211, 216, 246, 259, 259, 237, 255, 206, 231, 264, 227, 244, 247, 221, 205, 415431,
+                  426721, 148240, 190181, 90269, 64850, 106321, 309221, 244289, 95555, 37582, 32771, 22207, 138428,
+                  74847, 21808, 11179, 20855, 10961, 4854, 4281, 6584, 5285, 3282, 2658, 2544, 3106, 6826, 4083, 3088,
+                  2660, 2337, 1465, 14098, 10888, 9537, 4304, 2473, 2018, 1505, 1515, 1841, 1855, 1420, 1361, 1326,
+                  1256, 1287, 1654, 1345, 1327, 1611, 1740, 1053, 1004, 957, 1502, 1724, 1643, 1490, 2296, 1227, 931,
+                  930, 2744, 646, 477, 499, 815, 758, 691, 598, 922, 483, 716, 1179, 1519, 1033, 2357, 21912, 293011,
+                  206816, 7505]
+    # trim to the first 120 days
+    dailyshare4 = np.array(dailyshare4[:120])
+    dailyview4 = np.array(dailyview4[:120])
+    test_params4 = [1.190261e+02, -1.552484832, 1.850818e-03, 5.000000e+00, 7.150544e+01, 3.771896e+01]
+
     test_cases = {'bUORBT9iFKc': [test_params1, dailyshare1, dailyview1],
                   'WKJoBeeSWhc': [test_params2, dailyshare2, dailyview2],
-                  '3UTHH8GRuQY': [test_params3, dailyshare3, dailyview3]}
+                  '3UTHH8GRuQY': [test_params3, dailyshare3, dailyview3],
+                  '1PuvXpv0yDM': [test_params4, dailyshare4, dailyview4]}
 
     # # == == == == == == == == Part 2: Test predict function == == == == == == == == #
     # for idx, vid in enumerate(test_cases.keys()):
@@ -317,7 +341,7 @@ if __name__ == '__main__':
         num_train = 75
         num_cv = 15
         num_test = 30
-        bounds = [(0, None), (0, None), (0, None), (None, None), (None, None), (None, None)]
+        bounds = [(0, None), (None, None), (None, None), (None, None), (None, None), (None, None)]
 
         x_train = dailyshare[: num_train]
         y_train = dailyview[: num_train]
@@ -361,8 +385,8 @@ if __name__ == '__main__':
         reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
                                           args=(x_train, y_train, best_reg_param0), bounds=bounds,
                                           options={'disp': None, 'maxiter': iteration})
-        print '         target cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv, num_cv=num_cv))
-        print '    regularized cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv), best_w)
+        print '      target cv cost for {0}: {1}'.format(vid, cost_function(test_params, x_cv, y_cv, num_cv=num_cv))
+        print ' regularized cv cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_cv, y_cv, num_cv=num_cv), best_w)
         test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
