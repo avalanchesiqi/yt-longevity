@@ -362,8 +362,9 @@ if __name__ == '__main__':
     num_train = 75
     num_cv = 15
     num_test = 30
-    bounds = [(0, None), (np.finfo(float).eps, 100), (0, None), (np.finfo(float).eps, 5), (0, None), (0, None)]
-    for idx, vid in enumerate(test_cases.keys()):
+    # bounds = [(0, None), (np.finfo(float).eps, 100), (0, None), (np.finfo(float).eps, 5), (0, None), (0, None)]
+    bounds = [(0, None), (None, None), (None, None), (None, None), (None, None), (None, None)]
+    for tc_idx, vid in enumerate(test_cases.keys()):
         test_params, dailyshare, dailyview = test_cases[vid]
 
         x_train = dailyshare[: num_train]
@@ -377,7 +378,9 @@ if __name__ == '__main__':
         # 3 sets of fixed params and k sets of random
         k = 5
         initial_theta_sets = rand_initialize_weights(k)
+        initial_theta_sets.insert(0, test_params)
 
+        best_epoch_idx = None
         best_reg_J0_params = None
         best_reg_param0 = None
         best_cost = np.inf
@@ -390,7 +393,7 @@ if __name__ == '__main__':
                                           args=(x_train, y_train), bounds=bounds,
                                           options={'disp': None, 'maxiter': iteration})
 
-            print '\tepoch{0}: non-regularized cost: {1:>6.4e}'.format(epoch_idx, optimizer.fun)
+            print '\tinitial set{0}: non-regularized cost: {1:>6.4e}'.format(epoch_idx, optimizer.fun)
 
             # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
             mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
@@ -406,8 +409,10 @@ if __name__ == '__main__':
                 cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_split=num_cv)
                 if cv_cost < best_cost:
                     best_reg_J0_params = optimizer.x
+                    best_reg_J0_params = initial_theta
                     best_reg_param0 = reg_param0
                     best_cost = cv_cost
+                    best_epoch_idx = epoch_idx
 
         # train with optimal initialization and w
         reg_optimizer = optimize.minimize(reg_cost_function, best_reg_J0_params, jac=reg_grad_descent, method='L-BFGS-B',
@@ -415,9 +420,9 @@ if __name__ == '__main__':
                                           options={'disp': None, 'maxiter': iteration})
         print '+'*79
         print '+      target test cost for {0}: {1:>6.4e}'.format(vid, cost_function(test_params, x_test, y_test, num_split=num_test))
-        print '+ regularized test cost for {0}: {1:>6.4e} @best w: {2:>6.4e}'.format(vid, cost_function(reg_optimizer.x, x_test, y_test, num_split=num_test), best_reg_param0[-1])
+        print '+ regularized test cost for {0}: {1:>6.4e} @best initial set: {2}'.format(vid, cost_function(reg_optimizer.x, x_test, y_test, num_split=num_test), best_epoch_idx)
         print '+'*79
-        test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
+        test_predict(test_params, dailyshare, dailyview, vid, tc_idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
     plt.tight_layout()
