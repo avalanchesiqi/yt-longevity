@@ -6,14 +6,37 @@ import matplotlib.pyplot as plt
 # Hawkes Intensity Process model
 
 
+def get_C(k, alpha=2.016, beta=0.1):
+    """
+    Get parameter capital C
+    :param k: scaling factor for video quality
+    :param alpha: power-law exponent of user influence distribution
+    :param beta: user influence component
+    :return: parameter capital C
+    """
+    return k*(alpha-1)/(alpha-beta-1)
+
+
 def rand_initialize_weights(n):
     """
-    Initialize random weights for theta
-    :param n: number of features
-    :return: random vector with all values bounded within epsilon
+    Initialize multiple sets of random weights for theta
+    :param n: number of sets of random weights
+    :return: n+3 sets of random vectors, in the order of mu, theta, C, c, gamma, eta
     """
-    # return 10*np.random.rand(n)
-    return np.random.uniform(0, sys.maxint, n)
+    # 3 sets of fixed weights
+    a = np.array([0.2, 10, get_C(3), 4.5, 10, 100])
+    b = np.array([1, 3.35, get_C(0.0024), 0.0001, 100, 10])
+    c = np.array([5, 0.00001, get_C(50), 1.5, 10000, 1000])
+    ret = [a, b, c]
+    for _ in xrange(n):
+        rand_mu = np.random.uniform(0, 505.90, 1)
+        rand_theta = np.random.uniform(2.3, 67.7, 1)
+        rand_C = np.random.uniform(get_C(0), get_C(52.9), 1)
+        rand_c = np.random.uniform(np.finfo(float).eps, 4, 1)
+        rand_gamma = np.random.uniform(0, 9947, 1)
+        rand_eta = np.random.uniform(0, 289.2, 1)
+        ret.append(np.array([rand_mu, rand_theta, rand_C, rand_c, rand_gamma, rand_eta]))
+    return ret
 
 
 def rep(i, c):
@@ -334,14 +357,14 @@ if __name__ == '__main__':
     #     test_predict(test_params, dailyshare, dailyview, vid, idx)
 
     # == == == == == == == == Part 3: Test cost and grad function == == == == == == == == #
+    # setting parameters
+    iteration = 100
+    num_train = 75
+    num_cv = 15
+    num_test = 30
+    bounds = [(0, None), (np.finfo(float).eps, 100), (0, None), (np.finfo(float).eps, 5), (0, None), (0, None)]
     for idx, vid in enumerate(test_cases.keys()):
         test_params, dailyshare, dailyview = test_cases[vid]
-        # setting parameters
-        iteration = 100
-        num_train = 75
-        num_cv = 15
-        num_test = 30
-        bounds = [(0, None), (None, None), (None, None), (None, None), (None, None), (None, None)]
 
         x_train = dailyshare[: num_train]
         y_train = dailyview[: num_train]
@@ -351,42 +374,49 @@ if __name__ == '__main__':
         y_test = dailyview[: num_train+num_cv+num_test]
 
         # initialize weights
-        initial_theta = rand_initialize_weights(6)
+        # 3 sets of fixed params and k sets of random
+        k = 5
+        initial_theta_sets = rand_initialize_weights(k)
 
-        # perform regularize linear regression with l-bfgs
-        optimizer = optimize.minimize(cost_function, initial_theta, jac=grad_descent, method='L-BFGS-B',
-                                      args=(x_train, y_train), bounds=bounds,
-                                      options={'disp': None, 'maxiter': iteration})
-
-        print '          target cost for {0}: {1}'.format(vid, cost_function(test_params, x_train, y_train))
-        print ' non-regularized cost for {0}: {1}'.format(vid, optimizer.fun)
-        # test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=optimizer.x)
-
-        # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
-        mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
-        J0 = optimizer.fun
-        best_w = None
+        best_reg_J0_params = None
+        best_reg_param0 = None
         best_cost = np.inf
-        for w in np.arange(np.log(10**-4*J0), np.log(10*J0)):
-            w0 = np.exp(w)
-            reg_param0 = np.array([mu0, C0, gamma0, eta0, w0])
-            reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
-                                              args=(x_train, y_train, reg_param0), bounds=bounds,
-                                              options={'disp': None, 'maxiter': iteration})
-            # cross validate by using cv dataset
-            x_predict = predict(reg_optimizer.x, x_cv)
-            cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_split=num_cv)
-            if cv_cost < best_cost:
-                best_w = w0
-                best_cost = cv_cost
+        # find best optimizers within those k+3 sets of params
+        print 'Test case vid: {0}'.format(vid)
+        print '\ttarget training cost: {0:>6.4e}'.format(cost_function(test_params, x_train, y_train))
+        for epoch_idx, initial_theta in enumerate(initial_theta_sets):
+            # perform regularize linear regression with l-bfgs
+            optimizer = optimize.minimize(cost_function, initial_theta, jac=grad_descent, method='L-BFGS-B',
+                                          args=(x_train, y_train), bounds=bounds,
+                                          options={'disp': None, 'maxiter': iteration})
 
-        # train with optimal w
-        best_reg_param0 = np.array([mu0, C0, gamma0, eta0, best_w])
-        reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
+            print '\tepoch{0}: non-regularized cost: {1:>6.4e}'.format(epoch_idx, optimizer.fun)
+
+            # == == == == == == == == Part 4: Test regularized cost and grad function == == == == == == == == #
+            mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
+            J0 = optimizer.fun
+            for w in np.arange(np.log(10**-4*J0), np.log(10*J0)):
+                w0 = np.exp(w)
+                reg_param0 = np.array([mu0, C0, gamma0, eta0, w0])
+                reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
+                                                  args=(x_train, y_train, reg_param0), bounds=bounds,
+                                                  options={'disp': None, 'maxiter': iteration})
+                # cross validate by using cv dataset
+                x_predict = predict(reg_optimizer.x, x_cv)
+                cv_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_split=num_cv)
+                if cv_cost < best_cost:
+                    best_reg_J0_params = optimizer.x
+                    best_reg_param0 = reg_param0
+                    best_cost = cv_cost
+
+        # train with optimal initialization and w
+        reg_optimizer = optimize.minimize(reg_cost_function, best_reg_J0_params, jac=reg_grad_descent, method='L-BFGS-B',
                                           args=(x_cv, y_cv, best_reg_param0), bounds=bounds,
                                           options={'disp': None, 'maxiter': iteration})
-        print '     target test cost for {0}: {1}'.format(vid, cost_function(test_params, x_test, y_test, num_split=num_test))
-        print 'regularized test cost for {0}: {1} @best w: {2}'.format(vid, cost_function(reg_optimizer.x, x_test, y_test, num_split=num_test), best_w)
+        print '+'*79
+        print '+      target test cost for {0}: {1:>6.4e}'.format(vid, cost_function(test_params, x_test, y_test, num_split=num_test))
+        print '+ regularized test cost for {0}: {1:>6.4e} @best w: {2:>6.4e}'.format(vid, cost_function(reg_optimizer.x, x_test, y_test, num_split=num_test), best_reg_param0[-1])
+        print '+'*79
         test_predict(test_params, dailyshare, dailyview, vid, idx, pred_params=reg_optimizer.x)
 
     # plt.legend()
