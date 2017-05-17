@@ -81,7 +81,7 @@ def cost_function(params, x, y, num_split=None):
     #     # print cost_vector
     #     print '---------------'
     # print 'cost', cost
-    return cost/n
+    return cost/len(cost_vector)
 
 
 def reg_cost_function(params, x, y, params0):
