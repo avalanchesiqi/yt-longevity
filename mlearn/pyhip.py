@@ -83,29 +83,15 @@ def reg_cost_function(params, x, y, params0):
     """
     n = len(x)
     mu, theta, C, c, gamma, eta = params
+    # handle refer parameters equal to zero
+    for i in xrange(4):
+        if params0[i] == 0:
+            params0[i] = 1
     mu0, C0, gamma0, eta0, w = params0
     view_predict = predict(params, x)
     cost_vector = view_predict - y
-    cost = np.sum(cost_vector ** 2) / 2
-    # cost += w / 2 * ((mu / mu0) ** 2 + (C / C0) ** 2 + (gamma / gamma0) ** 2 + (eta / eta0) ** 2)
-    if mu0 == 0:
-        mu0 = 1
-    if C0 == 0:
-        C0 = 1
-    if gamma0 == 0:
-        gamma0 = 1
-    if eta0 == 0:
-        eta0 = 1
-    try:
-        cost += w/2*((mu/mu0)**2+(C/C0)**2+(gamma/gamma0)**2+(eta/eta0)**2)
-    #     cost += w/2*((mu/mu0)**2+(C/C0)**2)
-    except Warning as w:
-        print('warnning at reg cost!!!!')
-        print('params ', params)
-        print('params0 ', params0)
-        print(cost)
-        print(w.message)
-    #     print sys.exit(1)
+    cost = np.sum(cost_vector**2) / 2
+    cost += w/2*((mu/mu0)**2+(C/C0)**2+(gamma/gamma0)**2+(eta/eta0)**2)
     return cost/n
 
 
@@ -169,15 +155,11 @@ def reg_grad_descent(params, x, y, params0):
     :return: cost function value
     """
     mu, theta, C, c, gamma, eta = params
+    # handle refer parameters equal to zero
+    for i in xrange(4):
+        if params0[i] == 0:
+            params0[i] = 1
     mu0, C0, gamma0, eta0, w = params0
-    if mu0 == 0:
-        mu0 = 1
-    if C0 == 0:
-        C0 = 1
-    if gamma0 == 0:
-        gamma0 = 1
-    if eta0 == 0:
-        eta0 = 1
     view_predict = predict(params, x)
     n = len(x)
     # partial derivative for mu
@@ -231,19 +213,9 @@ def predict(params, x):
     x_predict = np.zeros(len(x))
     for i in xrange(n):
         if i == 0:
-            x_predict[0] = gamma + mu * x[0]
+            x_predict[0] = gamma + mu*x[0]
         else:
-            x_predict[i] = eta + mu * x[i] + C * np.sum(x_predict[:i] * (np.abs(np.arange(1, i + 1)[::-1] + c) ** (-1 - theta)))
-            # try:
-            #     x_predict[i] = eta + mu*x[i] + C*np.sum(x_predict[:i]*(np.abs(np.arange(1, i+1)[::-1]+c)**(-1-theta)))
-            # except Warning:
-            #     print 'warning at {0}'.format(i)
-            #     print mu, theta, C, c, gamma, eta
-            #     print x_predict[:i]
-            #     print 'base', np.abs(np.arange(1, i+1)[::-1]+c)
-            #     print 'c:', c, '\t-1-theta:', -1-theta
-            #     print np.arange(1, i+1)[::-1]+c
-            #     print sys.exit(1)
+            x_predict[i] = eta + mu*x[i] + C*np.sum(x_predict[:i]*(time_decay(i, c)**(-1-theta)))
     return x_predict
 
 
