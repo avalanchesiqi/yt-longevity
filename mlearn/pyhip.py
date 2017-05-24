@@ -250,10 +250,15 @@ def train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_
         grad_func = grad_descent
         reg_grad_func = reg_grad_descent
 
-    best_reg_params = None
-    best_reg_params0 = None
-    best_cost = np.inf
-    best_init_idx = None
+    best_test_reg_params = None
+    best_test_reg_params0 = None
+    best_test_cost = np.inf
+    best_test_init_idx = None
+
+    best_entire_reg_params = None
+    best_entire_reg_params0 = None
+    best_entire_cost = np.inf
+    best_entire_init_idx = None
 
     for init_idx, initial_weight in enumerate(initial_weights_sets):
         # perform non-regularized optimization with l-bfgs
@@ -271,29 +276,42 @@ def train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_
                                               method='L-BFGS-B', args=(x_train, y_train, reg_params0),
                                               bounds=bounds, options={'disp': None, 'maxiter': iteration})
             # model selection by using cv dataset
-            selection_cost = cost_function(reg_optimizer.x, x_cv, y_cv)
-            if selection_cost < best_cost:
-                best_reg_params = reg_optimizer.x
-                best_reg_params0 = reg_params0
-                best_cost = selection_cost
-                best_init_idx = init_idx
+            test_cost = cost_function(reg_optimizer.x, x_cv, y_cv, num_split=num_cv)
+            if test_cost < best_test_cost:
+                best_test_reg_params = reg_optimizer.x
+                best_test_reg_params0 = reg_params0
+                best_test_cost = test_cost
+                best_test_init_idx = init_idx
 
-    best_reg_optimizer = optimize.minimize(reg_cost_function, best_reg_params, jac=reg_grad_func,
-                                           method='L-BFGS-B', args=(x_cv, y_cv, best_reg_params0),
-                                           bounds=bounds, options={'disp': None, 'maxiter': iteration})
+            entire_cost = cost_function(reg_optimizer.x, x_cv, y_cv)
+            if entire_cost < best_entire_cost:
+                best_entire_reg_params = reg_optimizer.x
+                best_entire_reg_params0 = reg_params0
+                best_entire_cost = entire_cost
+                best_entire_init_idx = init_idx
+
+    best_test_reg_optimizer = optimize.minimize(reg_cost_function, best_test_reg_params, jac=reg_grad_func,
+                                                method='L-BFGS-B', args=(x_cv, y_cv, best_test_reg_params0),
+                                                bounds=bounds, options={'disp': None, 'maxiter': iteration})
+
+    best_entire_reg_optimizer = optimize.minimize(reg_cost_function, best_entire_reg_params, jac=reg_grad_func,
+                                                  method='L-BFGS-B', args=(x_cv, y_cv, best_entire_reg_params0),
+                                                  bounds=bounds, options={'disp': None, 'maxiter': iteration})
 
     elapsed_time = timeit.default_timer() - start_time
     if autograd:
-        print('\tAUTO-HIP test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_reg_optimizer.x, x_test, y_test), best_init_idx))
+        print('\tAUTO-HIP   test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_test_reg_optimizer.x, x_test, y_test, num_split=num_test), best_test_init_idx))
+        print('\tAUTO-HIP entire cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_entire_reg_optimizer.x, x_test, y_test), best_entire_init_idx))
         print('\tAUTO-HIP elapsed time: {0:.4f}s'.format(elapsed_time))
     else:
-        print('\t  PY-HIP test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_reg_optimizer.x, x_test, y_test), best_init_idx))
+        print('\t  PY-HIP   test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_test_reg_optimizer.x, x_test, y_test, num_split=num_test), best_test_init_idx))
+        print('\t  PY-HIP entire cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_entire_reg_optimizer.x, x_test, y_test), best_entire_init_idx))
         print('\t  PY-HIP elapsed time: {0:.4f}s'.format(elapsed_time))
 
-    return best_reg_optimizer.x, best_init_idx
+    return best_test_reg_optimizer.x, best_test_init_idx, best_entire_reg_optimizer.x, best_entire_init_idx
 
 
-def plot_func(params, x, y, title, idx, grad_params=None, grad_idx=None, auto_params=None, auto_idx=None):
+def plot_func(params, x, y, title, idx, test_grad_params=None, entire_grad_params=None, test_auto_params=None, entire_auto_params=None):
     """
     Plot trend from R-HIP, PY-HIP and AUTO-HIP parameters
     :param params: model parameters, mu, theta, C, c, gamma, eta
@@ -301,10 +319,10 @@ def plot_func(params, x, y, title, idx, grad_params=None, grad_idx=None, auto_pa
     :param y: observed viewcount
     :param title: figure title, YoutubeID
     :param idx: subplot index
-    :param grad_params: manually derivative fitted parameters
-    :param grad_idx: best initial set in manually derivative
-    :param auto_params: auto grad fitted parameters
-    :param auto_idx: best initial set in auto grad
+    :param test_grad_params: manually derivative on test data
+    :param entire_grad_params: manually derivative on entire data
+    :param test_auto_params: auto grad on test data
+    :param entire_auto_params: auto grad on entire data
     :return: 
     """
     # visualise sample data
@@ -323,24 +341,42 @@ def plot_func(params, x, y, title, idx, grad_params=None, grad_idx=None, auto_pa
 
     mu, theta, C, c, gamma, eta = params
     ax2.text(0.03, 0.75, 'R-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e}'
-             .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y)), transform=ax1.transAxes)
+             .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y, num_split=num_test)), transform=ax1.transAxes)
 
     x_www = predict(params, x)
     ax1.plot(np.arange(1, 121), x_www, 'b-', label='R-HIP popularity')
     ax1.set_title(title, fontdict={'fontsize': 15})
 
-    if grad_params is not None:
-        grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = grad_params
+    if test_grad_params is not None:
+        params, best_idx = test_grad_params
+        grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
         ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-                 .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(grad_params, x, y), grad_idx), transform=ax1.transAxes)
-        grad_pred_x = predict(grad_params, x)
-        ax1.plot(np.arange(1, 121), grad_pred_x, 'g-', label='PY-HIP popularity')
+                 .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
+        grad_pred_x = predict(params, x)
+        ax1.plot(np.arange(1, 121), grad_pred_x, 'y--', marker='o', ms=5, label='PY-HIP test popularity')
 
-    if auto_params is not None:
-        auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = auto_params
+    if entire_grad_params is not None:
+        params, best_idx = entire_grad_params
+        # grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
+        # ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+        #          .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
+        grad_pred_x = predict(params, x)
+        ax1.plot(np.arange(1, 121), grad_pred_x, 'g-', label='PY-HIP entire popularity')
+
+    if test_auto_params is not None:
+        params, best_idx = test_auto_params
+        auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
         ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-                 .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(auto_params, x, y), auto_idx), transform=ax1.transAxes)
-        auto_pred_x = predict(auto_params, x)
+                 .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
+        auto_pred_x = predict(params, x)
+        ax1.plot(np.arange(1, 121), auto_pred_x, 'c--', marker='d', ms=5, label='AUTO-HIP popularity')
+
+    if entire_auto_params is not None:
+        params, best_idx = entire_auto_params
+        # auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
+        # ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+        #          .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
+        auto_pred_x = predict(params, x)
         ax1.plot(np.arange(1, 121), auto_pred_x, 'm-', label='AUTO-HIP popularity')
 
 
@@ -363,7 +399,6 @@ if __name__ == '__main__':
     num_train = 75
     num_cv = 15
     num_test = 30
-    eps = np.finfo(float).eps
     bounds = [(0, None), (0, 100), (0, None), (0, 5), (0, None), (0, None)]
 
     # define auto grad function
@@ -390,15 +425,20 @@ if __name__ == '__main__':
 
         # target training objective function value
         print('Test case vid: {0}'.format(vid))
-        print('\t   R-HIP test cost: {0:>6.4e}'.format(cost_function(test_params, x_test, y_test)))
+        print('\t   R-HIP   test cost: {0:>6.4e}'.format(cost_function(test_params, x_test, y_test, num_split=num_test)))
+        print('\t   R-HIP entire cost: {0:>6.4e}'.format(cost_function(test_params, x_test, y_test)))
 
         # == == == == == == == == Part 3: Train with manually derivative gradient == == == == == == == == #
-        best_grad_params, best_grad_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=False)
+        best_test_grad_params, best_test_grad_init_idx, best_entire_grad_params, best_entire_grad_init_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=False)
 
         # == == == == == == == == Part 4: Train with automatic differentiation == == == == == == == == #
-        best_auto_params, best_auto_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=True)
+        best_test_auto_params, best_test_auto_init_idx, best_entire_auto_params, best_entire_auto_init_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=True)
 
-        plot_func(test_params, dailyshare, dailyview, vid, tc_idx, grad_params=best_grad_params, grad_idx=best_grad_idx, auto_params=best_auto_params, auto_idx=best_auto_idx)
+        plot_func(test_params, dailyshare, dailyview, vid, tc_idx,
+                  test_grad_params=(best_test_grad_params, best_test_grad_init_idx),
+                  entire_grad_params=(best_entire_grad_params, best_entire_grad_init_idx),
+                  test_auto_params=(best_test_auto_params, best_test_auto_init_idx),
+                  entire_auto_params=(best_entire_auto_params, best_entire_auto_init_idx))
 
     # plt.legend()
     plt.tight_layout()
