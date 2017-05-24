@@ -1,7 +1,10 @@
 from __future__ import print_function, division
 import sys
 import cPickle as pickle
-import numpy as np
+import timeit
+import autograd.numpy as np
+from autograd import grad
+# import numpy as np
 from scipy import optimize
 import matplotlib.pyplot as plt
 import warnings
@@ -53,6 +56,30 @@ def time_decay(i, c):
     :return: abbreviated presentation
     """
     return np.arange(1, i+1)[::-1]+c
+
+
+def predict(params, x):
+    """
+    Predict viewcount with sharecount sequence x, rewritten for auto grad style
+    Comments are for vector operation style
+    :param params: model parameters, mu, theta, C, c, gamma, eta
+    :param x: observed sharecount sequence from beginning
+    :return: predict value
+    """
+    mu, theta, C, c, gamma, eta = params
+    n = len(x)
+    x_predict = None
+    # x_predict = np.zeros(len(x))
+    for i in xrange(n):
+        if i == 0:
+            x_predict = np.array([gamma + mu*x[0]])
+            # x_predict[0] = gamma + mu*x[0]
+        else:
+            prev_predict = x_predict
+            curr_predict = np.array([eta + mu*x[i] + C*np.sum(x_predict[:i]*(time_decay(i, c)**(-1-theta)))])
+            x_predict = np.concatenate([prev_predict, curr_predict], axis=0)
+            # x_predict[i] = eta + mu*x[i] + C*np.sum(x_predict[:i]*(time_decay(i, c)**(-1-theta)))
+    return x_predict
 
 
 def cost_function(params, x, y, num_split=None):
@@ -201,34 +228,83 @@ def reg_grad_descent(params, x, y, params0):
     return np.array([grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta])/n
 
 
-def predict(params, x):
+def train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=False):
     """
-    Predict viewcount with sharecount sequence x
-    :param params: model parameters, mu, theta, C, c, gamma, eta
-    :param x: observed sharecount sequence from beginning
-    :return: predict value
+    Train HIP with BFGS optimization tool
+    :param x_train: train sharecount
+    :param y_train: train viewcount
+    :param x_cv: cross validate sharecount
+    :param y_cv: cross validate viewcount
+    :param x_test: test sharecount
+    :param y_test: test viewcount
+    :param initial_weights_sets: sets of random initial weights
+    :param autograd: use autograd or not
+    :return: best optimization parameters and init_idx
     """
-    mu, theta, C, c, gamma, eta = params
-    n = len(x)
-    x_predict = np.zeros(len(x))
-    for i in xrange(n):
-        if i == 0:
-            x_predict[0] = gamma + mu*x[0]
-        else:
-            x_predict[i] = eta + mu*x[i] + C*np.sum(x_predict[:i]*(time_decay(i, c)**(-1-theta)))
-    return x_predict
+    start_time = timeit.default_timer()
+
+    if autograd:
+        grad_func = autograd_func
+        reg_grad_func = reg_autograd_func
+    else:
+        grad_func = grad_descent
+        reg_grad_func = reg_grad_descent
+
+    best_reg_params = None
+    best_reg_params0 = None
+    best_cost = np.inf
+    best_init_idx = None
+
+    for init_idx, initial_weight in enumerate(initial_weights_sets):
+        # perform non-regularized optimization with l-bfgs
+        optimizer = optimize.minimize(cost_function, initial_weight, jac=grad_func, method='L-BFGS-B',
+                                      args=(x_train, y_train), bounds=bounds,
+                                      options={'disp': None, 'maxiter': iteration})
+
+        mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
+        J0 = optimizer.fun
+        # line search in logspace (10e-4*J0, 10*J0)
+        for w in np.arange(np.log(10 ** -4 * J0), np.log(10 * J0), 1):
+            w0 = np.exp(w)
+            reg_params0 = np.array([mu0, C0, gamma0, eta0, w0])
+            reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_func,
+                                              method='L-BFGS-B', args=(x_train, y_train, reg_params0),
+                                              bounds=bounds, options={'disp': None, 'maxiter': iteration})
+            # model selection by using cv dataset
+            selection_cost = cost_function(reg_optimizer.x, x_cv, y_cv)
+            if selection_cost < best_cost:
+                best_reg_params = reg_optimizer.x
+                best_reg_params0 = reg_params0
+                best_cost = selection_cost
+                best_init_idx = init_idx
+
+    best_reg_optimizer = optimize.minimize(reg_cost_function, best_reg_params, jac=reg_grad_func,
+                                           method='L-BFGS-B', args=(x_cv, y_cv, best_reg_params0),
+                                           bounds=bounds, options={'disp': None, 'maxiter': iteration})
+
+    elapsed_time = timeit.default_timer() - start_time
+    if autograd:
+        print('\tAUTO-HIP test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_reg_optimizer.x, x_test, y_test), best_init_idx))
+        print('\tAUTO-HIP elapsed time: {0:.4f}s'.format(elapsed_time))
+    else:
+        print('\t  PY-HIP test cost: {0:>6.4e} @best initial set: {1}'.format(cost_function(best_reg_optimizer.x, x_test, y_test), best_init_idx))
+        print('\t  PY-HIP elapsed time: {0:.4f}s'.format(elapsed_time))
+
+    return best_reg_optimizer.x, best_init_idx
 
 
-def test_predict(params, x, y, title, idx, init_idx=None, pred_params=None):
+def plot_func(params, x, y, title, idx, grad_params=None, grad_idx=None, auto_params=None, auto_idx=None):
     """
-    Test predict function
+    Plot trend from R-HIP, PY-HIP and AUTO-HIP parameters
     :param params: model parameters, mu, theta, C, c, gamma, eta
     :param x: observed sharecount
     :param y: observed viewcount
     :param title: figure title, YoutubeID
     :param idx: subplot index
-    :param init_idx: best initial set index
-    :param pred_params: fitted parameters
+    :param grad_params: manually derivative fitted parameters
+    :param grad_idx: best initial set in manually derivative
+    :param auto_params: auto grad fitted parameters
+    :param auto_idx: best initial set in auto grad
     :return: 
     """
     # visualise sample data
@@ -246,19 +322,26 @@ def test_predict(params, x, y, title, idx, init_idx=None, pred_params=None):
     ax2.tick_params('y', colors='r')
 
     mu, theta, C, c, gamma, eta = params
-    ax2.text(0.03, 0.75, 'WWW\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e}'
+    ax2.text(0.03, 0.75, 'R-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e}'
              .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y)), transform=ax1.transAxes)
 
     x_www = predict(params, x)
-    ax1.plot(np.arange(1, 121), x_www, 'b-', label='WWW popularity')
+    ax1.plot(np.arange(1, 121), x_www, 'b-', label='R-HIP popularity')
     ax1.set_title(title, fontdict={'fontsize': 15})
 
-    if pred_params is not None:
-        pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta = pred_params
-        ax2.text(0.55, 0.75, 'HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-                 .format(pred_mu, pred_theta, pred_C, pred_c, pred_gamma, pred_eta, cost_function(pred_params, x, y), init_idx), transform=ax1.transAxes)
-        x_predict = predict(pred_params, x)
-        ax1.plot(np.arange(1, 121), x_predict, 'g-', label='HIP popularity')
+    if grad_params is not None:
+        grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = grad_params
+        ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+                 .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(grad_params, x, y), grad_idx), transform=ax1.transAxes)
+        grad_pred_x = predict(grad_params, x)
+        ax1.plot(np.arange(1, 121), grad_pred_x, 'g-', label='PY-HIP popularity')
+
+    if auto_params is not None:
+        auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = auto_params
+        ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+                 .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(auto_params, x, y), auto_idx), transform=ax1.transAxes)
+        auto_pred_x = predict(auto_params, x)
+        ax1.plot(np.arange(1, 121), auto_pred_x, 'm-', label='AUTO-HIP popularity')
 
 
 if __name__ == '__main__':
@@ -273,17 +356,7 @@ if __name__ == '__main__':
     # or select 4 videos manually
     # test_vids = ['0VuncLRnRlw', '4IlZLjmPA2k', 'ddUDCug_nVA', '0yq9h88X5Xg']
 
-    # # == == == == == == == == Part 2: Test predict function == == == == == == == == #
-    # for tc_idx, vid in enumerate(test_vids):
-    #     test_params, dailyshare, dailyview = test_cases[vid]
-    #     test_predict(test_params, dailyshare, dailyview, vid, idx)
-
-    # == == == == == == == == Part 3: Test gradient function == == == == == == == == #
-    # for tc_idx, vid in enumerate(test_vids):
-    #     test_params, dailyshare, dailyview = test_cases[vid]
-    #     print('err value for test case {0}: {1}'.format(tc_idx, optimize.check_grad(cost_function, grad_descent, test_params, dailyshare, dailyview)))
-
-    # == == == == == == == == Part 4: Test cost and grad function == == == == == == == == #
+    # == == == == == == == == Part 2: Set up experiment parameters == == == == == == == == #
     # setting parameters
     age = 120
     iteration = 200
@@ -292,15 +365,15 @@ if __name__ == '__main__':
     num_test = 30
     eps = np.finfo(float).eps
     bounds = [(0, None), (0, 100), (0, None), (0, 5), (0, None), (0, None)]
+
+    # define auto grad function
+    autograd_func = grad(cost_function)
+    reg_autograd_func = grad(reg_cost_function)
+
     for tc_idx, vid in enumerate(test_vids):
         test_params, dailyshare, dailyview = test_cases[vid]
         dailyshare = dailyshare[:age]
         dailyview = dailyview[:age]
-
-        # if vid == '0VuncLRnRlw':
-        #     test_params = [218.9131, 24.36634, get_C(22.27494), 0.1545296, 2869.518, 242.8026]
-        # if vid == '4IlZLjmPA2k':
-        #     test_params = [20.38386, 1.55089, get_C(0.5068971), 2.220446E-16, 1688.062, 44.46518]
 
         x_train = dailyshare[: num_train]
         y_train = dailyview[: num_train]
@@ -310,52 +383,22 @@ if __name__ == '__main__':
         y_test = dailyview[: num_train+num_cv+num_test]
 
         # initialize weights
-        # 4 sets of fixed params and k sets of random
+        # 1 set of R-HIP optimal params, 4 sets of fixed params and k sets of random params
         k = 5
-        initial_theta_sets = rand_initialize_weights(k)
-        initial_theta_sets.insert(0, test_params)
+        initial_weights_sets = rand_initialize_weights(k)
+        initial_weights_sets.insert(0, test_params)
 
-        best_reg_params = None
-        best_reg_params0 = None
-        best_cost = np.inf
-        best_init_idx = None
-        # find best optimizers within those k+5 sets of params
+        # target training objective function value
         print('Test case vid: {0}'.format(vid))
-        print('\ttarget training cost: {0:>6.4e}'.format(cost_function(test_params, x_train, y_train)))
-        for init_idx, initial_theta in enumerate(initial_theta_sets):
-            # perform non-regularized optimization with l-bfgs
-            optimizer = optimize.minimize(cost_function, initial_theta, jac=grad_descent, method='L-BFGS-B',
-                                          args=(x_train, y_train), bounds=bounds,
-                                          options={'disp': None, 'maxiter': iteration})
-            print('\tinitial set{0}:  non-regularized training cost: {1:>6.4e}'.format(init_idx, optimizer.fun))
+        print('\t   R-HIP test cost: {0:>6.4e}'.format(cost_function(test_params, x_test, y_test)))
 
-            # == == == == == == == == Part 5: Test regularized cost and grad function == == == == == == == == #
-            mu0, theta0, C0, c0, gamma0, eta0 = optimizer.x
-            J0 = optimizer.fun
-            for w in np.arange(np.log(10**-4*J0), np.log(10*J0), 1):
-                w0 = np.exp(w)
-                reg_params0 = np.array([mu0, C0, gamma0, eta0, w0])
-                reg_optimizer = optimize.minimize(reg_cost_function, optimizer.x, jac=reg_grad_descent, method='L-BFGS-B',
-                                                  args=(x_train, y_train, reg_params0), bounds=bounds,
-                                                  options={'disp': None, 'maxiter': iteration})
-                # model selection by using cv dataset
-                selection_cost = cost_function(reg_optimizer.x, x_cv, y_cv)
-                if selection_cost < best_cost:
-                    best_reg_params = reg_optimizer.x
-                    best_reg_params0 = reg_params0
-                    best_cost = selection_cost
-                    best_init_idx = init_idx
-            print('\tinitial set{0}: best regularized training cost: {1:>6.4e}'.format(init_idx, cost_function(best_reg_params, x_train, y_train)))
+        # == == == == == == == == Part 3: Train with manually derivative gradient == == == == == == == == #
+        best_grad_params, best_grad_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=False)
 
-        best_reg_optimizer = optimize.minimize(reg_cost_function, best_reg_params, jac=reg_grad_descent, method='L-BFGS-B',
-                                               args=(x_cv, y_cv, best_reg_params0), bounds=bounds,
-                                               options={'disp': None, 'maxiter': iteration})
+        # == == == == == == == == Part 4: Train with automatic differentiation == == == == == == == == #
+        best_auto_params, best_auto_idx = train_process(x_train, y_train, x_cv, y_cv, x_test, y_test, initial_weights_sets, autograd=True)
 
-        print('+'*79)
-        print('+      target test cost for {0}: {1:>6.4e}'.format(vid, cost_function(test_params, x_test, y_test)))
-        print('+ regularized test cost for {0}: {1:>6.4e} @best initial set: {2}'.format(vid, cost_function(best_reg_params, x_test, y_test), best_init_idx))
-        print('+'*79)
-        test_predict(test_params, dailyshare, dailyview, vid, tc_idx, init_idx=best_init_idx, pred_params=best_reg_params)
+        plot_func(test_params, dailyshare, dailyview, vid, tc_idx, grad_params=best_grad_params, grad_idx=best_grad_idx, auto_params=best_auto_params, auto_idx=best_auto_idx)
 
     # plt.legend()
     plt.tight_layout()
