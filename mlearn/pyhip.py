@@ -1,11 +1,14 @@
 from __future__ import print_function, division
 import sys
+import os
 import cPickle as pickle
 import timeit
 import autograd.numpy as np
 from autograd import grad
 # import numpy as np
 from scipy import optimize
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import warnings
 # warnings.filterwarnings('error')
@@ -326,7 +329,8 @@ def plot_func(params, x, y, title, idx, test_grad_params=None, entire_grad_param
     :return: 
     """
     # visualise sample data
-    ax1 = fig.add_subplot(221+idx)
+    # ax1 = fig.add_subplot(221+idx)
+    ax1 = fig.add_subplot(111)
     ax2 = ax1.twinx()
     ax1.plot(np.arange(1, 121), y, 'k--', label='observed #views')
     ax2.plot(np.arange(1, 121), x, 'r-', label='#share')
@@ -341,7 +345,8 @@ def plot_func(params, x, y, title, idx, test_grad_params=None, entire_grad_param
 
     mu, theta, C, c, gamma, eta = params
     ax2.text(0.03, 0.75, 'R-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e}'
-             .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y, num_split=num_test)), transform=ax1.transAxes)
+             .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y)), transform=ax1.transAxes)
+             # .format(mu, theta, C, c, gamma, eta, cost_function(params, x, y, num_split=num_test)), transform=ax1.transAxes)
 
     x_www = predict(params, x)
     ax1.plot(np.arange(1, 121), x_www, 'b-', label='R-HIP popularity')
@@ -349,39 +354,49 @@ def plot_func(params, x, y, title, idx, test_grad_params=None, entire_grad_param
 
     if test_grad_params is not None:
         params, best_idx = test_grad_params
-        grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
-        ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-                 .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
+        # grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
+        # ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+        #          .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
         grad_pred_x = predict(params, x)
-        ax1.plot(np.arange(1, 121), grad_pred_x, 'y--', marker='o', ms=5, label='PY-HIP test popularity')
+        ax1.plot(np.arange(1, 121), grad_pred_x, 'y--', marker='o', ms=4, mfc='none', mec='y', label='PY-HIP test popularity')
 
     if entire_grad_params is not None:
         params, best_idx = entire_grad_params
-        # grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
-        # ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-        #          .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
+        grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta = params
+        ax2.text(0.55, 0.75, 'PY-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+                 .format(grad_mu, grad_theta, grad_C, grad_c, grad_gamma, grad_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
         grad_pred_x = predict(params, x)
         ax1.plot(np.arange(1, 121), grad_pred_x, 'g-', label='PY-HIP entire popularity')
 
     if test_auto_params is not None:
         params, best_idx = test_auto_params
-        auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
-        ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-                 .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
+        # auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
+        # ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+        #          .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y, num_split=num_test), best_idx), transform=ax1.transAxes)
         auto_pred_x = predict(params, x)
-        ax1.plot(np.arange(1, 121), auto_pred_x, 'c--', marker='d', ms=5, label='AUTO-HIP popularity')
+        ax1.plot(np.arange(1, 121), auto_pred_x, 'c--', marker='d', ms=4, mfc='none', mec='c', label='AUTO-HIP popularity')
 
     if entire_auto_params is not None:
         params, best_idx = entire_auto_params
-        # auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
-        # ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
-        #          .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
+        auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta = params
+        ax2.text(0.55, 0.48, 'AUTO-HIP\n$\mu$={0:.2e}, $\\theta$={1:.2e}\nC={2:.2e}, c={3:.2e}\n$\gamma$={4:.2e}, $\eta$={5:.2e}\nobj value={6:.2e} @init{7}'
+                 .format(auto_mu, auto_theta, auto_C, auto_c, auto_gamma, auto_eta, cost_function(params, x, y), best_idx), transform=ax1.transAxes)
         auto_pred_x = predict(params, x)
         ax1.plot(np.arange(1, 121), auto_pred_x, 'm-', label='AUTO-HIP popularity')
 
+    fig.savefig(os.path.join(output_loc, title))
+    # plt.show()
+    plt.clf()
+
 
 if __name__ == '__main__':
-    fig = plt.figure(figsize=(14, 10))
+    # fig = plt.figure(figsize=(14, 10))
+    fig = plt.figure()
+    output_loc = '../linux_figs/pyhip/'
+
+    # make output dir if not exists
+    if not os.path.exists(output_loc):
+        os.makedirs(output_loc)
 
     # == == == == == == == == Part 1: Generate test cases == == == == == == == == #
     test_cases = pickle.load(open('active_pars.p', 'rb'))
@@ -389,6 +404,8 @@ if __name__ == '__main__':
     test_videos = np.array(test_cases.keys())
     random_index = np.random.randint(0, len(test_videos), 4)
     test_vids = test_videos[random_index]
+    # or iterate over all videos, caution!!!
+    # test_vids = test_videos
     # or select 4 videos manually
     # test_vids = ['0VuncLRnRlw', '4IlZLjmPA2k', 'ddUDCug_nVA', '0yq9h88X5Xg']
 
@@ -406,6 +423,9 @@ if __name__ == '__main__':
     reg_autograd_func = grad(reg_cost_function)
 
     for tc_idx, vid in enumerate(test_vids):
+        # if existing video id, skip
+        if os.path.exists(os.path.join(output_loc, vid)):
+            continue
         test_params, dailyshare, dailyview = test_cases[vid]
         dailyshare = dailyshare[:age]
         dailyview = dailyview[:age]
@@ -441,5 +461,5 @@ if __name__ == '__main__':
                   entire_auto_params=(best_entire_auto_params, best_entire_auto_init_idx))
 
     # plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # plt.tight_layout()
+    # plt.show()
