@@ -424,7 +424,7 @@ if __name__ == '__main__':
 
     for tc_idx, vid in enumerate(test_vids):
         # if existing video id, skip
-        if os.path.exists(os.path.join(output_loc, vid)):
+        if os.path.exists(os.path.join(output_loc, vid+'.png')):
             continue
         test_params, dailyshare, dailyview = test_cases[vid]
         dailyshare = dailyshare[:age]
