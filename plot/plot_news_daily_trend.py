@@ -67,9 +67,9 @@ if __name__ == '__main__':
             y2_axis = [dailyshare_dict[k] for k in x_axis]
             y3_axis = [dailywatch_dict[k]/60/24 for k in x_axis]
 
-            y1_label = '{0}, avg daily view: {1:.2f}M'.format(channel_title, np.mean(y1_axis)/1000000)
-            y2_label = '{0}, avg daily share: {1:.2f}k'.format(channel_title, np.mean(y2_axis)/1000)
-            y3_label = '{0}, avg daily watch time: {1:.2f}k days'.format(channel_title, np.mean(y3_axis)/1000)
+            y1_label = '{0}: {1:.2f}M'.format(channel_title, np.mean(y1_axis)/1000000)
+            y2_label = '{0}: {1:.2f}k'.format(channel_title, np.mean(y2_axis)/1000)
+            y3_label = '{0}: {1:.2f}k days'.format(channel_title, np.mean(y3_axis)/1000)
 
             print 'for {0}, {1} insights, {2} dailyviews, {3} dailyshares, {4} dailywatches not available'.format(channel_title, cnt0, cnt1, cnt2, cnt3)
 
@@ -77,24 +77,31 @@ if __name__ == '__main__':
             ax2.plot_date(x_axis, y2_axis, '-', ms=1, label=y2_label)
             ax3.plot_date(x_axis, y3_axis, '-', ms=1, label=y3_label)
 
+    ax1.plot((datetime(2016, 11, 9), datetime(2016, 11, 9)), (0, ax1.get_ylim()[1]), 'y--')
+    ax2.plot((datetime(2016, 11, 9), datetime(2016, 11, 9)), (0, ax2.get_ylim()[1]), 'y--')
+    ax3.plot((datetime(2016, 11, 9), datetime(2016, 11, 9)), (0, ax3.get_ylim()[1]), 'y--')
+
     ax1.set_ylim(ymin=0)
     ax1.yaxis.set_major_formatter(m_formatter)
-    ax1.set_ylabel('Number of channel views')
-    ax1.set_title('Figure 1: Daily news channel view trend')
-    ax1.legend(loc='upper left', fontsize=12)
+    ax1.set_ylabel('Number of views', fontsize=24)
+    ax1.set_title('Figure 1: Avg daily view per channel', fontsize=28)
+    ax1.legend(loc='upper left', fontsize=24)
+    ax1.tick_params(axis='y', labelsize=18)
 
     ax2.set_ylim(ymin=0)
     ax2.yaxis.set_major_formatter(k_formatter)
-    ax2.set_ylabel('Number of channel shares')
-    ax2.set_title('Figure 2: Daily news channel share trend')
-    ax2.legend(loc='upper left', fontsize=12)
+    ax2.set_ylabel('Number of shares', fontsize=24)
+    ax2.set_title('Figure 2: Avg daily share per channel', fontsize=28)
+    ax2.legend(loc='upper left', fontsize=24)
+    ax2.tick_params(axis='y', labelsize=18)
 
     ax3.set_ylim(ymin=0)
     ax3.yaxis.set_major_formatter(k_formatter)
-    ax3.set_xlabel('Date')
-    ax3.set_ylabel('Duration of channel watch time')
-
-    ax3.set_title('Figure 3: Daily news channel watch time trend in day unit')
-    ax3.legend(loc='upper left', fontsize=12)
+    ax3.set_xlabel('Date', fontsize=24)
+    ax3.set_ylabel('Duration of watch time', fontsize=24)
+    ax3.set_title('Figure 3: Avg daily watch time per channel', fontsize=28)
+    ax3.legend(loc='upper left', fontsize=24)
+    ax3.tick_params(axis='x', labelsize=18)
+    ax3.tick_params(axis='y', labelsize=18)
 
     plt.show()
