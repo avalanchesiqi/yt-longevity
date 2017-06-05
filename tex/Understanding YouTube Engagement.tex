@@ -1,43 +1,98 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+% The file aaai.sty is the style file for AAAI Press 
+% proceedings, working notes, and technical reports.
+%
+
 \documentclass[letterpaper]{article}
 \usepackage{aaai}
 \usepackage{times}
 \usepackage{helvet}
 \usepackage{courier}
+
 \begin{document}
-% The file aaai.sty is the style file for AAAI Press 
-% proceedings, working notes, and technical reports.
-%
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
 
 \title{Understanding YouTube Engagement}
-\author{Siqi Wu}
-%American Association for Artificial Intelligence\\
-%445 Burgess Drive\\
-%Menlo Park, California 94025--3496\\
-%proceedings@aaai.org}
+\author{Siqi Wu\\
+% Australian National University, Data61 CSIRO\\
+}
 
+% Print the title
 \maketitle
+
 \begin{abstract}
 \begin{quote}
 Abstract here...
 \end{quote}
 \end{abstract}
 
-\section{1 Introduction}
-Introduction here...
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
 
-\section{2 Related work}
-Related work here...
+\section{Introduction}
+[Importance of analysing watch time] YouTube starts to stress on watch time rather than view number.
 
-\subsection{subsection}
-subsection here...
+[Proxy of video quality] Quality of video is a loose defined concept. We use video watch time as a proxy for measuring video quality.
 
-\section{3 Data and method}
-data and methods here...
+[Feature of predicting future performance]
 
-\subsection{subsection}
-subsection here...
+%----------------------------------------------------------------------------------------
 
-\subsubsection{subsubsection}
-subsubsection here...
+\section{Related work}
+
+[YouTube viewing behavior] Video watch time associates with popularity metrics (e.g., view count, the number of comments and shares) and user reaction (e.g., sentiment polarity of comments, the number of likes and dislikes) collectively. \cite{Park:2016data}
+
+[Model of predicting future view count]
+
+%----------------------------------------------------------------------------------------
+
+\section{Data and measurement}
+
+\subsection{Data Collection}
+
+\subsubsection{Random dataset.} To obtain a sample of YouTube videos, we used Twitter appearance as a selecting policy. With the help of Twitter Streaming API, first we crawled 202 million tweets that contained "YouTube" keyword over two months period, from July 1st, 2016 to August 30th, 2016. We then parsed the associated shortened URL and only considered tweets that linked to a genuine YouTube video page. Out of these, 36 million video IDs were identified. Finally, we used YouTube Data API and YTCrawl tool \cite{Yu:2015lifecyle} to acquire video metadata and daily viewing statistics respectively. After accounting the effects of Twitter sampling, video attrition and private statistics, our random dataset resulted in a total set of \textit{xxx} YouTube videos. Furthermore, we aggregated these random videos by category to constitute Random Music dataset, Random News dataset, et cetera.
+
+\subsubsection{Quality dataset.} A quality video dataset that validated by external source, including billboard music, top youtuber.
+
+\subsection{Proxy of Video Quality}
+
+
+%----------------------------------------------------------------------------------------
+
+\section{Watch time temporal pattern and prediction}
+dummy text
+
+%----------------------------------------------------------------------------------------
+
+\section{Predict future watch time}
+dummy text
+
+%----------------------------------------------------------------------------------------
+%	REFERENCE LIST
+%----------------------------------------------------------------------------------------
+
+\begin{thebibliography}{}
+
+\bibitem[Park, Naaman and Berger, 2016]{Park:2016data}
+Park, M.; Naaman, M.; and Berger, J.
+\newblock 2016.
+\newblock A Data-Driven Study of View Duration on YouTube.
+\newblock In \textit{Tenth International AAAI Conference on Web and Social Media}.
+
+\bibitem[Yu, Xie and Sanner, 2015]{Yu:2015lifecyle}
+Yu, H.; Xie, L.; and Sanner, S.
+\newblock 2015.
+\newblock The Lifecyle of a Youtube Video: Phases, Content and Popularity.
+\newblock In \textit{ICWSM}.
+ 
+\end{thebibliography}
+
+%----------------------------------------------------------------------------------------
 
 \end{document}
