@@ -53,6 +53,7 @@ def list_channel_videos(youtube, channel_id):
                 channelId=channel_id,
                 type='video',
                 order='date',
+                publishedBefore='2016-08-30T00:00:00Z',
                 maxResults=50,
             ).execute()
 
@@ -69,6 +70,7 @@ def list_channel_videos(youtube, channel_id):
                     channelId=channel_id,
                     type='video',
                     order='date',
+                    publishedBefore='2016-08-30T00:00:00Z',
                     maxResults=50,
                     pageToken=next_pagetoken
                 ).execute()
@@ -268,20 +270,22 @@ if __name__ == "__main__":
                             if flag:
                                 break
                             else:
-                                time.sleep(2 ** i + random.random())
+                                # time.sleep(2 ** i + random.random())
+                                time.sleep(random.random())
 
                         if csvstring is not None:
-                            insights_data = csvstring.split()
+                            startdate, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = csvstring.split()
                             video_data['insights'] = {}
-                            video_data['insights']['startDate'] = insights_data[0]
-                            video_data['insights']['dailyView'] = insights_data[1]
-                            video_data['insights']['totalView'] = insights_data[2]
-                            video_data['insights']['dailyShare'] = insights_data[3]
-                            video_data['insights']['totalShare'] = insights_data[4]
-                            video_data['insights']['dailyWatch'] = insights_data[5]
-                            video_data['insights']['avgWatch'] = insights_data[6]
-                            video_data['insights']['dailySubscriber'] = insights_data[7]
-                            video_data['insights']['totalSubscriber'] = insights_data[8]
+                            video_data['insights']['startDate'] = startdate
+                            video_data['insights']['days'] = days
+                            video_data['insights']['dailyView'] = dailyviews
+                            video_data['insights']['totalView'] = totalview
+                            video_data['insights']['dailyShare'] = dailyshares
+                            video_data['insights']['totalShare'] = totalshare
+                            video_data['insights']['dailyWatch'] = dailywatches
+                            video_data['insights']['avgWatch'] = avgwatch
+                            video_data['insights']['dailySubscriber'] = dailysubscribers
+                            video_data['insights']['totalSubscriber'] = totalsubscriber
                         else:
                             logging.debug('Video historical crawler: {0} failed to crawl historical data'.format(vid))
 
