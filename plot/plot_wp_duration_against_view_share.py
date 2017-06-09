@@ -25,13 +25,12 @@ def read_as_float_array(content):
     return np.array(map(float, content.split(',')), dtype=np.float64)
 
 
-def save_five_number_summary(triplet, title_text=None):
+def save_five_number_summary(quadruple):
     # boxplot
     fig, ax1 = plt.subplots(1, 1)
     bin_matrix = [[] for _ in xrange(bin_num)]
-    for x in triplet:
-        bin_matrix[get_bin_idx(popularity_list, x[1], bin_width, bin_num)].append(x[2]*60/x[1]/x[0])
-        # bin_matrix[get_bin_idx(popularity_list, x[1], bin_width, bin_num)].append(x[0])
+    for x in quadruple:
+        bin_matrix[get_bin_idx(duration_list, x[0], bin_width, bin_num)].append(x[2]*60/x[1])
     print 'finish embedding into the matrix'
     ax1.boxplot(bin_matrix, showmeans=True, showfliers=False)
 
@@ -45,23 +44,29 @@ def save_five_number_summary(triplet, title_text=None):
     for label in ax1.get_xaxis().get_ticklabels()[3::4]:
         label.set_visible(True)
 
+    ax1.set_yscale('log')
     ax1.set_ylim(ymin=0)
     # ax1.set_ylim(ymax=1)
     # ax1.set_title('{0} at week 1'.format(title_text))
-    ax1.set_xlabel('first 8wk viewership percentile')
-    ax1.set_ylabel('watch percentage')
-    # fig.savefig(os.path.join(output_loc, 'week{0}.png'.format(week_idx + 1)))
+    ax1.set_xlabel('duration percentile')
+    ax1.set_ylabel('first 8wk avg watch time (sec)')
+    fig.savefig(os.path.join(output_loc, 'news_dur_vs_watch'))
+    plt.show()
+
+
+def get_bin_idx(overall_list, item, bin_width, bin_num):
+    return min(int(stats.percentileofscore(overall_list, item)/bin_width), bin_num-1)
 
 
 def str_to_date(time_string):
     return datetime(*map(int, time_string.split('-')))
 
 
-def update_triplet(filepath):
+def update_quadruple(filepath):
     with open(filepath, 'r') as filedata:
         for line in filedata:
             video = json.loads(line.rstrip())
-            if video['insights']['avgWatch'] == 'N':
+            if video['insights']['dailyWatch'] == 'N' or video['insights']['dailyShare'] == 'N':
                 continue
             duration = isodate.parse_duration(video['contentDetails']['duration']).seconds
             published_at = video['snippet']['publishedAt'][:10]
@@ -71,60 +76,50 @@ def update_triplet(filepath):
                 ages = read_as_int_array(video['insights']['days'])[:7*week_num] + time_diff
                 daily_view = read_as_int_array(video['insights']['dailyView'])[:7*week_num]
                 daily_watch = read_as_float_array(video['insights']['dailyWatch'])[:7*week_num]
+                daily_share = read_as_int_array(video['insights']['dailyShare'])[:7*week_num]
 
                 # get index for first week
                 valid_idx = (ages >= 0) * (ages < 7*week_num)
-                eight_weeks_views = np.sum(daily_view[valid_idx])
-                eight_weeks_watches = np.sum(daily_watch[valid_idx])
-                if eight_weeks_views > 0:
-                    first_week_watch_percentage = eight_weeks_watches*60/eight_weeks_views
+                n_weeks_views = np.sum(daily_view[valid_idx])
+                n_weeks_watches = np.sum(daily_watch[valid_idx])
+                n_weeks_shares = np.sum(daily_share[valid_idx])
+                if n_weeks_views > 0:
+                    n_week_watch_time = n_weeks_watches*60/n_weeks_views
 
-                    if 0 < first_week_watch_percentage <= duration:
+                    if 0 < n_week_watch_time <= duration:
                         vid = video['id']
-                        triplet_dict[vid].append(duration)
-                        triplet_dict[vid].append(eight_weeks_views)
-                        triplet_dict[vid].append(eight_weeks_watches)
-
-
-def get_bin_idx(overall_list, item, bin_width, bin_num):
-    return min(int(stats.percentileofscore(overall_list, item)/bin_width), bin_num-1)
+                        quadruple_dict[vid].append(duration)
+                        quadruple_dict[vid].append(n_weeks_views)
+                        quadruple_dict[vid].append(n_weeks_watches)
+                        quadruple_dict[vid].append(n_weeks_shares)
 
 
 if __name__ == '__main__':
     category_id = '25'
     data_loc = '../../data/byCategory/{0}.json'.format(category_id)
-    # data_loc = '../../data/byCategory/'
+    # data_loc = '../../data/byCategory'
 
-    output_loc = '../linux_figs/wp_movie/{0}_wp'.format(folder_dict[category_id])
-
-    # make output dir if not exists, otherwise skip the program
-    # if os.path.exists(output_loc):
-    #     print 'output directory already exists! change output dir...'
-    #     sys.exit(1)
-    # else:
-    #     os.makedirs(output_loc)
+    output_loc = '../linux_figs/'
 
     # 2.5 percentile or 5 percentile
     bin_width = 2.5
     bin_num = int(100/bin_width)
     week_num = 8
 
-    # create a triplet dict
-    # video_id: duration, n_week_views, n_week_watches
-    triplet_dict = defaultdict(list)
+    # create a quadruple dict
+    # video_id: duration, n_week_views, n_week_watches, n_week_shares
+    quadruple_dict = defaultdict(list)
 
     if os.path.isdir(data_loc):
         for subdir, _, files in os.walk(data_loc):
             for f in files:
                 filepath = os.path.join(subdir, f)
-                update_triplet(filepath)
+                update_quadruple(filepath)
     else:
-        update_triplet(data_loc)
+        update_quadruple(data_loc)
 
-    popularity_list = [x[1] for x in triplet_dict.values()]
+    duration_list = [x[0] for x in quadruple_dict.values()]
 
-    print 'done updating matrix, now plot and save the figure...'
+    print 'done update matrix, now plot and save the figure...'
 
-    save_five_number_summary(triplet_dict.values(), title_text='{0}'.format(category_dict[category_id]))
-
-    plt.show()
+    save_five_number_summary(quadruple_dict.values())

@@ -8,7 +8,6 @@ import numpy as np
 from scipy import stats
 import isodate
 from datetime import datetime
-from collections import defaultdict
 # import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -25,39 +24,7 @@ def read_as_float_array(content):
     return np.array(map(float, content.split(',')), dtype=np.float64)
 
 
-def save_five_number_summary(triplet, title_text=None):
-    # boxplot
-    fig, ax1 = plt.subplots(1, 1)
-    bin_matrix = [[] for _ in xrange(bin_num)]
-    for x in triplet:
-        bin_matrix[get_bin_idx(popularity_list, x[1], bin_width, bin_num)].append(x[2]*60/x[1]/x[0])
-        # bin_matrix[get_bin_idx(popularity_list, x[1], bin_width, bin_num)].append(x[0])
-    print 'finish embedding into the matrix'
-    ax1.boxplot(bin_matrix, showmeans=True, showfliers=False)
-
-    # xticklabel
-    xticklabels = []
-    for i in xrange(bin_num):
-        xticklabels.append('{0}%'.format(bin_width + bin_width * i))
-    ax1.set_xticklabels(xticklabels)
-    for label in ax1.get_xaxis().get_ticklabels():
-        label.set_visible(False)
-    for label in ax1.get_xaxis().get_ticklabels()[3::4]:
-        label.set_visible(True)
-
-    ax1.set_ylim(ymin=0)
-    # ax1.set_ylim(ymax=1)
-    # ax1.set_title('{0} at week 1'.format(title_text))
-    ax1.set_xlabel('first 8wk viewership percentile')
-    ax1.set_ylabel('watch percentage')
-    # fig.savefig(os.path.join(output_loc, 'week{0}.png'.format(week_idx + 1)))
-
-
-def str_to_date(time_string):
-    return datetime(*map(int, time_string.split('-')))
-
-
-def update_triplet(filepath):
+def update_matrix(filepath):
     with open(filepath, 'r') as filedata:
         for line in filedata:
             video = json.loads(line.rstrip())
@@ -67,64 +34,64 @@ def update_triplet(filepath):
             published_at = video['snippet']['publishedAt'][:10]
             if published_at[:4] == '2016' and duration > 0:
                 start_date = video['insights']['startDate']
-                time_diff = (str_to_date(start_date) - str_to_date(published_at)).days
+                time_diff = (datetime(*map(int, start_date.split('-'))) - datetime(*map(int, published_at.split('-')))).days
                 ages = read_as_int_array(video['insights']['days'])[:7*week_num] + time_diff
                 daily_view = read_as_int_array(video['insights']['dailyView'])[:7*week_num]
                 daily_watch = read_as_float_array(video['insights']['dailyWatch'])[:7*week_num]
 
-                # get index for first week
-                valid_idx = (ages >= 0) * (ages < 7*week_num)
-                eight_weeks_views = np.sum(daily_view[valid_idx])
-                eight_weeks_watches = np.sum(daily_watch[valid_idx])
-                if eight_weeks_views > 0:
-                    first_week_watch_percentage = eight_weeks_watches*60/eight_weeks_views
+                # get seven days data for one figure
+                for week_idx in np.arange(week_num):
+                    valid_idx = (ages >= 7*week_idx) * (ages < 7*(week_idx+1))
+                    weekly_view = np.sum(daily_view[valid_idx])
+                    if weekly_view > 0:
+                        weekly_watch = np.sum(daily_watch[valid_idx])
+                        watch_percent = weekly_watch * 60 / weekly_view / duration
 
-                    if 0 < first_week_watch_percentage <= duration:
-                        vid = video['id']
-                        triplet_dict[vid].append(duration)
-                        triplet_dict[vid].append(eight_weeks_views)
-                        triplet_dict[vid].append(eight_weeks_watches)
-
-
-def get_bin_idx(overall_list, item, bin_width, bin_num):
-    return min(int(stats.percentileofscore(overall_list, item)/bin_width), bin_num-1)
+                        if watch_percent <= 1:
+                            weekly_matrix[week_idx].append(watch_percent)
+                        else:
+                            weekly_matrix[week_idx].append(1)
 
 
 if __name__ == '__main__':
-    category_id = '25'
+    category_id = '43'
     data_loc = '../../data/byCategory/{0}.json'.format(category_id)
     # data_loc = '../../data/byCategory/'
 
-    output_loc = '../linux_figs/wp_movie/{0}_wp'.format(folder_dict[category_id])
+    # output_loc = '../linux_figs/wp_movie/{0}_wp'.format(folder_dict[category_id])
 
-    # make output dir if not exists, otherwise skip the program
+    # # make output dir if not exists, otherwise skip the program
     # if os.path.exists(output_loc):
     #     print 'output directory already exists! change output dir...'
     #     sys.exit(1)
     # else:
     #     os.makedirs(output_loc)
 
-    # 2.5 percentile or 5 percentile
-    bin_width = 2.5
-    bin_num = int(100/bin_width)
-    week_num = 8
+    week_num = 52
 
-    # create a triplet dict
-    # video_id: duration, n_week_views, n_week_watches
-    triplet_dict = defaultdict(list)
-
+    # get weekly statistics
+    weekly_matrix = [[] for i in np.arange(week_num)]
     if os.path.isdir(data_loc):
         for subdir, _, files in os.walk(data_loc):
             for f in files:
                 filepath = os.path.join(subdir, f)
-                update_triplet(filepath)
+                update_matrix(filepath)
     else:
-        update_triplet(data_loc)
+        update_matrix(data_loc)
 
-    popularity_list = [x[1] for x in triplet_dict.values()]
+    print 'done update matrix, now plot the figure...'
 
-    print 'done updating matrix, now plot and save the figure...'
+    fig, ax1 = plt.subplots(1, 1)
+    mean_weekly_statistics = [np.mean(x) for x in weekly_matrix]
+    median_weekly_statistics = [np.median(x) for x in weekly_matrix]
+    ax1.plot(np.arange(1, week_num+1), mean_weekly_statistics, 'r-', marker='o', label='Mean')
+    ax1.plot(np.arange(1, week_num+1), median_weekly_statistics, 'b-', marker='s', label='Median')
 
-    save_five_number_summary(triplet_dict.values(), title_text='{0}'.format(category_dict[category_id]))
+    ax1.set_ylim(ymin=0)
+    ax1.set_ylim(ymax=1)
+    ax1.set_xlabel('week')
+    ax1.set_ylabel('watch percentage')
+    # fig.savefig(os.path.join(output_loc, 'week{0}.png'.format(week_idx + 1)), format='eps', dpi=1000)
 
+    plt.legend(loc='best')
     plt.show()

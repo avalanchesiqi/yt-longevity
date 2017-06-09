@@ -63,11 +63,11 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video, reg_text):
     ax2 = ax1.twinx()
     x_axis = np.arange(1, len(watch_percent) + 1)
     lns1 = ax1.plot(x_axis, weekly_view, 'D-', c='r', ms=3, mfc='None', mec='r', mew=1, label='weekly viewership')
-    lns2 = ax2.plot(x_axis, watch_percent, 'o-', c='b', ms=3, mfc='None', mec='b', mew=1, label='weekly watch percentage')
+    # lns2 = ax2.plot(x_axis, watch_percent, 'o-', c='b', ms=3, mfc='None', mec='b', mew=1, label='weekly watch percentage')
 
     coef, intercept, rmse, r2, std_err = get_lin_coef(watch_percent)
     # lns3 = ax2.plot(x_axis, [coef*x+intercept for x in x_axis], 's--', c='g', ms=3, mfc='None', mec='g', mew=1, label='fitted watch percentage')
-    sns.regplot(x=x_axis, y=watch_percent, ci=95, color='g')
+    sns.regplot(x=x_axis, y=watch_percent, ci=95)
     # ax2.plot(x_axis, [coef * x + intercept - 2*rmse for x in x_axis], '--', c='g')
     # ax2.plot(x_axis, [coef * x + intercept + 2*rmse for x in x_axis], '--', c='g')
 
@@ -79,11 +79,11 @@ def plot_data(watch_percent, weekly_view, weekly_watch, video, reg_text):
     # prec = 100.0*within/len(watch_percent)
 
     ax1.set_xlim(xmin=0)
-    ax1.set_xlim(xmax=week_num+1)
+    ax1.set_xlim(xmax=(week_num+1)*7)
     ax1.set_ylim(ymin=0)
     ax2.set_ylim(ymin=0)
     ax2.set_ylim(ymax=1)
-    ax1.set_xlabel('video age (week)')
+    ax1.set_xlabel('video age (day)')
     ax1.set_ylabel('view', color='r')
     ax1.tick_params('y', colors='r')
     ax2.set_ylabel('watch percentage', color='b')
@@ -120,7 +120,7 @@ def update_matrix(filepath):
                 daily_view = read_as_int_array(video['insights']['dailyView'])
                 daily_watch = read_as_float_array(video['insights']['dailyWatch'])
 
-                get_weekly = True
+                get_weekly = False
                 if get_weekly:
                     weekly_view = []
                     weekly_watch = []
@@ -156,11 +156,11 @@ if __name__ == '__main__':
     output_loc = '../linux_figs/detailed_videos/{0}'.format(folder_dict[category_id])
 
     # make output dir if not exists, otherwise skip the program
-    if os.path.exists(output_loc):
-        print 'output directory already exists! change output dir...'
-        sys.exit(1)
-    else:
-        os.makedirs(output_loc)
+    # if os.path.exists(output_loc):
+    #     print 'output directory already exists! change output dir...'
+    #     sys.exit(1)
+    # else:
+    #     os.makedirs(output_loc)
 
     output_stats_file = open('../linux_figs/detailed_videos/{0}_stats.txt'.format(folder_dict[category_id]), 'w')
     output_stats_file.write('video_id\tcoef\tintercept\tmse\tr2\tstd_err\n')

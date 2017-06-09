@@ -43,7 +43,7 @@ def main():
     print 'Create a numpy matrix with shape {0} x {1}.'.format(data.shape[0], data.shape[1])
 
     # == == == == == = Part 2: Splitting Data == == == == == == = #
-    data[data[:, 2]>100] = 100
+    data[data[:, 2] > 100] = 100
     data_train, data_test = model_selection.train_test_split(data, test_size=0.2, random_state=25)
     X_train = data_train[:, 1].reshape(-1, 1)
     y_train = data_train[:, 2].reshape(-1, 1)
