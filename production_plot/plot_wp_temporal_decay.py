@@ -108,7 +108,10 @@ if __name__ == '__main__':
         # days, dailyView, dailyWatch
         fin.readline()
         for line in fin:
-            id, duration, definition, category_id, channel_id, published_at, len_title, polar_title, len_desc, polar_desc, topics, topics_num, days, daily_view, daily_watch = line.rstrip().split('\t')
+            try:
+                id, duration, definition, category_id, channel_id, published_at, len_title, polar_title, len_desc, polar_desc, topics, topics_num, days, daily_view, daily_watch = line.rstrip().split('\t')
+            except:
+                continue
             duration = int(duration)
             duration_iso = isodate.duration_isoformat(timedelta(seconds=duration))
 
