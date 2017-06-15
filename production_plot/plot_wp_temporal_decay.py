@@ -154,6 +154,8 @@ if __name__ == '__main__':
                           .format(np.sqrt(optimizer.fun),
                                   np.sqrt(metrics.mean_squared_error(lr.predict(train_features), train_labels)),
                                   np.sqrt(optimizer2.fun)))
+            logging.debug('mu: {0}, theta: {1}, weight: {2}, bias: {3}, const: {4}'
+                          .format(optimizer.x[0], optimizer.x[1], lr.coef_[0][0], lr.intercept_[0], optimizer2.x[0]))
 
             ax1 = fig.add_subplot(111)
             ax2 = ax1.twinx()
