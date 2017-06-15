@@ -150,6 +150,7 @@ if __name__ == '__main__':
                                            args=(days, daily_wp, True), bounds=[(0, 1), (None, None)],
                                            options={'disp': None})
 
+            logging.debug('video id: {0}'.format(id))
             logging.debug('exp: {0}, ridge: {1}, constant: {2}'
                           .format(np.sqrt(optimizer.fun),
                                   np.sqrt(metrics.mean_squared_error(lr.predict(train_features), train_labels)),
