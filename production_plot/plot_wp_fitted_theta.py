@@ -67,26 +67,34 @@ if __name__ == '__main__':
     threshold = 0.1
     lower_bound = -np.log(1+threshold)/np.log(180)
     upper_bound = -np.log(1-threshold)/np.log(180)
+    lowest_bound = np.percentile(theta_array, 0.03)
+    highest_bound = np.percentile(theta_array, 99.7)
+    print('lowest bound:', np.percentile(theta_array, 0.03))
     print('lower bound:', lower_bound)
     print('upper bound:', upper_bound)
+    print('highest bound:', np.percentile(theta_array, 99.7))
 
-    growth_videos = [x for x in theta_array if x < lower_bound]
+    growth_videos = [x for x in theta_array if lowest_bound < x < lower_bound]
     memoryless_videos = [x for x in theta_array if lower_bound <= x <= upper_bound]
-    decay_videos = [x for x in theta_array if x > upper_bound]
-    ax2.hist(growth_videos, color='r', bins=75)
-    ax2.hist(memoryless_videos, color='g', bins=2)
-    ax2.hist(decay_videos, color='b', bins=50)
+    decay_videos = [x for x in theta_array if upper_bound < x < highest_bound]
+    ax2.hist(growth_videos, color='r', bins=int(round((lower_bound-lowest_bound)*100)))
+    ax2.hist(memoryless_videos, color='g', bins=int(round((upper_bound-lower_bound)*100)))
+    ax2.hist(decay_videos, color='b', bins=int(round((highest_bound-upper_bound)*100)))
     ax2.set_xlabel('theta')
     ax2.set_ylabel('frequency')
 
-    print('growth videos: {0:.2f}%'.format(len(growth_videos)/len(theta_array)*100))
-    print('memoryless videos: {0:.2f}%'.format(len(memoryless_videos)/len(theta_array)*100))
-    print('decay videos: {0:.2f}%'.format(len(decay_videos)/len(theta_array)*100))
+    growth_videos_ratio = len(growth_videos)/len(theta_array)*100
+    memoryless_videos_ratio = len(memoryless_videos)/len(theta_array)*100
+    decay_videos_ratio = len(decay_videos)/len(theta_array)*100
 
-    ax2.text(-1.4, 6000, 'threshold: {0}\ngrowth videos: {1:.2f}%\nmemoryless videos: {2:.2f}%\ndecay videos: {3:.2f}%'
-             .format(threshold, len(growth_videos)/len(theta_array)*100,
-                     len(memoryless_videos)/len(theta_array)*100, len(decay_videos)/len(theta_array)*100),
+    print('growth videos: {0:.2f}%'.format(growth_videos_ratio))
+    print('memoryless videos: {0:.2f}%'.format(memoryless_videos_ratio))
+    print('decay videos: {0:.2f}%'.format(decay_videos_ratio))
+
+    ax2.text(lowest_bound, 6000, 'threshold: {0}\ntotal videos: {1}\ngrowth videos: {2:.2f}%\n'
+                                 'memoryless videos: {3:.2f}%\ndecay videos: {4:.2f}%'
+             .format(threshold, len(theta_array), growth_videos_ratio, memoryless_videos_ratio, decay_videos_ratio),
              bbox={'facecolor': 'green', 'alpha': 0.5})
 
-    # fig.savefig('rmse_comp_and_theta_dist')
+    # fig.savefig('wp_rmse_comp_and_theta_dist')
     plt.show()
