@@ -1,44 +1,5 @@
-%----------------------------------------------------------------------------------------
-%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
-%----------------------------------------------------------------------------------------
-% The file aaai.sty is the style file for AAAI Press 
-% proceedings, working notes, and technical reports.
-%
-
-\documentclass[letterpaper]{article}
-\usepackage{aaai}
-\usepackage{times}
-\usepackage{helvet}
-\usepackage{courier}
-
-\usepackage{graphicx} % support the \includegraphics command and options
-\graphicspath{{image/}}
-
-\begin{document}
-
-%----------------------------------------------------------------------------------------
-%	TITLE SECTION
-%----------------------------------------------------------------------------------------
-
-\title{Understanding YouTube Engagement}
-\author{Siqi Wu\\
-% Australian National University, Data61 CSIRO\\
-}
-
-% Print the title
-\maketitle
-
-\begin{abstract}
-\begin{quote}
-Abstract here...
-\end{quote}
-\end{abstract}
-
-%----------------------------------------------------------------------------------------
-%	ARTICLE CONTENTS
-%----------------------------------------------------------------------------------------
-
 \section{Introduction}
+
 \subsubsection{Importance of analysing watch time.} YouTube starts to stress on watch time rather than view number.
 
 \subsubsection{A metric to quantify video quality.} Quality of video is a loose defined concept. We use video watch percentage as a proxy to measure video quality.
@@ -49,7 +10,7 @@ Abstract here...
 
 \section{Related work}
 
-\subsubsection{YouTube viewing behavior} Video watch time associates with popularity metrics (e.g., view count, the number of comments and shares) and user reaction (e.g., sentiment polarity of comments, the number of likes and dislikes) collectively \cite{Park:2016data}. However, their observations base on a prior observation period, while our foucs is different, without observing an early reaction from video audiences, can we predict watch percentage from a cold start setting up? Or can we classify a bunch of quality videos?
+\subsubsection{YouTube viewing behavior} Video watch time associates with popularity metrics (e.g., view count, the number of comments and shares) and user reaction (e.g., sentiment polarity of comments, the number of likes and dislikes) collectively \cite{park:2016engagement}. However, their observations base on a prior observation period, while our foucs is different, without observing an early reaction from video audiences, can we predict watch percentage from a cold start setting up? Or can we classify a bunch of quality videos?
 
 \subsubsection{Model of predicting future view count} Peeking strategy and \textit{ex-ante} prediction \cite{martin2016exploring}.
 
@@ -69,7 +30,7 @@ Abstract here...
  \hline
  Dataset & \# Videos & \# Channels \\ 
  \hline\hline
- Random Videos & 2,000,000? & \\ 
+ Random Videos & 19,465,000 & \\ 
  Random Music & 189,406? & \\
  VEVO & 72,488 & 14,342 \\
  Random News & 116,410? & \\
@@ -103,7 +64,7 @@ Thus we use external resource to validate video quality. Video quality is a loos
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.32]{external_source_comp.png}
+    \includegraphics[scale=0.32]{image/external_source_comp.png}
     \caption{External Source Validation}
 \end{figure}
 
@@ -157,33 +118,61 @@ input: a new video, with observed dailyshare, dailywatch, daily watch percentage
 output: a line that fit video watch time in entire (120? 30?) lifecycle, explain the video quality.
 
 method: HIP and modified HIP
+%\end{document}  % This is where a 'short' article might terminate
 
-%----------------------------------------------------------------------------------------
-%	REFERENCE LIST
-%----------------------------------------------------------------------------------------
 
-\begin{thebibliography}{}
 
-\bibitem[Park, Naaman and Berger 2016]{Park:2016data}
-Park, M.; Naaman, M.; and Berger, J.
-\newblock 2016.
-\newblock A Data-Driven Study of View Duration on YouTube.
-\newblock In \textit{Tenth International AAAI Conference on Web and Social Media}.
-
-\bibitem[Martin et al. 2016]{martin2016exploring}
-Martin, T.; Hofman, J.M.; Sharma, A.; Anderson, A.; and Watts, D.J.
-\newblock 2016.
-\newblock Exploring limits to prediction in complex social systems.
-\newblock In \textit{Proceedings of the 25th International Conference on World Wide Web}.
-
-\bibitem[Yu, Xie and Sanner 2015]{Yu:2015lifecyle}
-Yu, H.; Xie, L.; and Sanner, S.
-\newblock 2015.
-\newblock The Lifecyle of a Youtube Video: Phases, Content and Popularity.
-\newblock In \textit{ICWSM}.
- 
-\end{thebibliography}
-
-%----------------------------------------------------------------------------------------
-
-\end{document}
+%\appendix
+%%Appendix A
+%\section{Headings in Appendices}
+%The rules about hierarchical headings discussed above for
+%the body of the article are different in the appendices.
+%In the \textbf{appendix} environment, the command
+%\textbf{section} is used to
+%indicate the start of each Appendix, with alphabetic order
+%designation (i.e., the first is A, the second B, etc.) and
+%a title (if you include one).  So, if you need
+%hierarchical structure
+%\textit{within} an Appendix, start with \textbf{subsection} as the
+%highest level. Here is an outline of the body of this
+%document in Appendix-appropriate form:
+%\subsection{Introduction}
+%\subsection{The Body of the Paper}
+%\subsubsection{Type Changes and  Special Characters}
+%\subsubsection{Math Equations}
+%\paragraph{Inline (In-text) Equations}
+%\paragraph{Display Equations}
+%\subsubsection{Citations}
+%\subsubsection{Tables}
+%\subsubsection{Figures}
+%\subsubsection{Theorem-like Constructs}
+%\subsubsection*{A Caveat for the \TeX\ Expert}
+%\subsection{Conclusions}
+%\subsection{References}
+%Generated by bibtex from your \texttt{.bib} file.  Run latex,
+%then bibtex, then latex twice (to resolve references)
+%to create the \texttt{.bbl} file.  Insert that \texttt{.bbl}
+%file into the \texttt{.tex} source file and comment out
+%the command \texttt{{\char'134}thebibliography}.
+%% This next section command marks the start of
+%% Appendix B, and does not continue the present hierarchy
+%\section{More Help for the Hardy}
+%
+%Of course, reading the source code is always useful.  The file
+%\path{acmart.pdf} contains both the user guide and the commented
+%code.
+%
+%\begin{acks}
+%  The authors would like to thank Dr. Yuhua Li for providing the
+%  matlab code of  the \textit{BEPS} method. 
+%
+%  The authors would also like to thank the anonymous referees for
+%  their valuable comments and helpful suggestions. The work is
+%  supported by the \grantsponsor{GS501100001809}{National Natural
+%    Science Foundation of
+%    China}{http://dx.doi.org/10.13039/501100001809} under Grant
+%  No.:~\grantnum{GS501100001809}{61273304}
+%  and~\grantnum[http://www.nnsf.cn/youngscientsts]{GS501100001809}{Young
+%    Scientsts' Support Program}.
+%
+%\end{acks}
