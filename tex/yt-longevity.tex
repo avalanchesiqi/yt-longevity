@@ -10,47 +10,43 @@
 
 \section{Related work}
 
-\subsubsection{YouTube viewing behavior} Video watch time associates with popularity metrics (e.g., view count, the number of comments and shares) and user reaction (e.g., sentiment polarity of comments, the number of likes and dislikes) collectively \cite{park:2016engagement}. However, their observations base on a prior observation period, while our foucs is different, without observing an early reaction from video audiences, can we predict watch percentage from a cold start setting up? Or can we classify a bunch of quality videos?
+\subsubsection{YouTube watching behavior} Video watch time associates with popularity metrics (e.g., view count, the number of comments and shares) and user reaction (e.g., sentiment polarity of comments, the number of likes and dislikes) collectively \cite{park:2016engagement}. However, their observations base on a prior observation period, while our focus is different, without observing an early reaction from video audiences, can we predict watch percentage from a cold start setting up? Or can we classify a bunch of quality videos?
 
-\subsubsection{Model of predicting future view count} Peeking strategy and \textit{ex-ante} prediction \cite{martin2016exploring}.
+\subsubsection{Model of predicting future view count} Peeking strategy and \textit{ex-ante} prediction \cite{martin:2016exploring}.
 
 %----------------------------------------------------------------------------------------
 
 \section{Data and measurement}
 
+In order to study YouTube watching behavior, we built a tool to collect user watching statistics on a daily basis. In this section, we first introduce a large dataset that contains rich features from nearly 20 million YouTube videos, then provide intuitive measurements.
+
 \subsection{Data Collection}
 
-\subsubsection{Random Videos.} To obtain a sample of YouTube videos, we used Twitter appearance as a selecting policy. With the help of Twitter Streaming API, first we crawled 202 million tweets that contained "YouTube" keyword over two months period, from July 1st, 2016 to August 30th, 2016. We then parsed the associated shortened URL and only considered tweets that linked to a genuine YouTube video page. Out of these, 36 million video IDs were identified. Finally, we used YouTube Data API and YTCrawl tool \cite{Yu:2015lifecyle} to acquire video metadata and daily viewing statistics respectively. After accounting the effects of Twitter sampling, video attrition and private statistics, our \textit{Random Videos} resulted in a total set of \textit{20} million YouTube videos. Furthermore, we aggregated these random videos by category to constitute \textit{Random Music} dataset, \textit{Random News} dataset, et cetera. We regarded \textit{Random Videos} as an approximation of overall YouTube videos.
+\noindent\textbf{Random Videos:} To obtain a sample of YouTube videos, we used Twitter appearance as a selecting policy. With the help of Twitter Streaming API, first we crawled 202 million tweets that contained "YouTube" keyword over two months period, from July 1st, 2016 to August 30th, 2016. We then parsed the associated shortened URL and only considered tweets that linked to a genuine YouTube video page. Out of these, 36 million video IDs were identified. Finally, we used YouTube Data API and YTCrawl tool \cite{yu:2015lifecyle} to acquire video metadata and daily viewing statistics respectively. After accounting the effects of Twitter sampling, video attrition and private statistics, our Random Videos resulted in a total set of nearly 20 million YouTube videos. Furthermore, we grouped these random videos by category to constitute Random Music dataset, Random News dataset, et cetera. We regarded Random Videos as an approximation of overall YouTube videos.
 
-\subsubsection{Quality Videos.} The \textit{Quality Videos} dataset consists of two parts, \textit{VEVO} dataset and \textit{Top News} dataset. \textit{VEVO} dataset contains videos from all verified VEVO accounts on YouTube platform; \textit{Top News} dataset features top 100 most viewed News channels, as reported by external source \footnote{https://vidstatsx.com/youtube-top-100-most-viewed-news-politics}. The number of videos in each dataset can be found in Table \ref{table:1}.
+The most two prominent and valuable statistics of this dataset are daily watch time \textit{WatchT} and daily view count \textit{View}. Upon those, we can derive portion of watching \textit{WatchP} that an average user spends per view at a daily granularity by performing a pairwise division \textit{WatchT}/\textit{View}/duration. We user this series data \textit{WatchP} to reveal watching behavior temporal trend (see section xx). Besides, we extract \textit{WatchP@180} as \textit{WatchT@180}/\textit{View@180}/duration to approximate the intrinsic property.
 
-\begin{table}[h!]
-\centering
-\begin{tabular}{|c||c|c|} 
- \hline
- Dataset & \# Videos & \# Channels \\ 
- \hline\hline
- Random Videos & 19,465,000 & \\ 
- Random Music & 189,406? & \\
- VEVO & 72,488 & 14,342 \\
- Random News & 116,410? & \\
- Top News & 29,732? & 91 \\ 
- \hline
+\noindent\textbf{Quality Videos:} The Quality Videos dataset consists of two parts, VEVO dataset and Top News dataset. VEVO dataset contains videos from all verified VEVO accounts on YouTube platform; Top News dataset features top 100 most viewed News channels, as reported by external source \footnote{https://vidstatsx.com/youtube-top-100-most-viewed-news-politics}. The number of videos and corresponding statistics in each dataset can be found in Table~\ref{table:1}.
+
+\begin{table*}
+  \caption{Overview of datasets}
+  \label{table:1}
+  \begin{tabular}{ccccc}
+    \toprule
+    Dataset & \#Videos & \#Channels & \#Avg Views & \#Avg Watch Time/View \\
+    \midrule
+    Random Videos & 19,464,997 &  & \\ 
+    Random Music & 2,179,330 & 649,895 & \\ 
+    VEVO & 72,488 & 14,342 & \\
+    Random News & 1,079,149 & 105,853 & \\
+    Top News & 29,732 & 91 & \\
+  \bottomrule
 \end{tabular}
-\caption{Overview of datasets}
-\label{table:1}
-\end{table}
-
-
-\subsection{Magical number of truncated day time?}
-why do we only care about watch percentage by 30 days? Because that's where most views happen!
-
-Note: we could fix in the first place the stick with it.
-
+\end{table*}
 
 \subsection{Watch percentage temporal pattern}
 
-For most videos, wacth percentage behaves like a linear trend, most time flat. (How to present this story?)
+For most videos, watch percentage behaves like a linear trend, most time flat. (How to present this story?)
 
 Can we summary a few types of temporal pattern? (R.Crane and D.Sornette, viral videos short paper)
 
@@ -75,7 +71,7 @@ Output: quality video dataset sit on top of random video dataset.
 
 Hypotheses: when a video gets older, it will attract more dedicated audience thus appears as a growing watch percentage, even though views decrease.
 
-Questions here: how to defind old? (moving truncated?) and how to express growth?
+Questions here: how to define old? (moving truncated?) and how to express growth?
 
 Note: fewer views inevitable result in larger variance of watch percentage.
 
