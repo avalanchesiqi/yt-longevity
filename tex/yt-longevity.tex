@@ -46,17 +46,23 @@ The most two prominent and valuable statistics of this dataset are daily watch t
 
 \subsection{Watch percentage temporal pattern}
 
-For most videos, watch percentage behaves like a linear trend, most time flat. (How to present this story?)
+Many works have shown that temporal view count could be explained by a relaxed exponential decay \cite{(R.Crane and D.Sornette, viral videos short paper)}, it's natural to ask how watch percentage evolves over time. Even though watch percentage is a value that bounded from 0 to 1, we still find exponential decay explain the best among the other two methods, i.e, linear regression, or consider watch percentage to be a constant irrelevant to video age. The fitting result can be found in fig 1.
 
-Can we summary a few types of temporal pattern? (R.Crane and D.Sornette, viral videos short paper)
+In this section, we try to avoid that watch percentage varies too much resulting from insufficient views, therefore we preprocess our Random dataset to identify a group of videos that attract enough attentions during its lifecycle. We adopted a selection criteria that video must have at least 80 day with daily view over 20 in the first 120 days, this filter ends up with 1.9 million videos.
 
-Output: a bunch of different temporal patterns, explained by videos plot.
+Next we try to group those active videos by watch percentage trend. We select a changing threshold of 10\%, which requires the change of watch percentage in the 120 days less than threshold, If the change is over threshold, then we consider them as growth videos, to present a more involved watching behavior as the video gets older. If the change goes down below the threshold, we consider people lose interests as they get older. For videos fall inbetween, we consider them as memoryless videos as the watch behavior on them are consistent throughout the whole lifecycle. A demonstration of those 3 types can be found in fig 2.
 
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.45]{image/wp_rmse_comp_and_theta_dist.png}
+    \caption{Temporal watch percentage fitting}
+\end{figure}
 
 \subsection{Proxy of Video Quality}
-Since watch percentage doesn't vary much, can we use watch percentage as a proxy of video quality, taking duration and category (maybe age?) as control variable.
 
-Thus we use external resource to validate video quality. Video quality is a loose defined concept. It's a mix of production quality, content topic and channel profile. [refer to Figure 1 or so, high quality videos appear on the top left.]
+Through the fitting procedure in section 3.2, we convert a watch percentage time series into 2 variables, initial watch percentage \textit{initial wp} and decay rate \textit{R}. Next we are interested to see whether those variable can be a proxy of video quality, taking duration and category as control variable. Video quality is a loose defined concept. It's a mix of production quality, content topic and channel profile.
+
+We leverage external resource to validate video quality, create a VEVO music dataset and Top News dataset as stated in Table 1. We use the hypothesis that VEVO artists come from professional background thus having a better video quality, so does news video that comes from professional news agency. Next we compare the watch percentage from quality dataset to random dataset, since we know watch percentage is heavily impacted by video duration, thus we take duration as a control variable. As expected, quality videos sit on the top of random videos, this validates our hypothesis quality videos have a higher watch percentage than random videos.
 
 \begin{figure}
     \centering
@@ -64,19 +70,13 @@ Thus we use external resource to validate video quality. Video quality is a loos
     \caption{External Source Validation}
 \end{figure}
 
-Output: quality video dataset sit on top of random video dataset.
+\subsection{Burst view and engagement}
 
+We are also interested in whether a burst of views would harm the engagement. It can result from various motivations, such as YouTube recommender system delivers content to a majority of audience, but the video can be of great general interest or niche to specific group; or channel owner uses promotion to get instant view count and in this situation, they are probably low quality views. In order to answer this question, first we need to identify view burst, then determine the causailty from bursty view to watch percentage.
 
-\subsection{Old videos and dedicated audience}
+We identify view burst as variable \textit{b} Vi/avg(sum(Vi-7 to Vi-1)), the ratio of view on current day upon average of previous seven days. The number of bursts relates to the value of \textit{b}. As \textit{b} goes up, the number of viewing burst inclines as shown in Fig 4.
 
-Hypotheses: when a video gets older, it will attract more dedicated audience thus appears as a growing watch percentage, even though views decrease.
-
-Questions here: how to define old? (moving truncated?) and how to express growth?
-
-Note: fewer views inevitable result in larger variance of watch percentage.
-
-Output: whether or not it hits dedicated audience?
-
+We find that only a few videos could enjoy the spread of viewing, and those videos can embrace a revive from public attention. However for most videos, a sudden increase on views is likely to drag down watch percentage.
 
 %----------------------------------------------------------------------------------------
 
