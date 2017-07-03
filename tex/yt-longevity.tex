@@ -18,7 +18,7 @@
 
 \section{Data and measurement}
 
-In order to study YouTube watching behavior, we built a tool to collect user watching statistics on a daily basis. In this section, we first introduce a large dataset that contains rich features from nearly 20 million YouTube videos, then provide intuitive measurements.
+In order to study YouTube watching behavior, we built a tool to collect video watching statistics on a daily basis. In this section, we first introduce a large dataset that contains rich features from nearly 20 million YouTube videos, then provide intuitive measurements on YouTube watching behavior.
 
 \subsection{Data Collection}
 
@@ -44,6 +44,34 @@ The most two prominent and valuable statistics of this dataset are daily watch t
 \end{tabular}
 \end{table*}
 
+\subsection{Blockbuster consumes more time}
+
+Long before the creatiion of watch time concept, number of views works as the golden metrics to evaluate success of YouTube video, meanwhile serve as income for content producer. Viewing behavior has also been treated as a popular field in academic world, researchers explore many models to explain and predict viewership. However, there are various ways to boost viewership without what so called, "organic growth", such as utilize marketing company for paid views or use click farm, even spread spam email or tweets on other social media. In this sense, YouTube converts to focus on another more engagement metrics, embed it into their recommender systems to help user discover better content, which is watch time.
+
+A question could be how different watch time and view count express? Bear this in mind, we investigate the relationship between watch time and view count.
+
+First, we examine ranking list sorted by view and watch by using co-occurrence and Kendall's tau as our evaluation metrics. Out of our 20million random dataset, we rank videos by view@180 and watch@180, then construct top list with n between 100 and 10,000 at step of 100. Figure 1(a) illustrates more than 30\% of top videos disagree on those two lists and their order shows a large disagreement. More than 70\% of concordant have been fliped. This experiment shows a very different result if we consider ranking by view count and watch time.
+
+Figure 1(b) tells a "Winner takes all" story. Interestingly, we observe a positive relationship between view count and average watch time. The more views a view receives, the more time audience spend on it. This corresponds with "Rich gets richer" theory, and here the popular videos not just take more clicks, they consume more time.
+
+\begin{figure}
+\subfloat[Ranking comparison]{\includegraphics[width=0.25\textwidth]{image/rank_by_view_and_watch.pdf}}
+\subfloat[View count vs. avg watch time]{\includegraphics[width=0.25\textwidth]{image/watch_against_view_overall.pdf}}
+\caption{Watch time against View count. People intent to spend more time on popular videos.}
+\end{figure}
+
+\subsection{Proxy of video quality}
+
+Through the fitting procedure in section 3.4, we convert a watch percentage time series into 2 variables, initial watch percentage \textit{initial wp} and decay rate \textit{R}. Next we are interested to see whether those variable can be a proxy of video quality, taking duration and category as control variable. Video quality is a loose defined concept. It's a mix of production quality, content topic and channel profile.
+
+We leverage external resource to validate video quality, create a VEVO music dataset and Top News dataset as stated in Table 1. We use the hypothesis that VEVO artists come from professional background thus having a better video quality, so does news video that comes from professional news agency. Next we compare the watch percentage from quality dataset to random dataset, since we know watch percentage is heavily impacted by video duration, thus we take duration as a control variable. As expected, quality videos sit on the top of random videos, this validates our hypothesis quality videos have a higher watch percentage than random videos.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.32]{image/external_source_comp.png}
+    \caption{External Source Validation}
+\end{figure}
+
 \subsection{Watch percentage temporal pattern}
 
 Many works have shown that temporal view count could be explained by a relaxed exponential decay \cite{(R.Crane and D.Sornette, viral videos short paper)}, it's natural to ask how watch percentage evolves over time. Even though watch percentage is a value that bounded from 0 to 1, we still find exponential decay explain the best among the other two methods, i.e, linear regression, or consider watch percentage to be a constant irrelevant to video age. The fitting result can be found in fig 1.
@@ -58,19 +86,7 @@ Next we try to group those active videos by watch percentage trend. We select a 
     \caption{Temporal watch percentage fitting}
 \end{figure}
 
-\subsection{Proxy of Video Quality}
-
-Through the fitting procedure in section 3.2, we convert a watch percentage time series into 2 variables, initial watch percentage \textit{initial wp} and decay rate \textit{R}. Next we are interested to see whether those variable can be a proxy of video quality, taking duration and category as control variable. Video quality is a loose defined concept. It's a mix of production quality, content topic and channel profile.
-
-We leverage external resource to validate video quality, create a VEVO music dataset and Top News dataset as stated in Table 1. We use the hypothesis that VEVO artists come from professional background thus having a better video quality, so does news video that comes from professional news agency. Next we compare the watch percentage from quality dataset to random dataset, since we know watch percentage is heavily impacted by video duration, thus we take duration as a control variable. As expected, quality videos sit on the top of random videos, this validates our hypothesis quality videos have a higher watch percentage than random videos.
-
-\begin{figure}
-    \centering
-    \includegraphics[scale=0.32]{image/external_source_comp.png}
-    \caption{External Source Validation}
-\end{figure}
-
-\subsection{Burst view and engagement}
+\section{Burst view and engagement}
 
 We are also interested in whether a burst of views would harm the engagement. It can result from various motivations, such as YouTube recommender system delivers content to a majority of audience, but the video can be of great general interest or niche to specific group; or channel owner uses promotion to get instant view count and in this situation, they are probably low quality views. In order to answer this question, first we need to identify view burst, then determine the causailty from bursty view to watch percentage.
 
