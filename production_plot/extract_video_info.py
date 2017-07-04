@@ -51,22 +51,13 @@ def strify(iterable_struct):
     return ','.join(map(str, iterable_struct))
 
 
-def extract_info(input_path, output_path, truncated=None):
+def extract_info(input_path, truncated=None):
     """
     Extract essential information from each video.
     :param input_path: input file path
-    :param output_path: output file path
     :param truncated: head number of elements extracted
     :return:
     """
-    fout = open(output_path, 'w')
-    fout.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
-               .format('id', 'duration', 'definition',
-                       'categoryId', 'channelId', 'publishedAt',
-                       'titleLength', 'titlePolarity', 'descLength', 'descPolarity',
-                       'topics', 'topicsNum',
-                       'days', 'dailyView', 'dailyWatch'))
-
     with open(input_path, 'r') as fin:
         for line in fin:
             video = json.loads(line.rstrip())
@@ -117,8 +108,6 @@ def extract_info(input_path, output_path, truncated=None):
                                topics, topics_num,
                                strify(days), strify(daily_view), strify(daily_watch)))
 
-    fout.close()
-
 
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
@@ -129,12 +118,22 @@ if __name__ == '__main__':
     data_loc = sys.argv[1]
     output_loc = sys.argv[2]
 
+    fout = open(output_loc, 'w')
+    fout.write('{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n'
+               .format('id', 'duration', 'definition',
+                       'categoryId', 'channelId', 'publishedAt',
+                       'titleLength', 'titlePolarity', 'descLength', 'descPolarity',
+                       'topics', 'topicsNum',
+                       'days', 'dailyView', 'dailyWatch'))
+
     tokenizer = RegexpTokenizer(r'\w+')
     sid = SentimentIntensityAnalyzer()
 
     if os.path.isdir(data_loc):
         for subdir, _, files in os.walk(data_loc):
             for f in files:
-                extract_info(os.path.join(subdir, f), output_loc, truncated=age)
+                extract_info(os.path.join(subdir, f), truncated=age)
     else:
-        extract_info(data_loc, output_loc, truncated=age)
+        extract_info(data_loc, truncated=age)
+
+    fout.close()
