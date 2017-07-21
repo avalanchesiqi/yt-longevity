@@ -61,7 +61,11 @@ def extract_info(input_path, truncated=None):
     """
     with open(input_path, 'r') as fin:
         for line in fin:
-            video = json.loads(line.rstrip())
+            # skip if data is corrupted
+            try:
+                video = json.loads(line.rstrip())
+            except:
+                continue
 
             # skip if reading duration fails
             try:
@@ -90,11 +94,12 @@ def extract_info(input_path, truncated=None):
             else:
                 continue
 
-            # skip if not description available
+            # skip if not description available or can't determine language
             description = video['snippet']['description']
-            if description == '':
+            try:
+                detect_lang = detect(description)
+            except:
                 continue
-            detect_lang = detect(description)
 
             published_at = video['snippet']['publishedAt'][:10]
             start_date = video['insights']['startDate']
