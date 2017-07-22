@@ -7,24 +7,6 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor
 
 
-def read_as_float_array(content, truncated=None, delimiter=None):
-    """
-    Read input as a float array.
-    :param content: string input
-    :param truncated: head number of elements extracted
-    :param delimiter: delimiter string
-    :return: a numpy float array
-    """
-    if truncated is None:
-        return np.array(map(float, content.split(delimiter)), dtype=np.float64)
-    else:
-        return np.array(map(float, content.split(delimiter)[:truncated]), dtype=np.float64)
-
-
-def get_mean_prec(dur):
-    return mean_watch_prec[np.sum(duration_gap < dur)]
-
-
 def build_matrix(train_loc, test_loc):
     x = []
     y = []

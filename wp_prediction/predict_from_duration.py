@@ -25,13 +25,13 @@ if __name__ == '__main__':
         duration_gap = read_as_float_array(fin.readline().rstrip(), delimiter=',')
         mean_watch_prec = read_as_float_array(fin.readline().rstrip(), delimiter=',')
 
-    output_path = open('predict_results/predict_dur_topic.txt', 'w')
-    test_loc = '../../data/production_data/wp_prediction/test_data'
+    output_path = open('predict_results/predict_duration.txt', 'w')
+    test_loc = '../../data/production_data/random_langs/test_data'
     for subdir, _, files in os.walk(test_loc):
         for f in files:
             with open(os.path.join(subdir, f), 'r') as fin:
                 for line in fin:
-                    vid, duration, definition, category_id, channel_id, topics, total_view, true_wp = line.rstrip().split('\t')
+                    _, duration, _, _, _, _, _, _, true_wp = line.rstrip().split('\t')
                     dur_wp = get_mean_prec(int(duration))
                     topic_wp = 'NA'
                     cat_wp = 'NA'

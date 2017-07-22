@@ -56,7 +56,7 @@ if __name__ == '__main__':
     train_doc = '../../data/production_data/wp_prediction/train_data'
     train_params_loc = 'topic_coef_dir'
     test_doc = '../../data/production_data/wp_prediction/test_data'
-    output_path = open('predict_results/predict_dur_topic.txt', 'w')
+    output_path = open('predict_results/predict_topic.txt', 'w')
     # print('>>> Load world topic count! Number of topics: {0}'.format(len(world_topic_count)))
 
     dur_topic_errors = []
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     bagging_models_stats = []
 
     c1 = 0
-    num_model = 1024
+    num_model = 1462
     for i in xrange(num_model):
         mini_model = {}
         model_stats = {}
