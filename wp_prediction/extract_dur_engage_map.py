@@ -9,7 +9,7 @@ import cPickle as pickle
 from scipy import stats
 import matplotlib.pyplot as plt
 
-# Extract global watch perc ~ duration bivariate from training part (13M) of a large collection of YouTube videos, 19M dataset
+# Extract global duration ~ watch perc mapping from training data and test data
 
 
 def read_as_int_array(content, truncated=None, delimiter=None):
@@ -65,12 +65,12 @@ if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
     categories = ['']
-    bin_volume = 10000
+    bin_volume = 3000
     duration_wp_tuple = []
     duration_stats_dict = defaultdict(int)
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    input_loc = '../../data/production_data/random_langs/train_data'
+    input_loc = '../../data/production_data/random_langs'
 
     if os.path.isdir(input_loc):
         for subdir, _, files in os.walk(input_loc):
@@ -124,9 +124,10 @@ if __name__ == '__main__':
         print('videos in each bin')
         for i in xrange(len(x_axis)):
             print('duration split point: {0}; number of videos in bin: {1}'.format(x_axis[i], len(bin_matrix[i])))
+        print('num of bins: {0}'.format(len(x_axis)))
 
     # write to disk file
-    to_write = True
+    to_write = False
     if to_write:
         upper_axis = [np.percentile(x, 99) for x in bin_matrix]
         mean_axis = [np.mean(x) for x in bin_matrix]
@@ -142,11 +143,17 @@ if __name__ == '__main__':
             fout.write('{0}\n'.format(strify(upper_axis)))
             fout.write('{0}\n'.format(strify(lower_axis)))
 
-    # store duration-engagement map as pickle file
+    # store duration-engagement map as pickle file, each bin gets cut into 1000 percentiles
     to_pickle = True
     if to_pickle:
-        dur_engage_map = defaultdict(dict)
-
+        dur_engage_map = {}
+        dur_engage_map['duration'] = strify(x_axis)
+        for idx, dur in enumerate(x_axis):
+            dur_engage_bin = []
+            for percentile in xrange(1, 1001):
+                dur_engage_bin.append(np.percentile(bin_matrix[idx], percentile/10))
+            dur_engage_map[idx] = strify(dur_engage_bin)
+        pickle.dump(dur_engage_map, open('dur_engage_map.p', 'w'))
 
     # check distribution in each bin
     to_plot1 = False
@@ -178,7 +185,7 @@ if __name__ == '__main__':
         ax1.plot(x_axis, [np.percentile(x, 75) for x in bin_matrix], 'g--', label='75%', zorder=1)
         ax1.plot(x_axis, [np.percentile(x, 99) for x in bin_matrix], 'g.-', label='99%', zorder=1)
 
-        ax1.set_xlim([10e0, 10e4])
+        ax1.set_xlim([min(x_axis), 10e4])
         ax1.set_ylim([0, 1])
         ax1.set_xlabel('Video duration (sec)', fontsize=20)
         ax1.set_ylabel('Watch percentage', fontsize=20)
