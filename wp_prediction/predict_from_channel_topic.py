@@ -66,56 +66,70 @@ if __name__ == '__main__':
                 train_df = data_df[:train_num]
                 test_df = data_df[train_num:]
 
-                categorical_values = np.array(data_df[['definition', 'category', 'lang']])
+                topic_cnt = 0
+                topic_dict = {}
+                for x in data_df['topics'].values.tolist():
+                    for topic in x.split(','):
+                        if topic not in topic_dict:
+                            topic_dict[topic] = topic_cnt
+                            topic_cnt += 1
 
-                # do the first column
-                enc_label = LabelEncoder()
-                categorical_data = enc_label.fit_transform(categorical_values[:, 0])
-
-                # do the others
-                for i in range(1, categorical_values.shape[1]):
-                    enc_label = LabelEncoder()
-                    categorical_data = np.column_stack(
-                        (categorical_data, enc_label.fit_transform(categorical_values[:, i])))
-
-                categorical_values = categorical_data.astype(float)
-
-                enc_onehot = OneHotEncoder()
-                cat_data = enc_onehot.fit_transform(categorical_values)
-
-                cat_df = pd.DataFrame(cat_data.toarray())
-
-                data_ndarray = np.column_stack((cat_df, data_df['duration'], data_df['wp_percentile']))
-
-                train_x = data_ndarray[:train_num, :-1]
-                train_y = data_ndarray[:train_num, -1]
-                test_x = data_ndarray[train_num:, :-1]
-                test_y = data_ndarray[train_num:, -1]
+                train_matrix = []
+                with open(train_data_path, 'r') as fin1:
+                    for train_line in fin1:
+                        row = np.zeros(topic_cnt + 2)
+                        _, duration, _, _, _, _, topics, _, _, watch_percentile = train_line.rstrip().split('\t')
+                        topics = topics.split(',')
+                        for topic in topics:
+                            row[topic_dict[topic]] = 1
+                        # row[-2] = np.log10(int(duration))
+                        row[-2] = int(duration)
+                        row[-1] = float(watch_percentile)
+                        train_matrix.append(row)
+                train_matrix = np.array(train_matrix)
+                train_x = train_matrix[:, :-1]
+                train_y = train_matrix[:, -1].reshape(-1, 1)
 
                 ridge_model = Ridge(fit_intercept=True)
                 ridge_model.fit(train_x, train_y)
 
-                pred_test_y = ridge_model.predict(test_x)
+                test_x = []
+                test_vids = []
+                test_matrix = []
+                with open(os.path.join(subdir, f), 'r') as fin2:
+                    for test_line in fin2:
+                        row = np.zeros(topic_cnt + 1)
+                        vid, duration, _, _, _, _, topics, _, _, _ = test_line.rstrip().split('\t')
+                        topics = topics.split(',')
+                        for topic in topics:
+                            row[topic_dict[topic]] = 1
+                        # row[-1] = np.log10(int(duration))
+                        row[-1] = int(duration)
+                        test_vids.append(vid)
+                        test_matrix.append(row)
+                test_matrix = np.array(test_matrix)
+
+                pred_test_y = ridge_model.predict(test_matrix)
                 pred_test_y[pred_test_y > 0.999] = 0.999
                 pred_test_y[pred_test_y < 0] = 0
-                pred_test_duc_wp = get_wp_list(test_df['duration'].tolist(), pred_test_y)
+                pred_test_dut_wp = get_wp_list(test_df['duration'].tolist(), pred_test_y)
 
-                test_df['duc_wp'] = np.asarray(pred_test_duc_wp)
+                test_df['dut_wp'] = np.asarray(pred_test_dut_wp)
 
-                # print('>>> Ridge MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df.true_wp, pred_test_du_wp)))
-                # print('>>> Ridge R2 on test set: {0:.4f}'.format(r2_score(test_df.true_wp, pred_test_du_wp)))
+                # print('>>> Ridge MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df.true_wp, test_df.ut_wp)))
+                # print('>>> Ridge R2 on test set: {0:.4f}'.format(r2_score(test_df.true_wp, test_df.ut_wp)))
                 # print('=' * 79)
                 # print()
             # if not, set as 'NA'
             else:
-                pred_test_du_wp = ['NA'] * test_df.shape[0]
-                test_df['duc_wp'] = np.asarray(pred_test_du_wp)
+                pred_test_dut_wp = ['NA'] * test_df.shape[0]
+                test_df['dut_wp'] = np.asarray(pred_test_dut_wp)
 
-            predict_result_dict.update(test_df.set_index('vid')['duc_wp'].to_dict())
+            predict_result_dict.update(test_df.set_index('vid')['dut_wp'].to_dict())
 
     # write to txt file
     to_write = True
     if to_write:
-        output_path = 'norm_predict_results/predict_duc.p'
+        output_path = 'norm_predict_results/predict_dut.p'
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         pickle.dump(predict_result_dict, open(output_path, 'wb'))
