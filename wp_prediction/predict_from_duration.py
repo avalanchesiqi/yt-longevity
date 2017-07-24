@@ -1,46 +1,46 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import os
+import cPickle as pickle
+
+# Predict watch percentage from duration only
 
 
-def read_as_float_array(content, truncated=None, delimiter=None):
-    """
-    Read input as a float array.
-    :param content: string input
-    :param truncated: head number of elements extracted
-    :param delimiter: delimiter string
-    :return: a numpy float array
-    """
-    if truncated is None:
-        return np.array(map(float, content.split(delimiter)), dtype=np.float64)
-    else:
-        return np.array(map(float, content.split(delimiter)[:truncated]), dtype=np.float64)
-
-
-def get_mean_prec(dur):
-    return mean_watch_prec[np.sum(duration_gap < dur)]
+def get_wp(duration, percentile):
+    bin_idx = np.sum(duration_split_points < duration)
+    duration_bin = dur_engage_map[bin_idx]
+    percentile = int(round(percentile*1000))
+    wp_percentile = duration_bin[percentile]
+    return wp_percentile
 
 
 if __name__ == '__main__':
-    with open('global_params/global_parameters_train.txt', 'r') as fin:
-        duration_gap = read_as_float_array(fin.readline().rstrip(), delimiter=',')
-        mean_watch_prec = read_as_float_array(fin.readline().rstrip(), delimiter=',')
+    # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
+    # setting parameters
+    dur_engage_str_map = pickle.load(open('dur_engage_map.p', 'rb'))
+    dur_engage_map = {key: list(map(float, value.split(','))) for key, value in dur_engage_str_map.items()}
 
-    output_path = open('predict_results/predict_duration.txt', 'w')
-    test_loc = '../../data/production_data/random_langs/test_data'
-    for subdir, _, files in os.walk(test_loc):
+    duration_split_points = np.array(dur_engage_map['duration'])
+
+    # == == == == == == == == Part 2: Load dataset == == == == == == == == #
+    input_loc = '../../data/production_data/random_norm/test_data'
+
+    output_file = open('norm_predict_results/predict_d.txt', 'w')
+
+    to_write_header = True
+    for subdir, _, files in os.walk(input_loc):
         for f in files:
             with open(os.path.join(subdir, f), 'r') as fin:
+                header = fin.readline().rstrip()
+                if to_write_header:
+                    output_file.write('{0}\t{1}\n'.format(header, 'd_wp'))
+                    to_write_header = False
                 for line in fin:
-                    _, duration, _, _, _, _, _, _, true_wp = line.rstrip().split('\t')
-                    dur_wp = get_mean_prec(int(duration))
-                    topic_wp = 'NA'
-                    cat_wp = 'NA'
-                    user_wp = 'NA'
-                    output_path.write('{0}\t{1}\t{2}\t{3}\t{4}\n'.format(line.rstrip(), dur_wp, topic_wp, cat_wp, user_wp))
-    output_path.close()
-
-    print('input duration: {0}, predict watch prec: {1}'.format(10273, get_mean_prec(10273)))
-    print('input duration: {0}, predict watch prec: {1}'.format(1204, get_mean_prec(1204)))
-    print('input duration: {0}, predict watch prec: {1}'.format(20584, get_mean_prec(20584)))
-    print('input duration: {0}, predict watch prec: {1}'.format(16333, get_mean_prec(16333)))
-    print('input duration: {0}, predict watch prec: {1}'.format(2000, get_mean_prec(2000)))
+                    _, duration, _ = line.rstrip().split('\t', 2)
+                    duration = int(duration)
+                    median_percentile = 0.5
+                    dur_wp = get_wp(duration, median_percentile)
+                    output_file.write('{0}\t{1}\n'.format(line.rstrip(), dur_wp))
+    output_file.close()
