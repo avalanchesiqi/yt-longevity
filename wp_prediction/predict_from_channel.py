@@ -1,77 +1,91 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from __future__ import division, print_function
 import os
+import pandas as pd
 import numpy as np
+import glob
 import cPickle as pickle
+from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import Ridge
 
 
-def read_as_float_array(content, truncated=None, delimiter=None):
-    """
-    Read input as a float array.
-    :param content: string input
-    :param truncated: head number of elements extracted
-    :param delimiter: delimiter string
-    :return: a numpy float array
-    """
-    if truncated is None:
-        return np.array(map(float, content.split(delimiter)), dtype=np.float64)
-    else:
-        return np.array(map(float, content.split(delimiter)[:truncated]), dtype=np.float64)
+def get_wp(duration, percentile):
+    bin_idx = np.sum(duration_split_points < duration)
+    duration_bin = dur_engage_map[bin_idx]
+    percentile = int(round(percentile * 1000))
+    wp_percentile = duration_bin[percentile]
+    return wp_percentile
 
 
-def get_mean_prec(dur):
-    return mean_watch_prec[np.sum(duration_gap < dur)]
-
-
-def predict_from_duration(filepath):
-    with open(filepath, 'r') as fin:
-        for line in fin:
-            vid, duration, _, _, _, _, _, _, true_wp = line.rstrip().split('\t')
-            duration = int(duration)
-            dur_wp = get_mean_prec(duration)
-            channel_vid_wp_dict[vid] = dur_wp
+def get_wp_list(duration_list, percentile_list):
+    wp_list = []
+    for d, p in zip(duration_list, percentile_list):
+        wp_list.append(get_wp(d, p))
+    return wp_list
 
 
 if __name__ == '__main__':
-    with open('global_params/global_parameters_train.txt', 'r') as fin:
-        duration_gap = read_as_float_array(fin.readline().rstrip(), delimiter=',')
-        mean_watch_prec = read_as_float_array(fin.readline().rstrip(), delimiter=',')
+    # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
+    # setting parameters
+    dur_engage_str_map = pickle.load(open('dur_engage_map.p', 'rb'))
+    dur_engage_map = {key: list(map(float, value.split(','))) for key, value in dur_engage_str_map.items()}
 
-    output_path = 'predict_results/vid_channel.p'
-    channel_vid_wp_dict = {}
+    duration_split_points = np.array(dur_engage_map['duration'])
 
-    for subdir, _, files in os.walk('../../data/production_data/random_channel/test_data'):
+    train_channel_cnt_map = pickle.load(open('norm_predict_results/train_channel_cnt.p', 'rb'))
+    test_channel_cnt_map = pickle.load(open('norm_predict_results/test_channel_cnt.p', 'rb'))
+
+    # == == == == == == == == Part 2: Load dataset == == == == == == == == #
+    predict_result_dict = {}
+
+    train_loc = '../../data/production_data/random_channel/train_data'
+    test_loc = '../../data/production_data/random_channel/test_data'
+
+    for subdir, _, files in os.walk(test_loc):
         for f in files:
+            test_df = pd.read_csv(os.path.join(subdir, f), sep='\t', header=None,
+                                  names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
+                                         'total_view', 'true_wp', 'wp_percentile'],
+                                  dtype={'duration': int, 'definition': int, 'category': int,
+                                         'wp_percentile': float})
             # if we have observed this channel before
-            if os.path.exists(os.path.join('../../data/production_data/random_channel/train_data', f)):
+            if f in train_channel_cnt_map and train_channel_cnt_map[f] > 4:
+                sub_f = f[:4]
+                train_data_path = os.path.join(train_loc, sub_f, f)
                 # get past success
-                with open(os.path.join('../../data/production_data/random_channel/train_data', f), 'r') as fin1:
-                    train_lines = fin1.read().splitlines()
-                    if len(train_lines) > 5:
-                        # predict from past success
-                        crunch_data = [(x.split('\t')[1], x.split('\t')[8]) for x in train_lines]
-                        train_x = np.array([np.log10(int(x[0])) for x in crunch_data]).reshape(-1, 1)
-                        train_y = np.array([float(x[1]) for x in crunch_data]).reshape(-1, 1)
+                train_df = pd.read_csv(train_data_path, sep='\t', header=None,
+                                       names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
+                                              'total_view', 'true_wp', 'wp_percentile'],
+                                       dtype={'duration': int, 'definition': int, 'category': int,
+                                              'wp_percentile': float})
+                train_num = train_df.shape[0]
 
-                        ridge_model = Ridge(fit_intercept=True)
-                        ridge_model.fit(train_x, train_y)
+                ridge_model = Ridge(fit_intercept=True)
+                ridge_model.fit(train_df['duration'].values.reshape(-1, 1), train_df['wp_percentile'].values.reshape(-1, 1))
 
-                        with open(os.path.join(subdir, f), 'r') as fin2:
-                            for line in fin2:
-                                vid, duration, _, _, _, _, _, _, true_wp = line.rstrip().split('\t')
-                                duration = np.log10(int(duration))
-                                channel_wp = ridge_model.predict(duration)[0][0]
-                                if channel_wp > 1:
-                                    channel_wp = 1
-                                elif channel_wp < 0:
-                                    channel_wp = 0
-                                channel_vid_wp_dict[vid] = channel_wp
-                    else:
-                        predict_from_duration(os.path.join(subdir, f))
-            # if not, predict from duration
+                pred_test_y = ridge_model.predict(test_df['duration'].values.reshape(-1, 1))
+                pred_test_y[pred_test_y > 0.999] = 0.999
+                pred_test_y[pred_test_y < 0] = 0
+                pred_test_du_wp = get_wp_list(test_df['duration'].tolist(), pred_test_y)
+
+                test_df['user_wp'] = np.asarray(pred_test_du_wp)
+
+                # print('>>> Ridge MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df.true_wp, pred_test_du_wp)))
+                # print('>>> Ridge R2 on test set: {0:.4f}'.format(r2_score(test_df.true_wp, pred_test_du_wp)))
+                # print('=' * 79)
+                # print()
+            # if not, set as 'NA'
             else:
-                predict_from_duration(os.path.join(subdir, f))
+                pred_test_du_wp = ['NA'] * test_df.shape[0]
+                test_df['user_wp'] = np.asarray(pred_test_du_wp)
+
+            predict_result_dict.update(test_df.set_index('vid')['user_wp'].to_dict())
 
     # write to txt file
-    print('>>> Number of videos in final test result dict: {0}'.format(len(channel_vid_wp_dict)))
-    pickle.dump(channel_vid_wp_dict, open(output_path, 'wb'))
+    to_write = True
+    if to_write:
+        output_path = 'norm_predict_results/predict_du.p'
+        print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
+        pickle.dump(predict_result_dict, open(output_path, 'wb'))
