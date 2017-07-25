@@ -15,12 +15,12 @@ def get_wp(duration, percentile):
     if len(duration) > 1:
         wp_list = []
         for d, p in zip(duration, percentile):
-            wp_list.extend(get_wp(d, p))
+            wp_list.extend(get_wp([d], [p]))
         return wp_list
     else:
-        bin_idx = np.sum(duration_split_points < duration)
+        bin_idx = np.sum(duration_split_points < duration[0])
         duration_bin = dur_engage_map[bin_idx]
-        percentile = int(round(percentile * 1000))
+        percentile = int(round(percentile[0] * 1000))
         wp_percentile = duration_bin[percentile]
         return [wp_percentile]
 
@@ -116,6 +116,9 @@ if __name__ == '__main__':
                 log_percentile_value.extend(test_du_wp)
 
                 true_value.extend(test_wp.tolist()[0])
+                current_trained_num = len(true_value)
+                if current_trained_num % 1000 == 0:
+                    print('>>> Current finished videos: {0}...'.format(current_trained_num))
 
             # if not, set as 'NA'
             else:
