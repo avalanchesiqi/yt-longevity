@@ -13,6 +13,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 
 def get_wp(duration, percentile):
+    # map wp percentile to watch percentage
     bin_idx = np.sum(duration_split_points < duration)
     duration_bin = dur_engage_map[bin_idx]
     percentile = int(round(percentile * 1000))
@@ -21,10 +22,34 @@ def get_wp(duration, percentile):
 
 
 def get_wp_list(duration_list, percentile_list):
+    # map a list from wp percentile to watch percentage
     wp_list = []
     for d, p in zip(duration_list, percentile_list):
         wp_list.append(get_wp(d, p))
     return wp_list
+
+
+def random_forest(cols, target):
+    # random forest regression
+    rf_regressor = RandomForestRegressor(n_estimators=10, min_samples_leaf=100)
+    rf_regressor.fit(train_df[cols], train_df[target])
+
+    print('>>> Feature importances of duration, definition, category, language: {0}'.format(
+        rf_regressor.feature_importances_))
+    print('>>> Number of features: {0}'.format(rf_regressor.n_features_))
+
+    test_yhat = rf_regressor.predict(test_df[cols])
+    if target == 'wp_percentile':
+        test_dc_wp = get_wp_list(test_df['duration'].tolist(), test_yhat)
+    else:
+        test_dc_wp = test_yhat
+
+    print('>>> MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df['true_wp'], test_dc_wp)))
+    print('>>> R2 on test set: {0:.4f}'.format(r2_score(test_df['true_wp'], test_dc_wp)))
+    print('=' * 79)
+    print()
+
+    return test_dc_wp
 
 
 if __name__ == '__main__':
@@ -44,21 +69,24 @@ if __name__ == '__main__':
     train_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
                                       names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
                                              'total_view', 'true_wp', 'wp_percentile'],
-                                      dtype={'duration': int, 'definition': int, 'category': int,
+                                      dtype={'duration': int, 'definition': int, 'category': int, 'true_wp': float,
                                              'wp_percentile': float}) for f in train_data))
 
     test_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
                                      names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
                                             'total_view', 'true_wp', 'wp_percentile'],
-                                     dtype={'duration': int, 'definition': int, 'category': int,
+                                     dtype={'duration': int, 'definition': int, 'category': int, 'true_wp': float,
                                             'wp_percentile': float}) for f in test_data))
 
-    print('>>> Finish loading all data!')
     train_num = train_df.shape[0]
-    print('>>> Number of training observations: {0}'.format(train_num))
+    test_num = test_df.shape[0]
+    print('>>> Finish loading all data!')
+    print('>>> Number of train observations: {0}'.format(train_num))
+    print('>>> Number of test observations: {0}'.format(train_num))
+    print()
     data_df = train_df.append(test_df)
 
-    # data_df['duration'] = np.log10(data_df['duration'])
+    data_df['log_duration'] = np.log10(data_df['duration'])
 
     enc_label = LabelEncoder()
     data_df['lang'] = enc_label.fit_transform(data_df['lang'])
@@ -66,32 +94,32 @@ if __name__ == '__main__':
     train_df = data_df[:train_num]
     test_df = data_df[train_num:]
 
-    cols = ['duration', 'definition', 'category', 'lang']
-    rf_regressor = RandomForestRegressor(n_estimators=10, min_samples_leaf=100, random_state=42)
-    rf_regressor.fit(train_df[cols], train_df.wp_percentile)
+    lin_cols = ['duration', 'definition', 'category', 'lang']
+    log_cols = ['log_duration', 'definition', 'category', 'lang']
+    percentile_target = 'wp_percentile'
+    percentage_target = 'true_wp'
 
-    print('>>> Feature importances of duration, definition, category, language: {0}'.format(rf_regressor.feature_importances_))
-    print('>>> Number of features: {0}'.format(rf_regressor.n_features_))
+    # random forest, duration, definition, category, lang on percentile
+    print('>>> Random forest, duration linear ~ percentile')
+    random_forest(lin_cols, percentile_target)
 
-    pred_train_y = rf_regressor.predict(train_df[cols])
-    pred_train_dc_wp = get_wp_list(train_df['duration'].tolist(), pred_train_y)
+    # random forest, log duration, definition, category, lang on percentile
+    print('>>> Random forest, duration log ~ percentile')
+    output_predict = random_forest(log_cols, percentile_target)
 
-    pred_test_y = rf_regressor.predict(test_df[cols])
-    pred_test_dc_wp = get_wp_list(test_df['duration'].tolist(), pred_test_y)
+    # random forest, duration, definition, category, lang on percentage
+    print('>>> Random forest, duration linear ~ percentage')
+    random_forest(lin_cols, percentage_target)
 
-    test_df['content_wp'] = np.asarray(pred_test_dc_wp)
+    # random forest, duration log, definition, category, lang on percentage
+    print('>>> Random forest, duration log ~ percentage')
+    random_forest(log_cols, percentage_target)
+
+    test_df['content_wp'] = np.asarray(output_predict)
     pred_result = test_df[['vid', 'content_wp']]
-
     predict_result_dict.update(test_df.set_index('vid')['content_wp'].to_dict())
 
-    print('>>> Random forest MAE on train set: {0:.4f}'.format(mean_absolute_error(train_df.true_wp, pred_train_dc_wp)))
-    print('>>> Random forest R2 on train set: {0:.4f}'.format(r2_score(train_df.true_wp, pred_train_dc_wp)))
-    print('>>> Random forest MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df.true_wp, pred_test_dc_wp)))
-    print('>>> Random forest R2 on test set: {0:.4f}'.format(r2_score(test_df.true_wp, pred_test_dc_wp)))
-    print('='*79)
-    print()
-
-    # write to txt file
+    # write to p file
     to_write = True
     if to_write:
         output_path = 'norm_predict_results/predict_dc.p'
