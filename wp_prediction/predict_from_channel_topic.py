@@ -180,7 +180,7 @@ if __name__ == '__main__':
     print()
 
     # write to pickle file
-    to_write = False
+    to_write = True
     if to_write:
         output_path = 'norm_predict_results/predict_dut.p'
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))

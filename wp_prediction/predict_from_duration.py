@@ -4,6 +4,7 @@
 import numpy as np
 import os
 import cPickle as pickle
+from sklearn.metrics import mean_absolute_error, r2_score
 
 # Predict watch percentage from duration only
 
@@ -25,8 +26,12 @@ if __name__ == '__main__':
     duration_split_points = np.array(dur_engage_map['duration'])
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    input_loc = '../../data/production_data/random_norm/test_data'
+    # input_loc = '../../data/production_data/random_norm/test_data'
+    input_loc = '../../production_data/random_norm/test_data'
     predict_result_dict = {}
+
+    true_value = []
+    predict_value = []
 
     for subdir, _, files in os.walk(input_loc):
         for f in files:
@@ -34,11 +39,21 @@ if __name__ == '__main__':
                 # read header
                 fin.readline()
                 for line in fin:
-                    vid, duration, _ = line.rstrip().split('\t', 2)
+                    dump, true_wp, _ = line.rstrip().rsplit('\t', 2)
+                    vid, duration, _ = dump.split('\t', 2)
                     duration = int(duration)
+                    true_wp = float(true_wp)
                     median_percentile = 0.5
                     dur_wp = get_wp(duration, median_percentile)
                     predict_result_dict[vid] = dur_wp
+
+                    true_value.append(true_wp)
+                    predict_value.append(dur_wp)
+
+    print('>>> MAE on test set: {0:.4f}'.format(mean_absolute_error(true_value, predict_value)))
+    print('>>> R2 on test set: {0:.4f}'.format(r2_score(true_value, predict_value)))
+    print('=' * 79)
+    print()
 
     # write to pickle file
     to_write = True
