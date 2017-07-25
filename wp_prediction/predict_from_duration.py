@@ -26,21 +26,23 @@ if __name__ == '__main__':
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     input_loc = '../../data/production_data/random_norm/test_data'
+    predict_result_dict = {}
 
-    output_file = open('norm_predict_results/predict_d.txt', 'w')
-
-    to_write_header = True
     for subdir, _, files in os.walk(input_loc):
         for f in files:
             with open(os.path.join(subdir, f), 'r') as fin:
-                header = fin.readline().rstrip()
-                if to_write_header:
-                    output_file.write('{0}\t{1}\n'.format(header, 'd_wp'))
-                    to_write_header = False
+                # read header
+                fin.readline()
                 for line in fin:
-                    _, duration, _ = line.rstrip().split('\t', 2)
+                    vid, duration, _ = line.rstrip().split('\t', 2)
                     duration = int(duration)
                     median_percentile = 0.5
                     dur_wp = get_wp(duration, median_percentile)
-                    output_file.write('{0}\t{1}\n'.format(line.rstrip(), dur_wp))
-    output_file.close()
+                    predict_result_dict[vid] = dur_wp
+
+    # write to pickle file
+    to_write = True
+    if to_write:
+        output_path = 'norm_predict_results/predict_d.p'
+        print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
+        pickle.dump(predict_result_dict, open(output_path, 'wb'))
