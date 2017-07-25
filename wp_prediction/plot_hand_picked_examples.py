@@ -41,31 +41,30 @@ if __name__ == '__main__':
 
     # Plot examples
     fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111)
 
-    plot_ax1 = False
+    plot_ax1 = True
     if plot_ax1:
-        ax1 = fig.add_subplot(111)
         percentile_example1 = get_percentile_list(pos_example['duration'], pos_example['wp'])
-        ax1.scatter(np.log10(pos_example['duration']), pos_example['wp'], c='b', lw=1, s=30, label='Original', zorder=10)
-        ax1.scatter(np.log10(pos_example['duration']), percentile_example1, c='r', lw=1, s=30, label='Transformed', zorder=10)
-        ax1.set_title(pos_example['title'])
+        ax.scatter(np.log10(pos_example['duration']), pos_example['wp'], c='b', lw=0, s=50, label='Original', zorder=10)
+        ax.scatter(np.log10(pos_example['duration']), percentile_example1, c='r', lw=0, s=50, label='Transformed', zorder=10)
+        # ax.set_title(pos_example['title'])
         for i in xrange(len(pos_example['duration'])):
-            ax1.arrow(np.log10(pos_example['duration'])[i], pos_example['wp'][i], 0, percentile_example1[i]-pos_example['wp'][i]-0.03, head_width=0.04, head_length=0.03,
+            ax.arrow(np.log10(pos_example['duration'])[i], pos_example['wp'][i], 0, percentile_example1[i]-pos_example['wp'][i]-0.03, head_width=0.04, head_length=0.03,
                       alpha=0.5, ec='k')
 
-    plot_ax2 = True
+    plot_ax2 = False
     if plot_ax2:
-        ax2 = fig.add_subplot(111)
         percentile_example2 = get_percentile_list(neg_example['duration'], neg_example['wp'])
-        ax2.scatter(np.log10(neg_example['duration']), neg_example['wp'], c='b', lw=1, s=30, label='Original', zorder=10)
-        ax2.scatter(np.log10(neg_example['duration']), percentile_example2, c='r', lw=1, s=30, label='Transformed', zorder=10)
-        ax2.set_title(neg_example['title'])
+        ax.scatter(np.log10(neg_example['duration']), neg_example['wp'], c='b', lw=0, s=50, label='Original', zorder=10)
+        ax.scatter(np.log10(neg_example['duration']), percentile_example2, c='r', lw=0, s=50, label='Transformed', zorder=10)
+        # ax.set_title(neg_example['title'])
         for i in xrange(len(neg_example['duration'])):
             if percentile_example2[i]-neg_example['wp'][i] > 0:
-                ax2.arrow(np.log10(neg_example['duration'])[i], neg_example['wp'][i], 0, percentile_example2[i]-neg_example['wp'][i]-0.03, head_width=0.04, head_length=0.03,
+                ax.arrow(np.log10(neg_example['duration'])[i], neg_example['wp'][i], 0, percentile_example2[i]-neg_example['wp'][i]-0.03, head_width=0.04, head_length=0.03,
                           alpha=0.5, ec='k')
             else:
-                ax2.arrow(np.log10(neg_example['duration'])[i], neg_example['wp'][i], 0,
+                ax.arrow(np.log10(neg_example['duration'])[i], neg_example['wp'][i], 0,
                           percentile_example2[i] - neg_example['wp'][i] + 0.03, head_width=0.03, head_length=0.03,
                           alpha=0.5, ec='k')
 
@@ -75,16 +74,15 @@ if __name__ == '__main__':
 
     x_formatter = FuncFormatter(exponent)
 
-    for ax in [ax2]:
-        ax.xaxis.set_major_formatter(x_formatter)
-        for label in ax.get_xticklabels()[1::2]:
-            label.set_visible(False)
+    ax.xaxis.set_major_formatter(x_formatter)
+    for label in ax.get_xticklabels()[1::2]:
+        label.set_visible(False)
 
-        ax.set_xlim([1, 5])
-        ax.set_ylim([0, 1])
-        ax.set_xlabel('Video duration (sec)', fontsize=16)
-        ax.set_ylabel('Watch percentage', fontsize=16)
-        ax.legend(loc='lower left')
+    ax.set_xlim([1, 5])
+    ax.set_ylim([0, 1])
+    ax.set_xlabel('Video duration (sec)', fontsize=16)
+    ax.set_ylabel('Watch percentage', fontsize=16)
+    ax.legend(loc='lower left')
 
     plt.tight_layout()
     plt.show()

@@ -144,7 +144,7 @@ if __name__ == '__main__':
             fout.write('{0}\n'.format(strify(lower_axis)))
 
     # store duration-engagement map as pickle file, each bin gets cut into 1000 percentiles
-    to_pickle = True
+    to_pickle = False
     if to_pickle:
         dur_engage_map = {}
         dur_engage_map['duration'] = strify(x_axis)
