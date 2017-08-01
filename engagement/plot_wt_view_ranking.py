@@ -8,6 +8,7 @@ import numpy as np
 from scipy import stats
 import operator
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 
 def read_as_int_array(content, truncated=None, delimiter=None):
@@ -44,8 +45,9 @@ if __name__ == '__main__':
     view_rank_dict = {}
     watch_rank_dict = {}
 
-    input_path = 'D:\GitWorks\data\production_data\\random_info'
+    input_path = 'D:\GitWorks\data\production_data\\test_info'
 
+    age = 30
     cnt = 0
 
     for subdir, _, files in os.walk(input_path):
@@ -54,10 +56,10 @@ if __name__ == '__main__':
                 fin.readline()
                 for line in fin:
                     dump, views, watches = line.rstrip().rsplit(None, 2)
-                    id, _ = dump.split(None, 1)
+                    vid, _ = dump.split(None, 1)
                     try:
-                        views = read_as_int_array(views, delimiter=',')
-                        watches = read_as_float_array(watches, delimiter=',')
+                        views = read_as_int_array(views, delimiter=',', truncated=age)
+                        watches = read_as_float_array(watches, delimiter=',', truncated=age)
                     except:
                         continue
 
@@ -65,8 +67,8 @@ if __name__ == '__main__':
                     if view_num == 0:
                         continue
 
-                    view_rank_dict[id] = view_num
-                    watch_rank_dict[id] = np.sum(watches)
+                    view_rank_dict[vid] = view_num
+                    watch_rank_dict[vid] = np.sum(watches)
 
                     cnt += 1
 
@@ -82,35 +84,45 @@ if __name__ == '__main__':
     sorted_view_rank = sorted(view_rank_dict.items(), key=operator.itemgetter(1), reverse=True)[:10000]
     sorted_watch_rank = sorted(watch_rank_dict.items(), key=operator.itemgetter(1), reverse=True)[:10000]
 
-    fig, ax1 = plt.subplots(1, 1)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
 
-    # iterate from 100 to 10000, with gap 100
+    # iterate from 10 to 1000, with gap 10
     x_axis = []
     y_axis1 = []
     y_axis2 = []
 
-    for i in xrange(100, 10001, 100):
-        x_axis.append(i)
-
+    for i in xrange(10, 1001, 10):
         view_set = set([item[0] for item in sorted_view_rank[:i]])
         watch_set = set([item[0] for item in sorted_watch_rank[:i]])
-
-        num_common = len(list(view_set.intersection(watch_set))) / i
-        y_axis1.append(num_common)
 
         unit_list = list(view_set.union(watch_set))
         view_rank = [view_rank_dict[x] for x in unit_list]
         watch_rank = [watch_rank_dict[x] for x in unit_list]
 
+        x_axis.append(i)
+        y_axis1.append(len(view_set.intersection(watch_set))/i)
         y_axis2.append(stats.kendalltau(view_rank, watch_rank)[0])
 
-    print('total video: {0}'.format(cnt))
-    ax1.plot(x_axis, y_axis1, 'ro-', label='Common rate')
-    ax1.plot(x_axis, y_axis2, 'bx--', label='Kendall tau')
-    ax1.set_xlabel('Top n videos', fontsize=20)
-    ax1.set_ylabel('Measurement', fontsize=20)
-    ax1.tick_params(axis='both', which='major', labelsize=20)
+    # print('total video: {0}'.format(cnt))
+    # ax1.plot(x_axis, y_axis1, 'b-')
+    ax1.hist([x[1] for x in sorted_view_rank], bins=50)
+    # ax2.hist([x[1] for x in sorted_watch_rank], bins=50)
+    # ax2.plot(x_axis, y_axis2, 'r-')
 
-    plt.legend(numpoints=1, loc='upper right', fontsize=20)
+    # ax1.set_ylim((0, 1))
+    # ax2.set_ylim((0, 1))
+    ax1.set_xlabel('Top n videos', fontsize=16)
+    ax1.set_ylabel('Co-occurrence', fontsize=16, color='b')
+    ax2.set_ylabel('Kendall $tau$', fontsize=16, color='r')
+
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
+
+    ax1.tick_params(axis='y', which='major', labelsize=16, colors='b')
+    ax2.tick_params(axis='y', which='major', labelsize=16, colors='r')
+    ax1.tick_params(axis='x', which='major', labelsize=16, colors='k')
+
     plt.tight_layout()
     plt.show()
