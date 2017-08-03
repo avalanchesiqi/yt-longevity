@@ -14,19 +14,17 @@ from sklearn.ensemble import RandomForestRegressor
 
 def get_wp(duration, percentile):
     # map wp percentile to watch percentage
-    bin_idx = np.sum(duration_split_points < duration)
-    duration_bin = dur_engage_map[bin_idx]
-    percentile = int(round(percentile * 1000))
-    wp_percentile = duration_bin[percentile]
-    return wp_percentile
-
-
-def get_wp_list(duration_list, percentile_list):
-    # map a list from wp percentile to watch percentage
-    wp_list = []
-    for d, p in zip(duration_list, percentile_list):
-        wp_list.append(get_wp(d, p))
-    return wp_list
+    if len(duration) > 1:
+        wp_list = []
+        for d, p in zip(duration, percentile):
+            wp_list.extend(get_wp([d], [p]))
+        return wp_list
+    else:
+        bin_idx = np.sum(duration_split_points < duration[0])
+        duration_bin = dur_engage_map[bin_idx]
+        percentile = int(round(percentile[0] * 1000))
+        wp_percentile = duration_bin[percentile]
+        return [wp_percentile]
 
 
 def random_forest(cols, target):
@@ -39,13 +37,13 @@ def random_forest(cols, target):
     print('>>> Number of features: {0}'.format(rf_regressor.n_features_))
 
     test_yhat = rf_regressor.predict(test_df[cols])
-    if target == 'wp_percentile':
-        test_dc_wp = get_wp_list(test_df['duration'].tolist(), test_yhat)
+    if target == 'ep30':
+        test_dc_wp = get_wp(test_df['duration'].tolist(), test_yhat)
     else:
         test_dc_wp = test_yhat
 
-    print('>>> MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df['true_wp'], test_dc_wp)))
-    print('>>> R2 on test set: {0:.4f}'.format(r2_score(test_df['true_wp'], test_dc_wp)))
+    print('>>> MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df['wp30'], test_dc_wp)))
+    print('>>> R2 on test set: {0:.4f}'.format(r2_score(test_df['wp30'], test_dc_wp)))
     print('=' * 79)
     print()
 
@@ -55,7 +53,7 @@ def random_forest(cols, target):
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
-    dur_engage_str_map = pickle.load(open('dur_engage_map.p', 'rb'))
+    dur_engage_str_map = pickle.load(open('../engagement/data/tweeted_dur_engage_map.p', 'rb'))
     dur_engage_map = {key: list(map(float, value.split(','))) for key, value in dur_engage_str_map.items()}
 
     duration_split_points = np.array(dur_engage_map['duration'])
@@ -63,26 +61,28 @@ if __name__ == '__main__':
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     predict_result_dict = {}
 
-    train_data = glob.glob(os.path.join('../../data/production_data/random_norm/train_data', '*.txt'))
-    test_data = glob.glob(os.path.join('../../data/production_data/random_norm/test_data', '*.txt'))
+    train_data = glob.glob(os.path.join('../../production_data/tweeted_dataset_norm/train_data', '*.txt'))
+    test_data = glob.glob(os.path.join('../../production_data/tweeted_dataset_norm/test_data', '*.txt'))
 
     train_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
-                                      names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
-                                             'total_view', 'true_wp', 'wp_percentile'],
-                                      dtype={'duration': int, 'definition': int, 'category': int, 'true_wp': float,
-                                             'wp_percentile': float}) for f in train_data))
+                                      names=['vid', 'publish', 'duration', 'definition', 'category', 'lang', 'channel',
+                                             'topics', 'topics_num', 'view30', 'watch30', 'wp30', 'ep30', 'view120',
+                                             'watch120', 'wp120', 'ep120', 'days', 'daily_view', 'daily_watch'],
+                                      dtype={'duration': int, 'definition': int, 'category': int, 'wp30': float,
+                                             'ep30': float}) for f in train_data))
 
     test_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
-                                     names=['vid', 'duration', 'definition', 'category', 'lang', 'channel', 'topics',
-                                            'total_view', 'true_wp', 'wp_percentile'],
-                                     dtype={'duration': int, 'definition': int, 'category': int, 'true_wp': float,
-                                            'wp_percentile': float}) for f in test_data))
+                                     names=['vid', 'publish', 'duration', 'definition', 'category', 'lang', 'channel',
+                                            'topics', 'topics_num', 'view30', 'watch30', 'wp30', 'ep30', 'view120',
+                                            'watch120', 'wp120', 'ep120', 'days', 'daily_view', 'daily_watch'],
+                                     dtype={'duration': int, 'definition': int, 'category': int, 'wp30': float,
+                                            'ep30': float}) for f in test_data))
 
     train_num = train_df.shape[0]
     test_num = test_df.shape[0]
     print('>>> Finish loading all data!')
     print('>>> Number of train observations: {0}'.format(train_num))
-    print('>>> Number of test observations: {0}'.format(train_num))
+    print('>>> Number of test observations: {0}'.format(test_num))
     print()
     data_df = train_df.append(test_df)
 
@@ -96,8 +96,8 @@ if __name__ == '__main__':
 
     lin_cols = ['duration', 'definition', 'category', 'lang']
     log_cols = ['log_duration', 'definition', 'category', 'lang']
-    percentile_target = 'wp_percentile'
-    percentage_target = 'true_wp'
+    percentile_target = 'ep30'
+    percentage_target = 'wp30'
 
     # random forest, duration, definition, category, lang on percentile
     print('>>> Random forest, duration linear ~ percentile')
@@ -122,6 +122,6 @@ if __name__ == '__main__':
     # write to p file
     to_write = True
     if to_write:
-        output_path = 'norm_predict_results/predict_dc.p'
+        output_path = '../engagement/data/wp_prediction/predict_dc.p'
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         pickle.dump(predict_result_dict, open(output_path, 'wb'))
