@@ -4,7 +4,9 @@ import os
 import bz2
 import json
 import cPickle as pickle
+from collections import defaultdict
 import numpy as np
+from sklearn.model_selection import RepeatedKFold
 from sklearn.linear_model import LinearRegression
 
 # Multivariate Linear model from Pinto WSDM'13
@@ -41,49 +43,80 @@ if __name__ == '__main__':
     # setting parameters
     age = 120
     num_train = 90
-    lr_models = []
+    predict_results = defaultdict(list)
+    with_share = False
+    use_view = False
+    if with_share and use_view:
+        # 0 is daily view, 1 is daily watch
+        data_idx = 0
+        output_path = '../engagement/data/mlr_daily_forecast_view_w_share.txt'
+    elif with_share and not use_view:
+        data_idx = 1
+        output_path = '../engagement/data/mlr_daily_forecast_watch_w_share.txt'
+    elif not with_share and use_view:
+        data_idx = 0
+        output_path = '../engagement/data/mlr_daily_forecast_view_wo_share.txt'
+    else:
+        data_idx = 1
+        output_path = '../engagement/data/mlr_daily_forecast_watch_wo_share.txt'
 
-    matrix_data = []
-    vid_list = []
+    attention_data = []
+    share_data = []
+    vid_array = []
     for tc_idx, vid in enumerate(test_vids):
-        dailyshare, dailyview, watchtime, duration = test_cases[vid]
+        dailyshare, dailyview, dailywatch, duration = test_cases[vid]
 
         # first 120 days
-        dailyview = dailyview[:age]
-        watchtime = watchtime[:age]
+        daily_attention = [dailyview, dailywatch][data_idx][:age]
+        daily_share = dailyshare[:age]
 
         # select view count or watch time as dependent variable
-        row_data = watchtime
-        if len(row_data) == 120:
-            matrix_data.append(row_data)
-            vid_list.append(vid)
+        if len(daily_attention) == 120 and len(daily_share) == 120:
+            attention_data.append(daily_attention)
+            share_data.append(daily_share)
+            vid_array.append(vid)
 
     # convert to ndarray
-    matrix_data = np.array(matrix_data)
-    m = matrix_data.shape[0]
-    predict_result = np.array(matrix_data[:, :num_train])
+    attention_data = np.array(attention_data)
+    share_data = np.array(share_data)
+    vid_array = np.array(vid_array)
 
-    # iterate over forecast days
-    for i in xrange(num_train, age):
-        x_train = matrix_data[:, :i]/(np.sum(matrix_data[:, :i+1], axis=1).reshape(m, 1))
-        y_train = np.ones((m, 1))
+    # 10-repeated 10-fold cross validation
+    rkf = RepeatedKFold(n_splits=10, n_repeats=10)
 
-        # == == == == == == == == Part 3: Training with an OLS regression == == == == == == == == #
-        lr_model = LinearRegression(fit_intercept=False)
-        print('>>> Training with OLS regression for day {0}...'.format(i+1))
-        lr_model.fit(x_train, y_train)
-        lr_models.append(lr_model)
+    epoch = 0
+    for train_idx, test_idx in rkf.split(attention_data):
+        epoch += 1
+        print('>>> epoch: {0}'.format(epoch))
+        x_train_predict = attention_data[train_idx, :num_train]
+        x_test_predict = attention_data[test_idx, :num_train]
+        m, n = len(train_idx), len(test_idx)
+        # iterate over forecast days
+        for i in xrange(num_train, age):
+            if with_share:
+                x_train = np.hstack((x_train_predict, share_data[train_idx, :i+1]))
+                x_test = np.hstack((x_test_predict, share_data[test_idx, :i+1]))
+            else:
+                x_train = x_train_predict
+                x_test = x_test_predict
+            y_train = attention_data[train_idx, i]
 
-    for i in xrange(num_train, age):
-        predict_value = lr_models[i-num_train].predict(predict_result[:, :i]).reshape(m, 1)
-        forecast_next_day = predict_value - np.sum(predict_result[:, :i], axis=1).reshape(m, 1)
-        forecast_next_day[forecast_next_day < 0] = 0
-        predict_result = np.hstack((predict_result, forecast_next_day))
+            # == == == == == == == == Part 3: Training with an OLS regression == == == == == == == == #
+            lr_model = LinearRegression(fit_intercept=False)
+            lr_model.fit(x_train, y_train)
+            predict_train_value = lr_model.predict(x_train).reshape(m, 1)
+            predict_train_value[predict_train_value < 0] = 0
+            x_train_predict = np.hstack((x_train_predict, predict_train_value))
+            predict_test_value = lr_model.predict(x_test).reshape(n, 1)
+            predict_test_value[predict_test_value < 0] = 0
+            x_test_predict = np.hstack((x_test_predict, predict_test_value))
 
-    with open('mlr_daily_forecast_watch.log', 'w') as fout:
-        for i in xrange(m):
-            fout.write('{0},'.format(vid_list[i]))
-            fout.write('{0},'.format(np.sum(predict_result[i, :num_train])))
-            fout.write('{0}\n'.format(strify(predict_result[i, num_train: age])))
+        for i, j in enumerate(test_idx):
+            predict_results[vid_array[j]].append(x_test_predict[i, num_train:])
 
-    # np.savetxt('mlr_view2.log', true_predict_matrix, delimiter='\t', newline='\n')
+    # aggregate predict values from folds
+    with open(output_path, 'w') as fout:
+        for vid in vid_array:
+            predicted_daily_watchtime = np.mean(np.array(predict_results[vid]), axis=0)
+            fout.write('{0},'.format(vid))
+            fout.write('{0}\n'.format(strify(predicted_daily_watchtime)))
