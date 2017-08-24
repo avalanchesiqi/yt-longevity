@@ -100,7 +100,7 @@ def vectorize_train_data(data):
             train_value.extend(value_list)
             train_y.append(float(re30))
             row_idx += 1
-    return coo_matrix((train_value, (train_row, train_col)), shape=(row_idx, topic_cnt+1)), train_y, topic_dict
+    return coo_matrix((train_value, (train_row, train_col)), shape=(row_idx, 1+2+20+56+topic_cnt+8)), train_y, topic_dict
 
 
 def vectorize_test_data(data, topic_dict):
@@ -121,7 +121,7 @@ def vectorize_test_data(data, topic_dict):
             test_y.append(float(re30))
             row_idx += 1
             test_vids.append(vid)
-    return coo_matrix((test_value, (test_row, test_col)), shape=(row_idx, n_topic + 1)), test_y, test_vids
+    return coo_matrix((test_value, (test_row, test_col)), shape=(row_idx, 1+2+20+56+n_topic+8)), test_y, test_vids
 
 
 if __name__ == '__main__':
