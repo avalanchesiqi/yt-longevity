@@ -133,7 +133,7 @@ if __name__ == '__main__':
     print('>>> R2 on test set: {0:.4f}'.format(r2_score(true_value, predict_value)))
     print('=' * 79)
 
-    predict_result_dict = {vid: pred for vid, pred in zip(test_vids, predict_value)}
+    predict_result_dict = {vid: pred for vid, pred in zip(test_vids, predict_value.flatten())}
 
     # write to pickle file
     to_write = True
