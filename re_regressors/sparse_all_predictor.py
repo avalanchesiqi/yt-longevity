@@ -13,7 +13,7 @@ from scipy.sparse import coo_matrix
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error
 
-from utils.helper import write_dict_to_pickle
+from utils.helper import write_dict_to_pickle, strify
 
 
 def _load_data(filepath):
@@ -23,12 +23,11 @@ def _load_data(filepath):
         for line in fin:
             vid, _, duration, definition, category, detect_lang, channel, topics, _, _, _, _, re30, _ = line.rstrip().split('\t', 13)
             if channel in channel_re_dict:
-                row = [vid, duration, definition, category, detect_lang, topics,
-                       [len(channel_re_dict[channel])/52, np.mean(channel_re_dict[channel]),
-                        np.std(channel_re_dict[channel]), np.min(channel_re_dict[channel]),
-                        np.percentile(channel_re_dict[channel], 25), np.median(channel_re_dict[channel]),
-                        np.percentile(channel_re_dict[channel], 75), np.max(channel_re_dict[channel])],
-                       re30]
+                ps_vector = strify([len(channel_re_dict[channel])/52, np.mean(channel_re_dict[channel]),
+                                    np.std(channel_re_dict[channel]), np.min(channel_re_dict[channel]),
+                                    np.percentile(channel_re_dict[channel], 25), np.median(channel_re_dict[channel]),
+                                    np.percentile(channel_re_dict[channel], 75), np.max(channel_re_dict[channel])])
+                row = [vid, duration, definition, category, detect_lang, topics, ps_vector, re30]
                 matrix.append(row)
     print('>>> Finish loading file {0}!'.format(filepath))
     return matrix
@@ -68,6 +67,7 @@ def _build_sparse_matrix(row_idx, duration, definition, category, detect_lang, t
             return [], [], []
 
     n_topic = len(topic_dict)
+    ps_vector = map(float, ps_vector.split(','))
     for i, ps_metric in enumerate(ps_vector):
         row_list.append(row_idx)
         col_list.append(3 + category_cnt + lang_cnt + n_topic + i)
