@@ -12,6 +12,8 @@ from scipy.sparse import coo_matrix
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error
 
+from utils.helper import write_dict_to_pickle
+
 
 def _load_data(filepath):
     matrix = []
@@ -128,7 +130,6 @@ if __name__ == '__main__':
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     train_loc = '../../production_data/tweeted_dataset_norm/train_data'
     test_loc = '../../production_data/tweeted_dataset_norm/test_data'
-    output_file = open('./output/sparse_content_topic_predictor.txt', 'w')
 
     train_cv_matrix = []
     print('>>> Start to load training dataset...')
@@ -185,7 +186,14 @@ if __name__ == '__main__':
     test_yhat = best_estimator.predict(test_sparse_x)
     print('>>> predict {0} videos in test dataset'.format(len(test_yhat)))
     print('>>> Ridge sparse model: MAE of test dataset: {0}'.format(mean_absolute_error(test_y, test_yhat)))
-    for j in xrange(len(test_vids)):
-        output_file.write('{0}\t{1}\n'.format(test_vids[j], test_yhat[j]))
 
-    output_file.close()
+    predict_result_dict = {}
+    for j in xrange(len(test_vids)):
+        predict_result_dict[test_vids[j]] = test_yhat[j]
+
+    # write to pickle file
+    to_write = True
+    if to_write:
+        print('>>> Prepare to write to pickle file...')
+        print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
+        write_dict_to_pickle(dict=predict_result_dict, path='./output/sparse_content_topic_predictor.p')
