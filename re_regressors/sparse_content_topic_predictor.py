@@ -169,8 +169,9 @@ if __name__ == '__main__':
         n_topic = len(train_topics)
         print('>>> Start to predict cv sparse matrix...')
         cv_yhat = estimator.predict(cv_sparse_x)
-        cv_mae.append(mean_absolute_error(cv_y, cv_yhat))
-        print('>>> CV phase, MAE: {0} with alpha value: {1}'.format(cv_mae, search_alpha))
+        mae = mean_absolute_error(cv_y, cv_yhat)
+        cv_mae.append(mae)
+        print('>>> CV phase, MAE: {0} with alpha value: {1}'.format(mae, search_alpha))
         print('='*79, '\n')
 
     # build the best estimator
