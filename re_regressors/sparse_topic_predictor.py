@@ -143,13 +143,14 @@ if __name__ == '__main__':
         n_topic = len(train_topics)
         print('>>> Start to predict cv sparse matrix...')
         cv_yhat = estimator.predict(cv_sparse_x)
-        cv_mae = mean_absolute_error(cv_y, cv_yhat)
+        cv_mae.append(mean_absolute_error(cv_y, cv_yhat))
         print('>>> CV phase, MAE: {0} with alpha value: {1}'.format(cv_mae, search_alpha))
         print('='*79, '\n')
 
     # build the best estimator
     best_alpha_idx = np.argmin(np.array(cv_mae))
     best_alpha = search_alpha_array[best_alpha_idx]
+    print('>>> best hyper parameter alpha idx: {0}'.format(best_alpha_idx))
     print('>>> best hyper parameter alpha: {0}'.format(best_alpha))
     best_estimator = Ridge(alpha=best_alpha)
     train_cv_sparse_x, train_cv_y, train_cv_topics = vectorize_train_data(train_cv_matrix)
