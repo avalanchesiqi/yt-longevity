@@ -73,7 +73,7 @@ if __name__ == '__main__':
     print('>>> Finish loading all data!\n')
 
     # predict test data from customized ridge regressor
-    test_yhat = RidgeRegressor.from_dense(train_matrix, test_matrix).predict()
+    test_yhat = RidgeRegressor(train_matrix, test_matrix).predict()
 
     # write to pickle file
     to_write = True

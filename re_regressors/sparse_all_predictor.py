@@ -8,12 +8,10 @@ import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 from collections import defaultdict
 import numpy as np
-from sklearn.model_selection import train_test_split
 from scipy.sparse import coo_matrix
-from sklearn.linear_model import Ridge
-from sklearn.metrics import mean_absolute_error
 
 from utils.helper import write_dict_to_pickle, strify
+from utils.ridge_regressor import RidgeRegressor
 
 
 def _load_data(filepath):
@@ -127,7 +125,6 @@ def vectorize_test_data(data, topic_dict):
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
-    # estimators = [("Ridge", Ridge())]
     category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
                      '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '34': 16, '35': 17, '43': 18, '44': 19}
     category_cnt = len(category_dict)
@@ -140,27 +137,22 @@ if __name__ == '__main__':
                  'ur': 51, 'vi': 52, 'zh-cn': 53, 'zh-tw': 54, 'NA': 55}
     lang_cnt = len(lang_dict)
 
-    # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     channel_re_dict = defaultdict(list)
-    with open('../engagement/data/train_channel_es.txt', 'r') as fin:
+    with open('./data/train_channel_relative_engagement.txt', 'r') as fin:
         for line in fin:
             channel, re30 = line.rstrip().split('\t')
             channel_re_dict[channel].append(float(re30))
 
+    # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     train_loc = '../../production_data/tweeted_dataset_norm/train_data'
     test_loc = '../../production_data/tweeted_dataset_norm/test_data'
 
-    train_cv_matrix = []
+    train_matrix = []
     print('>>> Start to load training dataset...')
     for subdir, _, files in os.walk(train_loc):
         for f in files:
-            train_cv_matrix.extend(_load_data(os.path.join(subdir, f)))
-    train_cv_matrix = np.array(train_cv_matrix)
-
-    # split into 80/20 train, cv matrix
-    train_matrix, cv_matrix = train_test_split(train_cv_matrix, train_size=0.8, test_size=0.2, random_state=35)
-    n_train = len(train_matrix)
-    n_cv = len(cv_matrix)
+            train_matrix.extend(_load_data(os.path.join(subdir, f)))
+    train_matrix = np.array(train_matrix)
 
     test_matrix = []
     print('>>> Start to load test dataset...')
@@ -168,53 +160,17 @@ if __name__ == '__main__':
         for f in files:
             test_matrix.extend(_load_data(os.path.join(subdir, f)))
     test_matrix = np.array(test_matrix)
-    n_test = len(test_matrix)
 
-    print('\n', '-'*79, '\n')
+    print('>>> Finish loading all data!\n')
 
-    # generate train dataset on the fly
-    train_sparse_x, train_y, train_topics = vectorize_train_data(train_matrix)
-    print('>>> Loading training sparse matrix, number of videos: {0}'.format(len(train_y)))
-    cv_sparse_x, cv_y, _ = vectorize_test_data(cv_matrix, train_topics)
-    print('>>> Loading cv sparse matrix, number of videos: {0}'.format(len(cv_y)))
-
-    # grid search over alpha in ridge regressor
-    search_alpha_array = [10**t for t in range(-5, 5)]
-    cv_mae = []
-    for search_alpha in search_alpha_array:
-        estimator = Ridge(alpha=search_alpha)
-        estimator.fit(train_sparse_x, train_y)
-        print('>>> Finish fitting estimator...')
-        n_topic = len(train_topics)
-        print('>>> Start to predict cv sparse matrix...')
-        cv_yhat = estimator.predict(cv_sparse_x)
-        mae = mean_absolute_error(cv_y, cv_yhat)
-        cv_mae.append(mae)
-        print('>>> CV phase, MAE: {0} with alpha value: {1}'.format(mae, search_alpha))
-        print('='*79, '\n')
-
-    # build the best estimator
-    best_alpha_idx = np.argmin(np.array(cv_mae))
-    best_alpha = search_alpha_array[best_alpha_idx]
-    print('>>> best hyper parameter alpha idx: {0}'.format(best_alpha_idx))
-    print('>>> best hyper parameter alpha: {0}'.format(best_alpha))
-    best_estimator = Ridge(alpha=best_alpha)
-    train_cv_sparse_x, train_cv_y, train_cv_topics = vectorize_train_data(train_cv_matrix)
-    best_estimator.fit(train_cv_sparse_x, train_cv_y)
-
-    # build test dataset on the fly
-    test_sparse_x, test_y, test_vids = vectorize_test_data(test_matrix, train_cv_topics)
-    test_yhat = best_estimator.predict(test_sparse_x)
-    print('>>> predict {0} videos in test dataset'.format(len(test_yhat)))
-    print('>>> Ridge sparse model: MAE of test dataset: {0}'.format(mean_absolute_error(test_y, test_yhat)))
-
-    predict_result_dict = {}
-    for j in xrange(len(test_vids)):
-        predict_result_dict[test_vids[j]] = test_yhat[j]
+    # predict test data from customized ridge regressor
+    test_yhat, test_vids = RidgeRegressor(train_matrix, test_matrix).predict_from_sparse(vectorize_train_data,
+                                                                                         vectorize_test_data)
 
     # write to pickle file
     to_write = True
+    predict_result_dict = {vid: pred for vid, pred in zip(test_vids, test_yhat)}
     if to_write:
-        print('>>> Prepare to write to pickle file...')
+        print('\n>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         write_dict_to_pickle(dict=predict_result_dict, path='./output/sparse_all_predictor.p')
