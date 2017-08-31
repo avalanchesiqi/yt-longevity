@@ -7,6 +7,7 @@ from __future__ import division, print_function
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
+import time
 from collections import defaultdict
 import numpy as np
 from sklearn.feature_selection import f_regression, mutual_info_regression
@@ -63,6 +64,8 @@ def _load_data(filepath):
 
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
+    start_time = time.time()
+
     channel_re_dict = defaultdict(list)
     with open('./data/train_channel_relative_engagement.txt', 'r') as fin:
         for line in fin:
@@ -98,10 +101,13 @@ if __name__ == '__main__':
     # predict test data from customized ridge regressor
     test_yhat = RidgeRegressor(train_matrix, test_matrix).predict()
 
+    # get running time
+    print('\n>>> Total running time: {0:.4f}'.format(time.time() - start_time))
+
     # write to pickle file
     to_write = True
     predict_result_dict = {vid: pred for vid, pred in zip(test_vids, test_yhat)}
     if to_write:
-        print('\n>>> Prepare to write to pickle file...')
+        print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         write_dict_to_pickle(dict=predict_result_dict, path='./output/cps_predictor.p')

@@ -6,6 +6,7 @@
 from __future__ import division, print_function
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
+import time
 import numpy as np
 from scipy.sparse import coo_matrix
 
@@ -97,6 +98,7 @@ def vectorize_test_data(data, topic_dict):
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
+    start_time = time.time()
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     train_loc = '../../production_data/tweeted_dataset_norm/train_data'
@@ -122,10 +124,13 @@ if __name__ == '__main__':
     test_yhat, test_vids = RidgeRegressor(train_matrix, test_matrix).predict_from_sparse(vectorize_train_data,
                                                                                          vectorize_test_data)
 
+    # get running time
+    print('\n>>> Total running time: {0:.4f}'.format(time.time() - start_time))
+
     # write to pickle file
     to_write = True
     predict_result_dict = {vid: pred for vid, pred in zip(test_vids, test_yhat)}
     if to_write:
-        print('\n>>> Prepare to write to pickle file...')
+        print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         write_dict_to_pickle(dict=predict_result_dict, path='./output/sparse_topic_predictor.p')

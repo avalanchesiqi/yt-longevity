@@ -6,6 +6,7 @@
 from __future__ import division, print_function
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
+import time
 import numpy as np
 from scipy.sparse import coo_matrix
 
@@ -112,6 +113,8 @@ def vectorize_test_data(data, topic_dict):
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
+    start_time = time.time()
+
     category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
                      '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '34': 16, '35': 17, '43': 18, '44': 19}
     category_cnt = len(category_dict)
@@ -148,10 +151,13 @@ if __name__ == '__main__':
     test_yhat, test_vids = RidgeRegressor(train_matrix, test_matrix).predict_from_sparse(vectorize_train_data,
                                                                                          vectorize_test_data)
 
+    # get running time
+    print('\n>>> Total running time: {0:.4f}'.format(time.time() - start_time))
+
     # write to pickle file
     to_write = True
     predict_result_dict = {vid: pred for vid, pred in zip(test_vids, test_yhat)}
     if to_write:
-        print('\n>>> Prepare to write to pickle file...')
+        print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
         write_dict_to_pickle(dict=predict_result_dict, path='./output/sparse_content_topic_predictor.p')
