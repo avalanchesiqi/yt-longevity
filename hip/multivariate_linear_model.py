@@ -1,24 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""Forecast future temporal attention, viewership or watch time. Multivariate Linear model from Pinto WSDM'13"""
+
 from __future__ import print_function, division
-import sys
-import os
-import bz2
-import json
+import sys, os, bz2, json
+sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import cPickle as pickle
 from collections import defaultdict
 import numpy as np
 from sklearn.model_selection import RepeatedKFold
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 
-# Multivariate Linear model from Pinto WSDM'13
-
-
-def strify(iterable_struct):
-    """
-    Convert an iterable structure to comma separated string
-    :param iterable_struct: an iterable structure
-    :return: a string with comma separated
-    """
-    return ','.join(map(str, iterable_struct))
+from utils.helper import strify
 
 
 if __name__ == '__main__':
@@ -40,37 +34,25 @@ if __name__ == '__main__':
     test_vids = test_cases.keys()
 
     # == == == == == == == == Part 2: Set up experiment parameters == == == == == == == == #
-    # setting parameters
     age = 120
     num_train = 90
     predict_results = defaultdict(list)
-    with_share = False
-    use_view = False
-    if with_share and use_view:
-        # 0 is daily view, 1 is daily watch
-        data_idx = 0
-        output_path = '../engagement/data/mlr_daily_forecast_view_w_share.txt'
-    elif with_share and not use_view:
-        data_idx = 1
-        output_path = '../engagement/data/mlr_daily_forecast_watch_w_share.txt'
-    elif not with_share and use_view:
-        data_idx = 0
-        output_path = '../engagement/data/mlr_daily_forecast_view_wo_share.txt'
-    else:
-        data_idx = 1
-        output_path = '../engagement/data/mlr_daily_forecast_watch_wo_share.txt'
+    with_share = 0
+    use_view = 1
+    if not os.path.exists('./output'):
+        os.mkdir('./output')
+    output_path = './output/mlr_forecast_{0}_{1}_share.txt'.format(['watch', 'view'][use_view], ['without', 'with'][with_share])
+    print('>>> Forecast daily {0} {1} share series\n'.format(['watch', 'view'][use_view], ['without', 'with'][with_share]))
 
+    # == == == == == == == == Part 3: Prepare numpy data matrix == == == == == == == == #
     attention_data = []
     share_data = []
     vid_array = []
-    for tc_idx, vid in enumerate(test_vids):
+    for vid in test_vids:
         dailyshare, dailyview, dailywatch, duration = test_cases[vid]
-
-        # first 120 days
-        daily_attention = [dailyview, dailywatch][data_idx][:age]
+        # first 120 days, select view count or watch time as dependent variable
+        daily_attention = [dailywatch, dailyview][use_view][:age]
         daily_share = dailyshare[:age]
-
-        # select view count or watch time as dependent variable
         if len(daily_attention) == 120 and len(daily_share) == 120:
             attention_data.append(daily_attention)
             share_data.append(daily_share)
@@ -81,35 +63,45 @@ if __name__ == '__main__':
     share_data = np.array(share_data)
     vid_array = np.array(vid_array)
 
+    # == == == == == == == == Part 4: Forecast future attention == == == == == == == == #
     # 10-repeated 10-fold cross validation
-    rkf = RepeatedKFold(n_splits=10, n_repeats=10)
+    rkf = RepeatedKFold(n_splits=5, n_repeats=5)
 
-    epoch = 0
-    for train_idx, test_idx in rkf.split(attention_data):
-        epoch += 1
-        print('>>> epoch: {0}'.format(epoch))
+    fold_idx = 0
+    for train_idx, test_idx in rkf.split(vid_array):
+        fold_idx += 1
+        print('>>> Forecast on fold: {0}'.format(fold_idx))
         x_train_predict = attention_data[train_idx, :num_train]
         x_test_predict = attention_data[test_idx, :num_train]
         m, n = len(train_idx), len(test_idx)
         # iterate over forecast days
         for i in xrange(num_train, age):
-            if with_share:
+            print('predict for day', i)
+            if with_share == 1:
                 x_train = np.hstack((x_train_predict, share_data[train_idx, :i+1]))
                 x_test = np.hstack((x_test_predict, share_data[test_idx, :i+1]))
             else:
                 x_train = x_train_predict
                 x_test = x_test_predict
-            y_train = attention_data[train_idx, i]
+            print('shape of x_track', x_train.shape)
+            norm = np.hstack((x_train[:, :i], attention_data[train_idx, i].reshape(m, 1)))
+            x_train_norm = x_train/np.sum(norm, axis=1)[:, None]
+            y_train = np.ones(m, )
 
-            # == == == == == == == == Part 3: Training with an OLS regression == == == == == == == == #
-            lr_model = LinearRegression(fit_intercept=False)
-            lr_model.fit(x_train, y_train)
-            predict_train_value = lr_model.predict(x_train).reshape(m, 1)
+            # == == == == == == == == Part 5: Training with Ridge Regression == == == == == == == == #
+            ridge_model = Ridge(fit_intercept=False, alpha=0.1)
+            ridge_model.fit(x_train_norm, y_train)
+            predict_train_value = (ridge_model.predict(x_train)-np.sum(x_train[:, :i], axis=1)).reshape(m, 1)
             predict_train_value[predict_train_value < 0] = 0
+            print(predict_train_value[:5].flatten())
+            print(attention_data[train_idx, i].flatten()[:5])
             x_train_predict = np.hstack((x_train_predict, predict_train_value))
-            predict_test_value = lr_model.predict(x_test).reshape(n, 1)
+            predict_test_value = (ridge_model.predict(x_test)-np.sum(x_test[:, :i], axis=1)).reshape(n, 1)
             predict_test_value[predict_test_value < 0] = 0
             x_test_predict = np.hstack((x_test_predict, predict_test_value))
+            print('---------')
+            print(predict_test_value[:5].flatten())
+            print(attention_data[test_idx, i].flatten()[:5])
 
         for i, j in enumerate(test_idx):
             predict_results[vid_array[j]].append(x_test_predict[i, num_train:])
