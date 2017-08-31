@@ -7,7 +7,7 @@ from __future__ import division, print_function
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
-import time
+import time, datetime
 from collections import defaultdict
 import numpy as np
 from sklearn.feature_selection import f_regression, mutual_info_regression
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     test_yhat = RidgeRegressor(train_matrix, test_matrix).predict()
 
     # get running time
-    print('\n>>> Total running time: {0:.4f}'.format(time.time() - start_time))
+    print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
     # write to pickle file
     to_write = True
