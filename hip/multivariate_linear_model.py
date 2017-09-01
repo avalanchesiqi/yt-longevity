@@ -9,10 +9,41 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import cPickle as pickle
 from collections import defaultdict
 import numpy as np
-from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import RepeatedKFold, train_test_split
 from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_squared_error
 
 from utils.helper import strify
+
+
+def forecast_future_attention(train_index, test_index, alpha):
+    """Forecast future attention via train dataset index and test dataset index."""
+    m, n = len(train_index), len(test_index)
+    x_train_predict = attention_data[train_index, :num_train]
+    x_test_predict = attention_data[test_index, :num_train]
+    for i in xrange(num_train, age):
+        if with_share == 1:
+            x_train = np.hstack((x_train_predict, share_data[train_index, :i + 1]))
+            x_test = np.hstack((x_test_predict, share_data[test_index, :i + 1]))
+        else:
+            x_train = x_train_predict
+            x_test = x_test_predict
+        norm = np.hstack((x_train[:, :i], attention_data[train_index, i].reshape(m, 1)))
+        x_train_norm = x_train / np.sum(norm, axis=1)[:, None]
+        y_train = np.ones(m, )
+
+        # == == == == == == == == Training with Ridge Regression == == == == == == == == #
+        predictor = Ridge(fit_intercept=False, alpha=alpha)
+        predictor.fit(x_train_norm, y_train)
+
+        # == == == == == == == == Iteratively add forecasted value to x matrix == == == == == == == == #
+        predict_train_value = (predictor.predict(x_train) - np.sum(x_train[:, :i], axis=1)).reshape(m, 1)
+        predict_train_value[predict_train_value < 0] = 0
+        x_train_predict = np.hstack((x_train_predict, predict_train_value))
+        predict_test_value = (predictor.predict(x_test) - np.sum(x_test[:, :i], axis=1)).reshape(n, 1)
+        predict_test_value[predict_test_value < 0] = 0
+        x_test_predict = np.hstack((x_test_predict, predict_test_value))
+    return x_test_predict[:, num_train: age]
 
 
 if __name__ == '__main__':
@@ -37,7 +68,7 @@ if __name__ == '__main__':
     age = 120
     num_train = 90
     predict_results = defaultdict(list)
-    with_share = 0
+    with_share = 1
     use_view = 1
     if not os.path.exists('./output'):
         os.mkdir('./output')
@@ -65,50 +96,42 @@ if __name__ == '__main__':
 
     # == == == == == == == == Part 4: Forecast future attention == == == == == == == == #
     # 10-repeated 10-fold cross validation
-    rkf = RepeatedKFold(n_splits=5, n_repeats=5)
+    rkf = RepeatedKFold(n_splits=10, n_repeats=10)
 
     fold_idx = 0
-    for train_idx, test_idx in rkf.split(vid_array):
+    for train_cv_idx, test_idx in rkf.split(vid_array):
         fold_idx += 1
         print('>>> Forecast on fold: {0}'.format(fold_idx))
-        x_train_predict = attention_data[train_idx, :num_train]
-        x_test_predict = attention_data[test_idx, :num_train]
-        m, n = len(train_idx), len(test_idx)
-        # iterate over forecast days
-        for i in xrange(num_train, age):
-            print('predict for day', i)
-            if with_share == 1:
-                x_train = np.hstack((x_train_predict, share_data[train_idx, :i+1]))
-                x_test = np.hstack((x_test_predict, share_data[test_idx, :i+1]))
-            else:
-                x_train = x_train_predict
-                x_test = x_test_predict
-            print('shape of x_track', x_train.shape)
-            norm = np.hstack((x_train[:, :i], attention_data[train_idx, i].reshape(m, 1)))
-            x_train_norm = x_train/np.sum(norm, axis=1)[:, None]
-            y_train = np.ones(m, )
 
-            # == == == == == == == == Part 5: Training with Ridge Regression == == == == == == == == #
-            ridge_model = Ridge(fit_intercept=False, alpha=0.1)
-            ridge_model.fit(x_train_norm, y_train)
-            predict_train_value = (ridge_model.predict(x_train)-np.sum(x_train[:, :i], axis=1)).reshape(m, 1)
-            predict_train_value[predict_train_value < 0] = 0
-            print(predict_train_value[:5].flatten())
-            print(attention_data[train_idx, i].flatten()[:5])
-            x_train_predict = np.hstack((x_train_predict, predict_train_value))
-            predict_test_value = (ridge_model.predict(x_test)-np.sum(x_test[:, :i], axis=1)).reshape(n, 1)
-            predict_test_value[predict_test_value < 0] = 0
-            x_test_predict = np.hstack((x_test_predict, predict_test_value))
-            print('---------')
-            print(predict_test_value[:5].flatten())
-            print(attention_data[test_idx, i].flatten()[:5])
+        # == == == == == == == == Part 5: Split cv subset to select best alpha value == == == == == == == == #
+        train_idx, cv_idx = train_test_split(train_cv_idx, test_size=0.1)
+
+        # grid search best alpha value over -4 to 4 in log space
+        alpha_array = [10 ** t for t in range(-4, 5)]
+        cv_mse = []
+        for alpha in alpha_array:
+            # == == == == == == == == Part 6: Training with Ridge Regression == == == == == == == == #
+            cv_predict = forecast_future_attention(train_idx, cv_idx, alpha)
+
+            # == == == == == == == == Part 7: Evaluate cv mean squared error == == == == == == == == #
+            cv_norm = np.sum(attention_data[cv_idx, :age], axis=1)
+            mse = mean_squared_error(np.sum(attention_data[cv_idx, num_train: age], axis=1)/cv_norm,
+                                     np.sum(cv_predict, axis=1)/cv_norm)
+            # print('>>> CV phase at fold {2}, MSE at alpha {0}: {1:.4f}'.format(alpha, mse, fold_idx))
+            cv_mse.append(mse)
+
+        # == == == == == == == == Part 8: Select the best alpha == == == == == == == == #
+        best_alpha_idx = np.argmin(np.array(cv_mse))
+        best_alpha = alpha_array[best_alpha_idx]
+        # print('>>> Best hyper parameter alpha: {0}'.format(best_alpha))
+        test_predict = forecast_future_attention(train_cv_idx, test_idx, best_alpha)
 
         for i, j in enumerate(test_idx):
-            predict_results[vid_array[j]].append(x_test_predict[i, num_train:])
+            predict_results[vid_array[j]].append(test_predict[i, num_train:])
 
-    # aggregate predict values from folds
+    # == == == == == == == == Part 9: Aggregate predict values from folds == == == == == == == == #
     with open(output_path, 'w') as fout:
         for vid in vid_array:
-            predicted_daily_watchtime = np.mean(np.array(predict_results[vid]), axis=0)
+            predicted_attention = np.mean(np.array(predict_results[vid]), axis=0)
             fout.write('{0},'.format(vid))
-            fout.write('{0}\n'.format(strify(predicted_daily_watchtime)))
+            fout.write('{0}\n'.format(strify(predicted_attention)))
