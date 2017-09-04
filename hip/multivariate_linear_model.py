@@ -127,7 +127,7 @@ if __name__ == '__main__':
         test_predict = forecast_future_attention(train_cv_idx, test_idx, best_alpha)
 
         for i, j in enumerate(test_idx):
-            predict_results[vid_array[j]].append(test_predict[i, num_train:])
+            predict_results[vid_array[j]].append(test_predict[i, :])
 
     # == == == == == == == == Part 9: Aggregate predict values from folds == == == == == == == == #
     with open(output_path, 'w') as fout:
