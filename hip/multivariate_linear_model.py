@@ -56,8 +56,7 @@ if __name__ == '__main__':
         with bz2.BZ2File('./active-dataset.json.bz2') as f:
             dataset = json.loads(f.readline())
             for video in dataset:
-                if not video['duration'] == 'NA':
-                    test_cases[video['YoutubeID']] = (video['numShare'], video['dailyViewcount'], video['watchTime'], video['duration'])
+                test_cases[video['YoutubeID']] = (video['numShare'], video['dailyViewcount'], video['watchTime'])
         pickle.dump(test_cases, open('./active-dataset.p', 'wb'))
 
     print('>>> Loading the ACTIVE dataset from pickle...')
@@ -80,7 +79,7 @@ if __name__ == '__main__':
     share_data = []
     vid_array = []
     for vid in test_vids:
-        dailyshare, dailyview, dailywatch, duration = test_cases[vid]
+        dailyshare, dailyview, dailywatch = test_cases[vid]
         # first 120 days, select view count or watch time as dependent variable
         daily_attention = [dailywatch, dailyview][use_view][:age]
         daily_share = dailyshare[:age]

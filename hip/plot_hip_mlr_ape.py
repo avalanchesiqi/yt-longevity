@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import numpy as np
-import cPickle as pickle
+from scipy import stats
+from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 
@@ -19,15 +20,8 @@ def read_as_float_array(content, truncated=None, delimiter=None):
         return np.array(map(float, content.split(delimiter)[:truncated]), dtype=np.float64)
 
 
-def generate_metric_percentile(arr, bin_num=400):
-    res = []
-    for i in xrange(1, bin_num+1):
-        res.append(np.percentile(arr, i*100/bin_num))
-    return np.array(res)
-
-
 def lookup_percentile(mapping, query):
-    return (np.sum(mapping < query) + np.sum(mapping <= query)) * 50 / float(len(mapping))
+    return stats.percentileofscore(mapping, query)
 
 
 if __name__ == '__main__':
@@ -35,46 +29,54 @@ if __name__ == '__main__':
     # setting parameters
     prefix_dir = './output/'
     hip_files = [prefix_dir+'training_view_reg_tune.log', prefix_dir+'training_watch_reg_tune.log']
-    mlr_viewership_files = [prefix_dir+'mlr_forecast_view_without_share.txt', prefix_dir+'mlr_forecast_watch_without_share.txt']
+    mlr_history_files = [prefix_dir+'mlr_forecast_view_without_share.txt', prefix_dir+'mlr_forecast_watch_without_share.txt']
     mlr_share_files = [prefix_dir+'mlr_forecast_view_with_share.txt', prefix_dir+'mlr_forecast_watch_with_share.txt']
     ape_matrix = []
 
-    for hip_file, viewership_file, share_file in zip(hip_files, mlr_viewership_files, mlr_share_files):
-        mlr_dict = {}
-        share_dict2 = {}
-        with open(viewership_file, 'r') as mlr_fin:
-            for line in mlr_fin:
-                vid, predict = line.split(',', 1)
-                mlr_dict[vid] = np.sum(read_as_float_array(predict, delimiter=','))
-                share_dict2[vid] = read_as_float_array(predict, delimiter=',')
-
-        share_dict = {}
-        with open(share_file, 'r') as share_fin:
-            for line in share_fin:
-                vid, predict = line.split(',', 1)
-                share_dict[vid] = np.sum(read_as_float_array(predict, delimiter=','))
-
+    for hip_file, history_file, share_file in zip(hip_files, mlr_history_files, mlr_share_files):
         true_dict = {}
+        true_verbose_dict = {}
         hip_dict = {}
         with open(hip_file, 'r') as hip_fin:
             for line in hip_fin:
                 dump, daily_metric, true_total, hip_total = line.rstrip().rsplit(None, 3)
                 vid, _ = dump.split(None, 1)
-                if vid in mlr_dict:
-                    observed_ninety = np.sum(read_as_float_array(daily_metric, delimiter=',', truncated=90))
-                    true_dict[vid] = float(true_total) - observed_ninety
-                    hip_dict[vid] = float(hip_total) - observed_ninety
+                observed_ninety = np.sum(read_as_float_array(daily_metric, delimiter=',', truncated=90))
+                true_verbose_dict[vid] = read_as_float_array(daily_metric, delimiter=',')
+                true_dict[vid] = float(true_total) - observed_ninety
+                hip_dict[vid] = float(hip_total) - observed_ninety
 
-        vids = true_dict.keys()
-        true_arr = [true_dict[vid] for vid in vids]
-        hip_arr = [hip_dict[vid] for vid in vids]
-        mlr_arr = [mlr_dict[vid] for vid in vids]
-        share_arr = [share_dict[vid] for vid in vids]
+        history_dict = {}
+        history_verbose_dict = {}
+        history_norm_mse_dict = {}
+        with open(history_file, 'r') as mlr_fin:
+            for line in mlr_fin:
+                vid, predict = line.split(',', 1)
+                if vid in true_dict.keys():
+                    history_dict[vid] = np.sum(read_as_float_array(predict, delimiter=','))
+                    history_verbose_dict[vid] = read_as_float_array(predict, delimiter=',')
+                    history_norm_mse_dict[vid] = np.sum([((np.sum(true_verbose_dict[vid][:90])+np.sum(history_verbose_dict[vid][:i-90]))/np.sum(true_verbose_dict[vid][:i]) - 1)**2 for i in range(91, 120)])
 
-        mapping = generate_metric_percentile(true_arr)
-        ape_matrix.append([abs(lookup_percentile(mapping, hip_arr[x]) - lookup_percentile(mapping, true_arr[x])) for x in xrange(len(hip_arr))])
-        ape_matrix.append([abs(lookup_percentile(mapping, mlr_arr[x]) - lookup_percentile(mapping, true_arr[x])) for x in xrange(len(hip_arr))])
-        ape_matrix.append([abs(lookup_percentile(mapping, share_arr[x]) - lookup_percentile(mapping, true_arr[x])) for x in xrange(len(hip_arr))])
+        share_dict = {}
+        share_verbose_dict = {}
+        share_norm_mse_dict = {}
+        with open(share_file, 'r') as share_fin:
+            for line in share_fin:
+                vid, predict = line.split(',', 1)
+                if vid in true_dict.keys():
+                    share_dict[vid] = np.sum(read_as_float_array(predict, delimiter=','))
+                    share_verbose_dict[vid] = read_as_float_array(predict, delimiter=',')
+                    share_norm_mse_dict[vid] = np.sum([((np.sum(true_verbose_dict[vid][:90])+np.sum(share_verbose_dict[vid][:i-90]))/np.sum(true_verbose_dict[vid][:i]) - 1) ** 2 for i in range(91, 120)])
+
+        percentile_map = np.array([true_dict[vid] for vid in history_dict.keys()])
+        true_percentile = [lookup_percentile(percentile_map, true_dict[vid]) for vid in history_dict.keys()]
+        hip_percentile = [lookup_percentile(percentile_map, hip_dict[vid]) for vid in history_dict.keys()]
+        history_percentile = [lookup_percentile(percentile_map, history_dict[vid]) for vid in history_dict.keys()]
+        share_percentile = [lookup_percentile(percentile_map, share_dict[vid]) for vid in history_dict.keys()]
+
+        ape_matrix.append([abs(x-y) for x, y in zip(true_percentile, hip_percentile)])
+        ape_matrix.append([abs(x-y) for x, y in zip(true_percentile, history_percentile)])
+        ape_matrix.append([abs(x-y) for x, y in zip(true_percentile, share_percentile)])
 
     # == == == == == == == == Part 2: Plot APE results == == == == == == == == #
     fig = plt.figure(figsize=(8, 5))
@@ -148,5 +150,5 @@ if __name__ == '__main__':
     ax1.yaxis.set_ticks_position('left')
     ax1.xaxis.set_ticks_position('bottom')
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0.03, 0, 1, 1])
     plt.show()
