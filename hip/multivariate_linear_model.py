@@ -6,6 +6,7 @@
 from __future__ import print_function, division
 import sys, os, bz2, json
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
+import time, datetime
 import cPickle as pickle
 from collections import defaultdict
 import numpy as np
@@ -67,6 +68,8 @@ if __name__ == '__main__':
     active_vids = active_dataset.keys()
 
     # == == == == == == == == Part 2: Set up experiment parameters == == == == == == == == #
+    start_time = time.time()
+
     age = 120
     num_train = 90
     predict_results = defaultdict(list)
@@ -128,6 +131,9 @@ if __name__ == '__main__':
 
         for i, j in enumerate(test_idx):
             predict_results[vid_array[j]].append(test_predict[i, :])
+
+    # get running time
+    print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
     # == == == == == == == == Part 9: Aggregate predict values from folds == == == == == == == == #
     with open(output_path, 'w') as fout:
