@@ -50,18 +50,21 @@ if __name__ == '__main__':
     # == == == == == == == == Part 1: Load ACTIVE dataset == == == == == == == == #
     # First time it gets loaded from the JSON format and writes essential fields into a pickle binary file.
     # check if the binary exists
-    if not os.path.exists('./active-dataset.p'):
+    data_prefix_dir = './data/'
+    active_dataset_pickle = os.path.join(data_prefix_dir, 'active-dataset.p')
+    if not os.path.exists(active_dataset_pickle):
         print('>>> Converting ACTIVE dataset from JSON format to pickle... might take a while!')
-        test_cases = {}
-        with bz2.BZ2File('./active-dataset.json.bz2') as f:
+        active_dataset = {}
+        active_dataset_bz2 = os.path.join(data_prefix_dir, 'active-dataset.json.bz2')
+        with bz2.BZ2File(active_dataset_bz2) as f:
             dataset = json.loads(f.readline())
             for video in dataset:
-                test_cases[video['YoutubeID']] = (video['numShare'], video['dailyViewcount'], video['watchTime'])
-        pickle.dump(test_cases, open('./active-dataset.p', 'wb'))
+                active_dataset[video['YoutubeID']] = (video['numShare'], video['dailyViewcount'], video['watchTime'])
+        pickle.dump(active_dataset, open(active_dataset_pickle, 'wb'))
 
     print('>>> Loading the ACTIVE dataset from pickle...')
-    test_cases = pickle.load(open('./active-dataset.p', 'rb'))
-    test_vids = test_cases.keys()
+    active_dataset = pickle.load(open(active_dataset_pickle, 'rb'))
+    active_vids = active_dataset.keys()
 
     # == == == == == == == == Part 2: Set up experiment parameters == == == == == == == == #
     age = 120
@@ -69,21 +72,19 @@ if __name__ == '__main__':
     predict_results = defaultdict(list)
     with_share = 1
     use_view = 1
-    if not os.path.exists('./output'):
-        os.mkdir('./output')
-    output_path = './output/mlr_forecast_{0}_{1}_share.txt'.format(['watch', 'view'][use_view], ['without', 'with'][with_share])
+    output_path = os.path.join(data_prefix_dir, 'mlr_{0}{1}.csv'.format(['watch', 'view'][use_view], ['', '_share'][with_share]))
     print('>>> Forecast daily {0} {1} share series\n'.format(['watch', 'view'][use_view], ['without', 'with'][with_share]))
 
     # == == == == == == == == Part 3: Prepare numpy data matrix == == == == == == == == #
     attention_data = []
     share_data = []
     vid_array = []
-    for vid in test_vids:
-        dailyshare, dailyview, dailywatch = test_cases[vid]
+    for vid in active_vids:
+        dailyshare, dailyview, dailywatch = active_dataset[vid]
         # first 120 days, select view count or watch time as dependent variable
         daily_attention = [dailywatch, dailyview][use_view][:age]
         daily_share = dailyshare[:age]
-        if len(daily_attention) == 120 and len(daily_share) == 120:
+        if len(daily_attention) == age and len(daily_share) == age:
             attention_data.append(daily_attention)
             share_data.append(daily_share)
             vid_array.append(vid)
@@ -130,7 +131,7 @@ if __name__ == '__main__':
 
     # == == == == == == == == Part 9: Aggregate predict values from folds == == == == == == == == #
     with open(output_path, 'w') as fout:
+        fout.write('YoutubeID\t{0}\n'.format('\t'.join(['Day{0}'.format(i) for i in range(num_train+1, age+1)])))
         for vid in vid_array:
             predicted_attention = np.mean(np.array(predict_results[vid]), axis=0)
-            fout.write('{0},'.format(vid))
-            fout.write('{0}\n'.format(strify(predicted_attention)))
+            fout.write('{0}\t{1}\n'.format(vid, strify(predicted_attention, delimiter='\t')))
