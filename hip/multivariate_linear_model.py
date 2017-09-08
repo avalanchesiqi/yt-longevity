@@ -4,9 +4,8 @@
 """Forecast future temporal attention, viewership or watch time. Multivariate Linear model from Pinto WSDM'13"""
 
 from __future__ import print_function, division
-import sys, os, bz2, json
+import sys, os, bz2, json, time, datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
-import time, datetime
 import cPickle as pickle
 from collections import defaultdict
 import numpy as np
@@ -75,7 +74,6 @@ if __name__ == '__main__':
     predict_results = defaultdict(list)
     with_share = 1
     use_view = 1
-    output_path = os.path.join(data_prefix_dir, 'mlr_{0}{1}.csv'.format(['watch', 'view'][use_view], ['', '_share'][with_share]))
     print('>>> Forecast daily {0} {1} share series\n'.format(['watch', 'view'][use_view], ['without', 'with'][with_share]))
 
     # == == == == == == == == Part 3: Prepare numpy data matrix == == == == == == == == #
@@ -136,6 +134,7 @@ if __name__ == '__main__':
     print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
     # == == == == == == == == Part 9: Aggregate predict values from folds == == == == == == == == #
+    output_path = os.path.join(data_prefix_dir, 'mlr_{0}{1}.csv'.format(['watch', 'view'][use_view], ['', '_share'][with_share]))
     with open(output_path, 'w') as fout:
         fout.write('YoutubeID\t{0}\n'.format('\t'.join(['Day{0}'.format(i) for i in range(num_train+1, age+1)])))
         for vid in vid_array:
