@@ -3,16 +3,7 @@
 # Usage example:
 # python channel_videos_crawler.py --input='<input_file>' --output='<output_dir> [--v3api] [--selenium]'
 
-import sys
-import os
-import re
-import time
-import random
-import json
-import argparse
-import urllib2
-import urllib
-import cookielib
+import sys, os, re, time, random, json, argparse, urllib2, urllib, cookielib
 from apiclient import discovery
 from selenium import webdriver
 from bs4 import BeautifulSoup
@@ -21,56 +12,51 @@ import logging
 from insights_crawler.xmlparser import parsexml
 
 
-YOUTUBE_API_SERVICE_NAME = "youtube"
-YOUTUBE_API_VERSION = "v3"
-BASE_DIR = '../'
-logging.basicConfig(filename='{0}/log/channel_videos_crawler.log'.format(BASE_DIR), level=logging.WARNING)
+YOUTUBE_API_SERVICE_NAME = 'youtube'
+YOUTUBE_API_VERSION = 'v3'
+logging.basicConfig(filename='../log/channel_videos_crawler.log', level=logging.WARNING)
 
 
-def list_channel_statistics(youtube, channel_id):
+def list_channel_statistics(yt_client, channel_id):
     """Call the API's channels.list method to list the existing channel statistics."""
     for i in xrange(0, 5):
         try:
-            list_response = youtube.channels().list(
-                part="snippet, statistics",
+            list_response = yt_client.channels().list(
+                part='snippet, statistics',
                 id=channel_id
             ).execute()
-            json_doc = list_response["items"][0]
-
+            json_doc = list_response['items'][0]
             return json_doc
         except:
             time.sleep((2 ** i) + random.random())
+    return None
 
 
-def list_channel_videos(youtube, channel_id):
-    """Call the API's search.list method to list the existing channel videos."""
+def list_channel_videos(yt_client, channel_id):
+    """Call the API's search.list method to list the existing channel video ids."""
     for i in xrange(0, 5):
         try:
-            videos = []
-
-            search_response = youtube.search().list(
-                part="snippet",
+            vids = []
+            search_response = yt_client.search().list(
+                part='snippet',
                 channelId=channel_id,
                 type='video',
                 order='date',
-                publishedBefore='2016-08-30T00:00:00Z',
                 maxResults=50,
             ).execute()
-
             if 'nextPageToken' in search_response:
                 next_pagetoken = search_response['nextPageToken']
             else:
                 next_pagetoken = None
-            for search_result in search_response.get("items", []):
-                videos.append(search_result["id"]["videoId"])
+            for search_result in search_response.get('items', []):
+                vids.append(search_result['id']['videoId'])
 
             while next_pagetoken is not None:
-                search_response = youtube.search().list(
-                    part="snippet",
+                search_response = yt_client.search().list(
+                    part='snippet',
                     channelId=channel_id,
                     type='video',
                     order='date',
-                    publishedBefore='2016-08-30T00:00:00Z',
                     maxResults=50,
                     pageToken=next_pagetoken
                 ).execute()
@@ -78,17 +64,18 @@ def list_channel_videos(youtube, channel_id):
                     next_pagetoken = search_response['nextPageToken']
                 else:
                     next_pagetoken = None
-                for search_result in search_response.get("items", []):
-                    videos.append(search_result["id"]["videoId"])
+                for search_result in search_response.get('items', []):
+                    vids.append(search_result['id']['videoId'])
 
-            return videos
+            return vids
         except:
             time.sleep((2 ** i) + random.random())
+    return []
 
 
 def get_webdriver():
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--mute-audio")
+    chrome_options.add_argument('--mute-audio')
 
     if sys.platform == 'win32':
         driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe', chrome_options=chrome_options)
@@ -104,7 +91,6 @@ def get_webdriver():
 def list_channel_videos_selenium(channel_id):
     """Simulate a browser behavior to click button via selenium"""
     target_page = 'https://www.youtube.com/channel/{0}/videos'.format(channel_id)
-
     driver.get(target_page)
 
     while True:
@@ -120,7 +106,7 @@ def list_channel_videos_selenium(channel_id):
 
     vids = []
     soup = BeautifulSoup(driver.page_source, 'lxml')
-    video_divs = soup.find_all("div", class_="yt-lockup-content")
+    video_divs = soup.find_all('div', class_='yt-lockup-content')
     for video_div in video_divs:
         vids.append(video_div.find('a')['href'][-11:])
     driver.close()
@@ -132,18 +118,14 @@ def list_video_metadata(youtube, video_id):
     for i in xrange(0, 5):
         try:
             list_response = youtube.videos().list(
-                part="snippet,statistics,topicDetails,contentDetails",
-                id=video_id,
-                fields='items(id,snippet(publishedAt,channelId,title,description,channelTitle,categoryId,tags),'
-                       'statistics,'
-                       'topicDetails,'
-                       'contentDetails(duration,dimension,definition,caption,regionRestriction))'
+                part='snippet,statistics,topicDetails,contentDetails',
+                id=video_id
             ).execute()
-            json_doc = list_response["items"][0]
-
+            json_doc = list_response['items'][0]
             return json_doc
         except:
             time.sleep((2 ** i) + random.random())
+    return None
 
 
 def get_cookie_and_sessiontoken():
@@ -190,7 +172,7 @@ def get_header(cookie, vid):
 
 
 def request(opener, vid, cookie, postdata):
-    """Make a request to YouTube server to get historical data."""
+    """Make a request to YouTube server to get insight data."""
     url = get_url(vid)
     header = get_header(cookie, vid)
     opener.addheaders = header
@@ -200,35 +182,35 @@ def request(opener, vid, cookie, postdata):
     try:
         response = opener.open(url, postdata, timeout=5)
     except:
-        logging.debug('Video historical crawler: {0} server is down, can not get response, retry...'.format(vid))
+        logging.debug('Video insight crawler: {0} server is down, can not get response, retry...'.format(vid))
         return 0, None
 
     try:
         content = response.read()
     except:
-        logging.debug('Video historical crawler: {0} response read time out, retry...'.format(vid))
+        logging.debug('Video insight crawler: {0} response read time out, retry...'.format(vid))
         return 0, None
 
     try:
         csvstring = parsexml(content)
     except:
-        logging.debug('Video historical crawler: {0} corrupted or empty xml, skip...'.format(vid))
+        logging.debug('Video insight crawler: {0} corrupted or empty xml, skip...'.format(vid))
         return 1, None
 
     return 1, csvstring
 
 
 if __name__ == "__main__":
-    developer_key = open(BASE_DIR+'conf/developer.key').readline().rstrip()
-    youtube = discovery.build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
+    developer_key = open('../conf/developer.key').readline().rstrip()
+    youtube_client = discovery.build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
     opener = urllib2.build_opener()
     cookie, sessiontoken = get_cookie_and_sessiontoken()
     postdata = get_post_data(sessiontoken)
 
     # Instantiate the parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='input file path of channel ids, relative to base dir', required=True)
-    parser.add_argument('-o', '--output', help='output dir path of video data, relative to base dir', required=True)
+    parser.add_argument('-i', '--input', help='absolute input file path of channel ids', required=True)
+    parser.add_argument('-o', '--output', help='absolute output dir path of video data', required=True)
     parser.add_argument('--selenium', dest='selenium', action='store_true', help='crawl video list via selenium')
     parser.add_argument('--v3api', dest='selenium', action='store_false', help='crawl video list via datav3 api, default')
     args = parser.parse_args()
@@ -237,61 +219,62 @@ if __name__ == "__main__":
     output_dir = args.output
     use_selenium = args.selenium
 
-    if not os.path.exists(BASE_DIR+output_dir):
-        os.makedirs(BASE_DIR+output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     if use_selenium:
         driver = get_webdriver()
 
-    with open(BASE_DIR+input_path, 'r') as channel_ids:
+    with open(input_path, 'r') as channel_ids:
         for cid in channel_ids:
             cid = cid.rstrip()
-            with open('{0}/{1}/{2}'.format(BASE_DIR, output_dir, cid), 'w') as output:
-                try:
-                    if use_selenium:
-                        # get video ids from selenium
-                        videos = list_channel_videos_selenium(cid)
-                    else:
-                        # get video ids from YouTube Data3 API
-                        videos = list_channel_videos(youtube, cid)
+            try:
+                if use_selenium:
+                    # get video ids from selenium
+                    videos = list_channel_videos_selenium(cid)
+                else:
+                    # get video ids from YouTube Data3 API
+                    videos = list_channel_videos(youtube_client, cid)
 
-                    for vid in videos:
-                        # crawl video metadata
-                        try:
-                            video_data = list_video_metadata(youtube, vid)
-                        except Exception, e:
-                            logging.debug('Video metadata crawler: Error occurred when crawl {0}:\n{1}'.format(vid, str(e)))
+                if len(videos) == 0:
+                    continue
 
-                        # crawl historical data
+                for vid in videos:
+                    # crawl video metadata
+                    video_data = list_video_metadata(youtube_client, vid)
+
+                    if video_data is None:
+                        continue
+
+                    # fail over 5 times, pass
+                    csvstring = None
+                    for i in xrange(5):
                         flag, csvstring = request(opener, vid, cookie, postdata)
-                        # fail over 5 times, pass
-                        for i in xrange(5):
-                            flag, csvstring = request(opener, vid, cookie, postdata)
-                            if flag:
-                                break
-                            else:
-                                # time.sleep(2 ** i + random.random())
-                                time.sleep(random.random())
-
-                        if csvstring is not None:
-                            startdate, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = csvstring.split()
-                            video_data['insights'] = {}
-                            video_data['insights']['startDate'] = startdate
-                            video_data['insights']['days'] = days
-                            video_data['insights']['dailyView'] = dailyviews
-                            video_data['insights']['totalView'] = totalview
-                            video_data['insights']['dailyShare'] = dailyshares
-                            video_data['insights']['totalShare'] = totalshare
-                            video_data['insights']['dailyWatch'] = dailywatches
-                            video_data['insights']['avgWatch'] = avgwatch
-                            video_data['insights']['dailySubscriber'] = dailysubscribers
-                            video_data['insights']['totalSubscriber'] = totalsubscriber
+                        if flag:
+                            break
                         else:
-                            logging.debug('Video historical crawler: {0} failed to crawl historical data'.format(vid))
+                            time.sleep(random.random())
 
-                        output.write('{0}\n'.format(json.dumps(video_data)))
-                except Exception, e:
-                    logging.debug('Channel videos crawler: Error occurred when crawl {0}:\n{1}'.format(cid, str(e)))
+                    if csvstring is not None:
+                        startdate, days, dailyviews, totalview, dailyshares, totalshare, dailywatches, avgwatch, dailysubscribers, totalsubscriber = csvstring.split()
+                        video_data['insights'] = {}
+                        video_data['insights']['startDate'] = startdate
+                        video_data['insights']['days'] = days
+                        video_data['insights']['dailyView'] = dailyviews
+                        video_data['insights']['totalView'] = totalview
+                        video_data['insights']['dailyShare'] = dailyshares
+                        video_data['insights']['totalShare'] = totalshare
+                        video_data['insights']['dailyWatch'] = dailywatches
+                        video_data['insights']['avgWatch'] = avgwatch
+                        video_data['insights']['dailySubscriber'] = dailysubscribers
+                        video_data['insights']['totalSubscriber'] = totalsubscriber
+
+                        with open(os.path.join(output_dir, cid), 'w') as output:
+                            output.write('{0}\n'.format(json.dumps(video_data)))
+                    else:
+                        logging.debug('Video insight crawler: {0} failed to crawl insight data'.format(vid))
+            except Exception, e:
+                logging.warning('Channel videos crawler: Error occurred when crawl {0}:\n{1}'.format(cid, str(e)))
 
     if use_selenium:
         driver.quit()
