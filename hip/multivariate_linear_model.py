@@ -25,10 +25,11 @@ def forecast_future_attention(train_index, test_index, alpha):
         if with_share == 1:
             x_train = np.hstack((x_train_predict, share_data[train_index, :i + 1]))
             x_test = np.hstack((x_test_predict, share_data[test_index, :i + 1]))
+            norm = np.hstack((x_train[:, :i], attention_data[train_index, i].reshape(m, 1), share_data[train_index, :i + 1]))
         else:
             x_train = x_train_predict
             x_test = x_test_predict
-        norm = np.hstack((x_train[:, :i], attention_data[train_index, i].reshape(m, 1)))
+            norm = np.hstack((x_train[:, :i], attention_data[train_index, i].reshape(m, 1)))
         x_train_norm = x_train / np.sum(norm, axis=1)[:, None]
         y_train = np.ones(m, )
 
@@ -37,10 +38,10 @@ def forecast_future_attention(train_index, test_index, alpha):
         predictor.fit(x_train_norm, y_train)
 
         # == == == == == == == == Iteratively add forecasted value to x matrix == == == == == == == == #
-        predict_train_value = (predictor.predict(x_train) - np.sum(x_train[:, :i], axis=1)).reshape(m, 1)
+        predict_train_value = (predictor.predict(x_train) - np.sum(x_train, axis=1)).reshape(m, 1)
         predict_train_value[predict_train_value < 0] = 0
         x_train_predict = np.hstack((x_train_predict, predict_train_value))
-        predict_test_value = (predictor.predict(x_test) - np.sum(x_test[:, :i], axis=1)).reshape(n, 1)
+        predict_test_value = (predictor.predict(x_test) - np.sum(x_test, axis=1)).reshape(n, 1)
         predict_test_value[predict_test_value < 0] = 0
         x_test_predict = np.hstack((x_test_predict, predict_test_value))
     return x_test_predict[:, num_train: age]
@@ -72,7 +73,7 @@ if __name__ == '__main__':
     age = 120
     num_train = 90
     predict_results = defaultdict(list)
-    with_share = 1
+    with_share = 0
     use_view = 1
     print('>>> Forecast daily {0} {1} share series\n'.format(['watch', 'view'][use_view], ['without', 'with'][with_share]))
 
