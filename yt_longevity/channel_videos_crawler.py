@@ -78,38 +78,41 @@ def get_webdriver():
     chrome_options.add_argument('--mute-audio')
 
     if sys.platform == 'win32':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver.exe', chrome_options=chrome_options)
+        driver_path = '../conf/webdriver/chromedriver.exe'
     elif sys.platform == 'darwin':
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_mac64', chrome_options=chrome_options)
+        driver_path = '../conf/webdriver/chromedriver_mac64'
     elif sys.maxsize > 2 ** 32:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux64', chrome_options=chrome_options)
+        driver_path = '../conf/webdriver/chromedriver_linux64'
     else:
-        driver = webdriver.Chrome('../conf/webdriver/chromedriver_linux32', chrome_options=chrome_options)
+        driver_path = '../conf/webdriver/chromedriver_linux32'
+    driver = webdriver.Chrome(driver_path, chrome_options=chrome_options)
     return driver
 
 
-def list_channel_videos_selenium(channel_id):
+def list_channel_videos_selenium(driver, channel_id):
     """Simulate a browser behavior to click button via selenium"""
     target_page = 'https://www.youtube.com/channel/{0}/videos'.format(channel_id)
     driver.get(target_page)
 
+    # Scroll down to bottom to get all video ids
+    last_height = driver.execute_script('return document.documentElement.scrollHeight')
     while True:
-        try:
-            loadmore_btn = driver.find_element_by_xpath("//button[contains(@aria-label,'Load more')]")
-            time.sleep(random.uniform(2, 3))
-            loadmore_btn.click()
-            time.sleep(random.uniform(2, 3))
-        except:
-            logging.debug('Selenium browser: Hit end of video page for channel {0}.'.format(channel_id))
+        # Scroll down to bottom
+        driver.execute_script('window.scrollTo(0, document.documentElement.scrollHeight);')
+        # Wait to load page
+        time.sleep(2)
+        # Calculate new scroll height and compare with last scroll height
+        new_height = driver.execute_script('return document.documentElement.scrollHeight')
+        if new_height == last_height:
             break
-    time.sleep(1)
+        last_height = new_height
+    time.sleep(2)
 
     vids = []
     soup = BeautifulSoup(driver.page_source, 'lxml')
-    video_divs = soup.find_all('div', class_='yt-lockup-content')
-    for video_div in video_divs:
-        vids.append(video_div.find('a')['href'][-11:])
-    driver.close()
+    href_blocks = soup.find_all('a', href=True, id='video-title')
+    for href_block in href_blocks:
+        vids.append(href_block['href'][-11:])
     return vids
 
 
@@ -222,24 +225,23 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    if use_selenium:
-        driver = get_webdriver()
-
     with open(input_path, 'r') as channel_ids:
         for cid in channel_ids:
             cid = cid.rstrip()
             try:
                 if use_selenium:
                     # get video ids from selenium
-                    videos = list_channel_videos_selenium(cid)
+                    driver = get_webdriver()
+                    video_ids = list_channel_videos_selenium(driver, cid)
+                    driver.quit()
                 else:
                     # get video ids from YouTube Data3 API
-                    videos = list_channel_videos(youtube_client, cid)
+                    video_ids = list_channel_videos(youtube_client, cid)
 
-                if len(videos) == 0:
+                if len(video_ids) == 0:
                     continue
 
-                for vid in videos:
+                for vid in video_ids:
                     # crawl video metadata
                     video_data = list_video_metadata(youtube_client, vid)
 
@@ -269,12 +271,9 @@ if __name__ == "__main__":
                         video_data['insights']['dailySubscriber'] = dailysubscribers
                         video_data['insights']['totalSubscriber'] = totalsubscriber
 
-                        with open(os.path.join(output_dir, cid), 'w') as output:
+                        with open(os.path.join(output_dir, cid), 'a') as output:
                             output.write('{0}\n'.format(json.dumps(video_data)))
                     else:
                         logging.debug('Video insight crawler: {0} failed to crawl insight data'.format(vid))
             except Exception, e:
                 logging.warning('Channel videos crawler: Error occurred when crawl {0}:\n{1}'.format(cid, str(e)))
-
-    if use_selenium:
-        driver.quit()
