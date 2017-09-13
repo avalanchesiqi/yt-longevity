@@ -5,7 +5,13 @@ import numpy as np
 
 
 def to_watch_percentage(lookup_table, duration, re_score, lookup_keys=None):
-    """Convert relative engagement to watch percentage."""
+    """
+    Convert relative engagement to watch percentage.
+    :param lookup_table: duration ~ watch percentage table, in format of dur: [1st percentile, ..., 1000th percentile]
+    :param duration: target input duration
+    :param re_score: target input relative engagement score
+    :param lookup_keys: pre-computed duration split points, for faster computation
+    """
     if lookup_keys is None:
         lookup_keys = np.array(lookup_table['duration'])
     if isinstance(duration, list):
@@ -21,7 +27,13 @@ def to_watch_percentage(lookup_table, duration, re_score, lookup_keys=None):
 
 
 def to_relative_engagement(lookup_table, duration, wp_score, lookup_keys=None):
-    """Convert watch percentage to relative engagement"""
+    """
+    Convert watch percentage to relative engagement
+    :param lookup_table: duration ~ watch percentage table, in format of dur: [1st percentile, ..., 1000th percentile]
+    :param duration: target input duration
+    :param wp_score: target input watch percentage score
+    :param lookup_keys: pre-computed duration split points, for faster computation
+    """
     if lookup_keys is None:
         lookup_keys = np.array(lookup_table['duration'])
     if isinstance(duration, list):
