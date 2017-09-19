@@ -1,86 +1,89 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict watch percentage from content."""
+"""Predict watch percentage from content, with ridge regression."""
 
 from __future__ import division, print_function
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
-import pandas as pd
+import time, datetime
 import numpy as np
-import glob
-from sklearn.metrics import mean_absolute_error, r2_score
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestRegressor
 
 from utils.helper import write_dict_to_pickle
+from utils.ridge_regressor import RidgeRegressor
 
 
-def random_forest(train_x, train_y, test_x):
-    # random forest regression
-    rf_regressor = RandomForestRegressor(n_estimators=10, min_samples_leaf=100)
-    rf_regressor.fit(train_x, train_y)
-    test_yhat = rf_regressor.predict(test_x)
-    return test_yhat
+def _load_data(filepath):
+    """Load features space for content predictor."""
+    matrix = []
+    vids = []
+    with open(filepath, 'r') as fin:
+        fin.readline()
+        for line in fin:
+            row = np.zeros(1+2+category_cnt+lang_cnt+1)
+            vid, publish, duration, definition, category, detect_lang, _, _, _, _, _, wp30, _, _ = line.rstrip().split('\t', 13)
+            vids.append(vid)
+            row[0] = np.log10(int(duration))
+            if definition == '0':
+                row[1] = 1
+            else:
+                row[2] = 1
+            row[3+category_dict[category]] = 1
+            row[3+category_cnt+lang_dict[detect_lang]] = 1
+            row[-1] = float(wp30)
+            matrix.append(row)
+    print('>>> Finish loading file {0}!'.format(filepath))
+    return matrix, vids
 
 
 if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
-    predict_result_dict = {}
+    start_time = time.time()
+
+    category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
+                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '34': 16, '35': 17, '43': 18, '44': 19}
+    category_cnt = len(category_dict)
+    lang_dict = {'af': 0, 'ar': 1, 'bg': 2, 'bn': 3, 'ca': 4, 'cs': 5, 'cy': 6, 'da': 7, 'de': 8, 'el': 9, 'en': 10,
+                 'es': 11, 'et': 12, 'fa': 13, 'fi': 14, 'fr': 15, 'gu': 16, 'he': 17, 'hi': 18, 'hr': 19, 'hu': 20,
+                 'id': 21, 'it': 22, 'ja': 23, 'kn': 24, 'ko': 25, 'lt': 26, 'lv': 27, 'mk': 28, 'ml': 29, 'mr': 30,
+                 'ne': 31, 'nl': 32, 'no': 33, 'pa': 34, 'pl': 35, 'pt': 36, 'ro': 37, 'ru': 38, 'sk': 39, 'sl': 40,
+                 'so': 41, 'sq': 42, 'sv': 43, 'sw': 44, 'ta': 45, 'te': 46, 'th': 47, 'tl': 48, 'tr': 49, 'uk': 50,
+                 'ur': 51, 'vi': 52, 'zh-cn': 53, 'zh-tw': 54, 'NA': 55}
+    lang_cnt = len(lang_dict)
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    train_data = glob.glob(os.path.join('../../production_data/tweeted_dataset_norm/train_data', '*.txt'))
-    test_data = glob.glob(os.path.join('../../production_data/tweeted_dataset_norm/test_data', '*.txt'))
+    train_loc = '../../production_data/tweeted_dataset_norm/train_data'
+    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
 
-    train_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
-                                      names=['vid', 'publish', 'duration', 'definition', 'category', 'lang', 'channel',
-                                             'topics', 'topics_num', 'view30', 'watch30', 'wp30', 're30', 'view120',
-                                             'watch120', 'wp120', 're120', 'days', 'daily_view', 'daily_watch'],
-                                      usecols=['vid', 'duration', 'definition', 'category', 'lang', 'wp30'],
-                                      dtype={'duration': int, 'definition': int, 'category': int, 'wp30': float})
-                          for f in train_data))
+    print('>>> Start to load training dataset...')
+    train_matrix = []
+    for subdir, _, files in os.walk(train_loc):
+        for f in files:
+            train_matrix.extend(_load_data(os.path.join(subdir, f))[0])
+    train_matrix = np.array(train_matrix)
 
-    test_df = pd.concat((pd.read_csv(f, sep='\t', header=0,
-                                     names=['vid', 'publish', 'duration', 'definition', 'category', 'lang', 'channel',
-                                            'topics', 'topics_num', 'view30', 'watch30', 'wp30', 're30', 'view120',
-                                            'watch120', 'wp120', 're120', 'days', 'daily_view', 'daily_watch'],
-                                     usecols=['vid', 'duration', 'definition', 'category', 'lang', 'wp30'],
-                                     dtype={'duration': int, 'definition': int, 'category': int, 'wp30': float})
-                        for f in test_data))
+    print('>>> Start to load test dataset...')
+    test_matrix = []
+    test_vids = []
+    for subdir, _, files in os.walk(test_loc):
+        for f in files:
+            matrix, vids = _load_data(os.path.join(subdir, f))
+            test_matrix.extend(matrix)
+            test_vids.extend(vids)
+    test_matrix = np.array(test_matrix)
 
-    train_num = train_df.shape[0]
-    test_num = test_df.shape[0]
-    data_df = train_df.append(test_df)
+    print('>>> Finish loading all data!\n')
 
-    print('>>> Finish loading all data!')
-    print('>>> Number of train observations: {0}'.format(train_num))
-    print('>>> Number of test observations: {0}'.format(test_num))
+    # predict test data from customized ridge regressor
+    test_yhat = RidgeRegressor(train_matrix, test_matrix).predict()
 
-    data_df['log_duration'] = data_df['duration'].apply(np.log10)
-
-    lang_le = LabelEncoder()
-    data_df['enc_lang'] = lang_le.fit_transform(data_df['lang'].values)
-
-    print(data_df.head())
-    train_df = data_df[:train_num]
-    test_df = data_df[train_num:]
-
-    cols = ['log_duration', 'definition', 'category', 'enc_lang']
-    target = 'wp30'
-
-    # log duration, definition, category, encoded lang on random forest
-    predict_wp = random_forest(train_df[cols], train_df[target], test_df[cols])
-    print('>>> Predict watch percentage on content with random forest regressor...')
-    print('>>> MAE on test set: {0:.4f}'.format(mean_absolute_error(test_df[target].values, predict_wp)))
-    print('>>> R2 on test set: {0:.4f}'.format(r2_score(test_df[target].values, predict_wp)))
-    print('=' * 79)
-
-    test_df = test_df.assign(pred_wp=pd.Series(predict_wp).values)
-    predict_result_dict = test_df.set_index('vid')['pred_wp'].to_dict()
+    # get running time
+    print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
     # write to pickle file
     to_write = True
+    predict_result_dict = {vid: pred for vid, pred in zip(test_vids, test_yhat)}
     if to_write:
         print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
