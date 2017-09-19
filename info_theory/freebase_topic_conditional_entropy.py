@@ -42,10 +42,8 @@ def conditional_update(dict1, dict2):
 
 
 def calculate_conditional_entropy(cnt, y1, y2):
-    if y1 == 0:
-        return (y2/cnt)*np.log2((y1+y2)/y2)
-    elif y2 == 0:
-        return (y1/cnt)*np.log2((y1+y2)/y1)
+    if y1 == 0 or y2 == 0:
+        return 0
     else:
         return (y1/cnt)*np.log2((y1+y2)/y1) + (y2/cnt)*np.log2((y1+y2)/y2)
 
@@ -96,4 +94,4 @@ if __name__ == '__main__':
         output_path = './output/freebase_topic_entropy_{0}.txt'.format(engagement_threshold)
         with open(output_path, 'w') as fout:
             for mid, entropy_freq in sorted_entropy:
-                fout.write('{0}\t{1}\t{2}\n'.format(mid, entropy_freq[0], entropy_freq[1]))
+                fout.write('{0}\t{1}\t{2}\n'.format(freebase_dict[mid], entropy_freq[0], entropy_freq[1]))
