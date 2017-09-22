@@ -13,7 +13,8 @@ def to_watch_percentage(lookup_table, duration, re_score, lookup_keys=None):
     :param lookup_keys: pre-computed duration split points, for faster computation
     """
     if lookup_keys is None:
-        lookup_keys = np.array(lookup_table['duration'])
+        lookup_keys = lookup_table['duration']
+    lookup_keys = np.array(lookup_keys)
     if isinstance(duration, list):
         wp_list = []
         for d, s in zip(duration, re_score):
@@ -35,7 +36,8 @@ def to_relative_engagement(lookup_table, duration, wp_score, lookup_keys=None):
     :param lookup_keys: pre-computed duration split points, for faster computation
     """
     if lookup_keys is None:
-        lookup_keys = np.array(lookup_table['duration'])
+        lookup_keys = lookup_table['duration']
+    lookup_keys = np.array(lookup_keys)
     if isinstance(duration, list):
         re_list = []
         for d, s in zip(duration, wp_score):
@@ -44,5 +46,6 @@ def to_relative_engagement(lookup_table, duration, wp_score, lookup_keys=None):
     else:
         bin_idx = np.sum(lookup_keys < duration)
         duration_bin = np.array(lookup_table[bin_idx])
-        re = np.sum(duration_bin < wp_score) / 1000
+        re = np.sum(duration_bin <= wp_score) / 1000
+        # re = (np.sum(duration_bin < wp_score) + np.sum(duration_bin <= wp_score)) / 2000
         return re
