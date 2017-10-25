@@ -71,9 +71,9 @@ if __name__ == '__main__':
 
     input_loc = sys.argv[1]
     output_loc = sys.argv[2]
-    if not os.path.exists(os.path.join(output_loc, 'train')):
-        os.makedirs(os.path.join(output_loc, 'train'))
-        os.makedirs(os.path.join(output_loc, 'test'))
+    if not os.path.exists(os.path.join(output_loc, 'train_data')):
+        os.makedirs(os.path.join(output_loc, 'train_data'))
+        os.makedirs(os.path.join(output_loc, 'test_data'))
 
     # == == == == == == == == Part 2: Construct dataset == == == == == == == == #
     for subdir, _, files in os.walk(input_loc):

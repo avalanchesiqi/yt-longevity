@@ -6,7 +6,7 @@ Pre-filtering1: upload in jul to aug
 Pre-filtering2: have at least 100 views in first 30 days
 
 Usage: python construct_tweeted_dataset.py input_doc output_doc
-Example: python construct_tweeted_dataset.py ../../production_data/random_dataset ../../production_data/tweeted_dataset
+Example: python construct_tweeted_dataset.py ../../production_data/random_dataset ../../production_data/new_tweeted_dataset
 Time: ~20H20M
 """
 

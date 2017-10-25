@@ -113,10 +113,8 @@ if __name__ == '__main__':
         wp_individual_bin.append(wp30)
         wt_individual_bin.append(wt30)
     if len(wp_individual_bin) > 0:
-        wp_bin_matrix.append(wp_individual_bin)
-        wt_bin_matrix.append(wt_individual_bin)
-    wp_bin_matrix = [np.array(x) for x in wp_bin_matrix]
-    wt_bin_matrix = [np.array(x) for x in wt_bin_matrix]
+        wp_bin_matrix.append(np.array(wp_individual_bin))
+        wt_bin_matrix.append(np.array(wt_individual_bin))
 
     # sanity check
     to_check = True
