@@ -26,8 +26,7 @@ if __name__ == '__main__':
         print('Exit program...')
         sys.exit(1)
 
-    dur_engage_str_map = pickle.load(open(engagement_map_loc, 'rb'))
-    dur_engage_map = {key: list(map(float, value.split(','))) for key, value in dur_engage_str_map.items()}
+    dur_engage_map = pickle.load(open(engagement_map_loc, 'rb'))
     lookup_durations = np.array(dur_engage_map['duration'])
 
     test_vids = []
@@ -35,7 +34,8 @@ if __name__ == '__main__':
     guess_wp = []
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    test_loc = os.path.join(data_loc, 'test_data')
 
     for subdir, _, files in os.walk(test_loc):
         for f in files:
