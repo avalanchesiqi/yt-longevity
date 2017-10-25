@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict watch percentage from content, with ridge regression."""
+"""Predict watch percentage from channel past success, with ridge regression."""
 
 from __future__ import division, print_function
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import time, datetime
+from collections import defaultdict
 import numpy as np
 
 from utils.helper import write_dict_to_pickle
@@ -15,24 +16,27 @@ from utils.ridge_regressor import RidgeRegressor
 
 
 def _load_data(filepath):
-    """Load features space for content predictor."""
+    """Load features space for channel past success predictor."""
     matrix = []
     vids = []
     with open(filepath, 'r') as fin:
         fin.readline()
         for line in fin:
-            row = np.zeros(1+2+category_cnt+lang_cnt+1)
-            vid, publish, duration, definition, category, detect_lang, _, _, _, _, wp30, _, _ = line.rstrip().split('\t', 12)
-            vids.append(vid)
-            row[0] = np.log10(int(duration))
-            if definition == '0':
-                row[1] = 1
-            else:
-                row[2] = 1
-            row[3+category_dict[category]] = 1
-            row[3+category_cnt+lang_dict[detect_lang]] = 1
-            row[-1] = float(wp30)
-            matrix.append(row)
+            row = np.zeros(10)
+            vid, _, duration, _, _, _, channel, _, _, _, wp30, _, _ = line.rstrip().split('\t', 12)
+            if channel in channel_wp_dict:
+                row[0] = np.log10(int(duration))
+                row[1] = len(channel_wp_dict[channel]) / 52
+                row[2] = np.mean(channel_wp_dict[channel])
+                row[3] = np.std(channel_wp_dict[channel])
+                row[4] = np.min(channel_wp_dict[channel])
+                row[5] = np.percentile(channel_wp_dict[channel], 25)
+                row[6] = np.median(channel_wp_dict[channel])
+                row[7] = np.percentile(channel_wp_dict[channel], 75)
+                row[8] = np.max(channel_wp_dict[channel])
+                row[9] = float(wp30)
+                matrix.append(row)
+                vids.append(vid)
     print('>>> Finish loading file {0}!'.format(filepath))
     return matrix, vids
 
@@ -41,16 +45,11 @@ if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     start_time = time.time()
 
-    category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
-                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '43': 16, '44': 17}
-    category_cnt = len(category_dict)
-    lang_dict = {'af': 0, 'ar': 1, 'bg': 2, 'bn': 3, 'ca': 4, 'cs': 5, 'cy': 6, 'da': 7, 'de': 8, 'el': 9, 'en': 10,
-                 'es': 11, 'et': 12, 'fa': 13, 'fi': 14, 'fr': 15, 'gu': 16, 'he': 17, 'hi': 18, 'hr': 19, 'hu': 20,
-                 'id': 21, 'it': 22, 'ja': 23, 'kn': 24, 'ko': 25, 'lt': 26, 'lv': 27, 'mk': 28, 'ml': 29, 'mr': 30,
-                 'ne': 31, 'nl': 32, 'no': 33, 'pa': 34, 'pl': 35, 'pt': 36, 'ro': 37, 'ru': 38, 'sk': 39, 'sl': 40,
-                 'so': 41, 'sq': 42, 'sv': 43, 'sw': 44, 'ta': 45, 'te': 46, 'th': 47, 'tl': 48, 'tr': 49, 'uk': 50,
-                 'ur': 51, 'vi': 52, 'zh-cn': 53, 'zh-tw': 54, 'NA': 55}
-    lang_cnt = len(lang_dict)
+    channel_wp_dict = defaultdict(list)
+    with open('./data/train_channel_watch_percentage.txt', 'r') as fin:
+        for line in fin:
+            channel, wp30 = line.rstrip().split('\t')
+            channel_wp_dict[channel].append(float(wp30))
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
     data_loc = '../../production_data/tweeted_dataset_norm'
@@ -88,4 +87,4 @@ if __name__ == '__main__':
     if to_write:
         print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(predict_result_dict)))
-        write_dict_to_pickle(dict=predict_result_dict, path='./output/content_predictor.p')
+        write_dict_to_pickle(dict=predict_result_dict, path='./output/cps_predictor.p')

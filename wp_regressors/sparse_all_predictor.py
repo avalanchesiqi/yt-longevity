@@ -20,7 +20,7 @@ def _load_data(filepath):
     with open(filepath, 'r') as fin:
         fin.readline()
         for line in fin:
-            vid, _, duration, definition, category, detect_lang, channel, topics, _, _, _, wp30, _, _ = line.rstrip().split('\t', 13)
+            vid, _, duration, definition, category, detect_lang, channel, topics, _, _, wp30, _, _ = line.rstrip().split('\t', 12)
             if channel in channel_re_dict:
                 ps_vector = strify([len(channel_re_dict[channel])/52, np.mean(channel_re_dict[channel]),
                                     np.std(channel_re_dict[channel]), np.min(channel_re_dict[channel]),
@@ -99,7 +99,7 @@ def vectorize_train_data(data):
             train_value.extend(value_list)
             train_y.append(float(wp30))
             row_idx += 1
-    return coo_matrix((train_value, (train_row, train_col)), shape=(row_idx, 1+2+20+56+topic_cnt+8)), train_y, topic_dict
+    return coo_matrix((train_value, (train_row, train_col)), shape=(row_idx, 1+2+category_cnt+lang_cnt+topic_cnt+8)), train_y, topic_dict
 
 
 def vectorize_test_data(data, topic_dict):
@@ -120,7 +120,7 @@ def vectorize_test_data(data, topic_dict):
             test_y.append(float(wp30))
             row_idx += 1
             test_vids.append(vid)
-    return coo_matrix((test_value, (test_row, test_col)), shape=(row_idx, 1+2+20+56+n_topic+8)), test_y, test_vids
+    return coo_matrix((test_value, (test_row, test_col)), shape=(row_idx, 1+2+category_cnt+lang_cnt+n_topic+8)), test_y, test_vids
 
 
 if __name__ == '__main__':
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
-                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '34': 16, '35': 17, '43': 18, '44': 19}
+                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '43': 16, '44': 17}
     category_cnt = len(category_dict)
 
     lang_dict = {'af': 0, 'ar': 1, 'bg': 2, 'bn': 3, 'ca': 4, 'cs': 5, 'cy': 6, 'da': 7, 'de': 8, 'el': 9, 'en': 10,
@@ -147,8 +147,9 @@ if __name__ == '__main__':
             channel_re_dict[channel].append(float(wp30))
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    train_loc = '../../production_data/tweeted_dataset_norm/train_data'
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    train_loc = os.path.join(data_loc, 'train_data')
+    test_loc = os.path.join(data_loc, 'test_data')
 
     train_matrix = []
     print('>>> Start to load training dataset...')

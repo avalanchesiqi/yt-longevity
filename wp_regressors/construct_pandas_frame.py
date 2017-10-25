@@ -16,7 +16,7 @@ import pandas as pd
 
 if __name__ == '__main__':
     # construct pandas dataframe if not exists
-    dataframe_path = './data/predicted_re_sparse_df.csv'
+    dataframe_path = './data/predicted_wp_sparse_df.csv'
     if not os.path.exists(dataframe_path):
         prefix_dir = './output/'
         true_dict_path = os.path.join(prefix_dir, 'true_predictor.p')

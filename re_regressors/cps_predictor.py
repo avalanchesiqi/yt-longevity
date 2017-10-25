@@ -10,30 +10,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import time, datetime
 from collections import defaultdict
 import numpy as np
-from sklearn.feature_selection import f_regression, mutual_info_regression
 
 from utils.helper import write_dict_to_pickle
 from utils.ridge_regressor import RidgeRegressor
-
-
-def perform_f_test(X, y):
-    f_test, p_values = f_regression(X, y)
-    f_test /= np.max(f_test)
-    print('+'*79)
-    print('F1-test on log duration: {0:.4f}, activeness: {1:.4f}, mean: {2:.4f}, std: {3:.4f}, '
-          'min: {4:.4f}, 25th: {5:.4f}, median: {6:.4f}, 75th: {7:.4f}, max: {8:.4f}'.format(*f_test))
-    print('F1 p-value on log duration: {0:.4f}, activeness: {1:.4f}, mean: {2:.4f}, std: {3:.4f}, '
-          'min: {4:.4f}, 25th: {5:.4f}, median: {6:.4f}, 75th: {7:.4f}, max: {8:.4f}'.format(*p_values))
-    print('+' * 79)
-
-
-def perform_mutual_information(X, y):
-    mi = mutual_info_regression(X, y)
-    mi /= np.max(mi)
-    print('+'*79)
-    print('Mutual information on log duration: {0:.4f}, activeness: {1:.4f}, mean: {2:.4f}, std: {3:.4f}, '
-          'min: {4:.4f}, 25th: {5:.4f}, median: {6:.4f}, 75th: {7:.4f}, max: {8:.4f}'.format(*mi))
-    print('+' * 79)
 
 
 def _load_data(filepath):
@@ -44,7 +23,7 @@ def _load_data(filepath):
         fin.readline()
         for line in fin:
             row = np.zeros(10)
-            vid, _, duration, _, _, _, channel, _, _, _, _, _, re30, _ = line.rstrip().split('\t', 13)
+            vid, _, duration, _, _, _, channel, _, _, _, _, re30, _ = line.rstrip().split('\t', 12)
             if channel in channel_re_dict:
                 row[0] = np.log10(int(duration))
                 row[1] = len(channel_re_dict[channel]) / 52
@@ -73,8 +52,9 @@ if __name__ == '__main__':
             channel_re_dict[channel].append(float(re30))
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    train_loc = '../../production_data/tweeted_dataset_norm/train_data'
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    train_loc = os.path.join(data_loc, 'train_data')
+    test_loc = os.path.join(data_loc, 'test_data')
 
     print('>>> Start to load training dataset...')
     train_matrix = []
@@ -82,9 +62,6 @@ if __name__ == '__main__':
         for f in files:
             train_matrix.extend(_load_data(os.path.join(subdir, f))[0])
     train_matrix = np.array(train_matrix)
-
-    # perform_f_test(train_matrix[:, :-1], train_matrix[:, -1])
-    # perform_mutual_information(train_x, train_y)
 
     print('>>> Start to load test dataset...')
     test_matrix = []

@@ -19,7 +19,7 @@ def _load_data(filepath):
     with open(filepath, 'r') as fin:
         fin.readline()
         for line in fin:
-            vid, _, duration, _, _, _, _, topics, _, _, _, wp30, _, _ = line.rstrip().split('\t', 13)
+            vid, _, duration, _, _, _, _, topics, _, _, wp30, _, _ = line.rstrip().split('\t', 12)
             row = [vid, duration, topics, wp30]
             matrix.append(row)
     print('>>> Finish loading file {0}!'.format(filepath))
@@ -101,8 +101,9 @@ if __name__ == '__main__':
     start_time = time.time()
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    train_loc = '../../production_data/tweeted_dataset_norm/train_data'
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    train_loc = os.path.join(data_loc, 'train_data')
+    test_loc = os.path.join(data_loc, 'test_data')
 
     train_matrix = []
     print('>>> Start to load training dataset...')

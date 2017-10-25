@@ -20,7 +20,13 @@ if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     start_time = time.time()
 
-    dur_engage_str_map = pickle.load(open('./data/tweeted_dur_engage_map.p', 'rb'))
+    engagement_map_loc = '../data_preprocess/engagement_map.p'
+    if not os.path.exists(engagement_map_loc):
+        print('Engagement map not generated, start with generating engagement map first in ../data_preprocess dir!.')
+        print('Exit program...')
+        sys.exit(1)
+
+    dur_engage_str_map = pickle.load(open(engagement_map_loc, 'rb'))
     dur_engage_map = {key: list(map(float, value.split(','))) for key, value in dur_engage_str_map.items()}
     lookup_durations = np.array(dur_engage_map['duration'])
 
@@ -40,7 +46,7 @@ if __name__ == '__main__':
                     vid, _, duration, dump = line.rstrip().split('\t', 3)
                     test_vids.append(vid)
                     duration = int(duration)
-                    wp30 = float(dump.split('\t')[8])
+                    wp30 = float(dump.split('\t')[7])
                     true_wp.append(wp30)
                     random_guess = 0.5
                     guess_wp.append(to_watch_percentage(dur_engage_map, duration, random_guess, lookup_keys=lookup_durations))
