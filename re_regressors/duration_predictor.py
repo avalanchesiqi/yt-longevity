@@ -22,7 +22,8 @@ if __name__ == '__main__':
     guess_re = []
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    test_loc = os.path.join(data_loc, 'test_data')
 
     for subdir, _, files in os.walk(test_loc):
         for f in files:
@@ -32,7 +33,7 @@ if __name__ == '__main__':
                 for line in fin:
                     vid, dump = line.rstrip().split('\t', 1)
                     test_vids.append(vid)
-                    re30 = float(dump.split('\t')[11])
+                    re30 = float(dump.split('\t')[10])
                     true_re.append(re30)
                     random_guess = 0.5
                     guess_re.append(random_guess)

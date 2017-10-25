@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """Ridge regressor."""
 
 from __future__ import division, print_function

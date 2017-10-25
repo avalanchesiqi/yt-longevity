@@ -22,7 +22,7 @@ def _load_data(filepath):
         fin.readline()
         for line in fin:
             row = np.zeros(1+2+category_cnt+lang_cnt+1)
-            vid, publish, duration, definition, category, detect_lang, _, _, _, _, _, _, re30, _ = line.rstrip().split('\t', 13)
+            vid, publish, duration, definition, category, detect_lang, _, _, _, _, _, re30, _ = line.rstrip().split('\t', 12)
             vids.append(vid)
             row[0] = np.log10(int(duration))
             if definition == '0':
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     category_dict = {'1': 0, '2': 1, '10': 2, '15': 3, '17': 4, '19': 5, '20': 6, '22': 7, '23': 8, '24': 9,
-                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '34': 16, '35': 17, '43': 18, '44': 19}
+                     '25': 10, '26': 11, '27': 12, '28': 13, '29': 14, '30': 15, '43': 16, '44': 17}
     category_cnt = len(category_dict)
     lang_dict = {'af': 0, 'ar': 1, 'bg': 2, 'bn': 3, 'ca': 4, 'cs': 5, 'cy': 6, 'da': 7, 'de': 8, 'el': 9, 'en': 10,
                  'es': 11, 'et': 12, 'fa': 13, 'fi': 14, 'fr': 15, 'gu': 16, 'he': 17, 'hi': 18, 'hr': 19, 'hu': 20,
@@ -53,8 +53,9 @@ if __name__ == '__main__':
     lang_cnt = len(lang_dict)
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    train_loc = '../../production_data/tweeted_dataset_norm/train_data'
-    test_loc = '../../production_data/tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/tweeted_dataset_norm'
+    train_loc = os.path.join(data_loc, 'train_data')
+    test_loc = os.path.join(data_loc, 'test_data')
 
     print('>>> Start to load training dataset...')
     train_matrix = []
