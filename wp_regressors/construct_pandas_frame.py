@@ -4,9 +4,12 @@
 """Construct pandas dataframe from predictor pickle output.
 
 Example rows
-   Unnamed: 0  Vid   True   Content     Topic    CTopic       CPS       All        CSP  
-0           0    1  0.481  0.607106  0.609333  0.665838  0.870050  0.876945   0.876945 
-1           1    1  0.295  0.507591  0.634284  0.514392  0.422758  0.488751   0.376236 
+           Vid      True   Content     Topic    CTopic       CPS       All
+0  KcgjkCDPOco  0.300155  0.343142  0.348659  0.378310  0.589099  0.608004
+1  oydbUUFZNPQ  0.339141  0.392023  1.000000  0.501331  0.431703  0.472517
+2  RUAKJSxfgW0  0.694815  0.473313  0.587380  0.586567  0.582470  0.610346
+3  U45p1d_zQEs  0.491463  0.514190  0.502563  0.508860  0.602810  0.554918
+4  wjdjztvb9Hc  0.832867  0.556331  1.000000  0.501331  0.781969  0.472517
 """
 
 from __future__ import division, print_function
@@ -25,7 +28,7 @@ if __name__ == '__main__':
         content_topic_predictor_path = os.path.join(prefix_dir, 'sparse_content_topic_predictor.p')
         channel_predictor_path = os.path.join(prefix_dir, 'cps_predictor.p')
         all_predictor_path = os.path.join(prefix_dir, 'sparse_all_predictor.p')
-        per_channel_predictor_path = os.path.join(prefix_dir, 'csp_predictor_5.p')
+        # per_channel_predictor_path = os.path.join(prefix_dir, 'csp_predictor_5.p')
 
         # ground-truth values
         true_dict = pickle.load(open(true_dict_path, 'rb'))
@@ -61,11 +64,11 @@ if __name__ == '__main__':
                 else:
                     all_predictor[vid] = content_topic_predictor[vid]
 
-        # per channel predictor
-        per_channel_predictor = pickle.load(open(per_channel_predictor_path, 'rb'))
-        for vid in vids:
-            if vid not in per_channel_predictor:
-                per_channel_predictor[vid] = all_predictor[vid]
+        # # per channel predictor
+        # per_channel_predictor = pickle.load(open(per_channel_predictor_path, 'rb'))
+        # for vid in vids:
+        #     if vid not in per_channel_predictor:
+        #         per_channel_predictor[vid] = all_predictor[vid]
 
         # generate pandas dataframe
         true_data_f = pd.DataFrame(true_dict.items(), columns=['Vid', 'True'])
@@ -74,13 +77,15 @@ if __name__ == '__main__':
         content_topic_data_f = pd.DataFrame(content_topic_predictor.items(), columns=['Vid', 'CTopic'])
         channel_data_f = pd.DataFrame(channel_predictor.items(), columns=['Vid', 'CPS'])
         all_data_f = pd.DataFrame(all_predictor.items(), columns=['Vid', 'All'])
-        per_channel_data_f = pd.DataFrame(per_channel_predictor.items(), columns=['Vid', 'CSP'])
+        # per_channel_data_f = pd.DataFrame(per_channel_predictor.items(), columns=['Vid', 'CSP'])
         data_f = true_data_f.merge(content_data_f, on='Vid').merge(topic_data_f, on='Vid')\
             .merge(content_topic_data_f, on='Vid').merge(channel_data_f, on='Vid')\
-            .merge(all_data_f, on='Vid').merge(per_channel_data_f, on='Vid')
+            .merge(all_data_f, on='Vid')
+            # .merge(all_data_f, on='Vid').merge(per_channel_data_f, on='Vid')
 
-        data_f = data_f.where(data_f < 1, 1)
-        data_f = data_f.where(data_f > 0, 0)
+        for name in ['True', 'Content', 'Topic', 'CTopic', 'CPS', 'All']:
+            data_f[name] = data_f[name].where(data_f[name] < 1, 1)
+            data_f[name] = data_f[name].where(data_f[name] > 0, 0)
         data_f.to_csv(dataframe_path, sep='\t')
 
         print('header:')

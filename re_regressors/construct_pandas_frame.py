@@ -4,9 +4,12 @@
 """Construct pandas dataframe from predictor pickle output.
 
 Example rows
-   Unnamed: 0  Vid   True   Content     Topic    CTopic       CPS       All        CSP  
-0           0    1  0.481  0.607106  0.609333  0.665838  0.870050  0.876945   0.876945 
-1           1    1  0.295  0.507591  0.634284  0.514392  0.422758  0.488751   0.376236 
+           Vid   True   Content     Topic    CTopic       CPS       All   Duration
+0  KcgjkCDPOco  0.498  0.608499  0.610826  0.667708  0.871146  0.878522       1212
+1  oydbUUFZNPQ  0.301  0.405562  0.635107  0.515533  0.424186  0.489899        350
+2  RUAKJSxfgW0  0.945  0.462427  0.737947  0.738719  0.699488  0.715835        254
+3  U45p1d_zQEs  0.512  0.504788  0.491619  0.501147  0.127934  0.142407        209
+4  wjdjztvb9Hc  0.988  0.523769  0.635107  0.515533  0.994331  0.489899        160
 """
 
 from __future__ import division, print_function
@@ -77,8 +80,9 @@ if __name__ == '__main__':
             .merge(all_data_f, on='Vid')\
             .merge(test_duration_data_f, on='Vid')
 
-        data_f = data_f.where(data_f < 1, 1)
-        data_f = data_f.where(data_f > 0, 0)
+        for name in ['True', 'Content', 'Topic', 'CTopic', 'CPS', 'All']:
+            data_f[name] = data_f[name].where(data_f[name] < 1, 1)
+            data_f[name] = data_f[name].where(data_f[name] > 0, 0)
         data_f.to_csv(dataframe_path, sep='\t')
 
         print('header:')

@@ -23,7 +23,12 @@ def to_watch_percentage(lookup_table, duration, re_score, lookup_keys=None):
     else:
         bin_idx = np.sum(lookup_keys < duration)
         duration_bin = lookup_table[bin_idx]
-        wp = duration_bin[int(round(re_score * 1000))]
+        if re_score == 0:
+            wp = duration_bin[0]
+        elif re_score == 1:
+            wp = duration_bin[-1]
+        else:
+            wp = (duration_bin[int(np.floor(re_score * 1000))-1] + duration_bin[int(np.floor(re_score * 1000))]) / 2
         return wp
 
 
