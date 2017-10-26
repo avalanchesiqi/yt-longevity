@@ -131,7 +131,7 @@ if __name__ == '__main__':
     engagement_map = {'duration': duration_splits}
     for i in range(len(duration_splits) + 1):
         engagement_map[i] = [np.percentile(wp_bin_matrix[i], j / 10) for j in range(1000)]
-    pickle.dump(engagement_map, open('engagement_map.p', 'w'))
+    pickle.dump(engagement_map, open('engagement_map.p', 'wb'))
 
     # == == == == == == == == Part 5: Plot engagement map == == == == == == == == #
     cornflower_blue = '#6495ed'
