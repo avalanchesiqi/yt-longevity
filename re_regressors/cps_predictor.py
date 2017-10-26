@@ -10,9 +10,21 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 import time, datetime
 from collections import defaultdict
 import numpy as np
+from sklearn.feature_selection import f_regression
 
 from utils.helper import write_dict_to_pickle
 from utils.ridge_regressor import RidgeRegressor
+
+
+def perform_univariate_linear_regression_tests(X, y):
+    f_test, p_values = f_regression(X, y)
+    f_test /= np.max(f_test)
+    print('+'*79)
+    print('F1-test on log duration: {0:.4f}, activeness: {1:.4f}, mean: {2:.4f}, std: {3:.4f}, '
+          'min: {4:.4f}, 25th: {5:.4f}, median: {6:.4f}, 75th: {7:.4f}, max: {8:.4f}'.format(*f_test))
+    print('F1 p-value on log duration: {0:.4f}, activeness: {1:.4f}, mean: {2:.4f}, std: {3:.4f}, '
+          'min: {4:.4f}, 25th: {5:.4f}, median: {6:.4f}, 75th: {7:.4f}, max: {8:.4f}'.format(*p_values))
+    print('+' * 79)
 
 
 def _load_data(filepath):
@@ -62,6 +74,8 @@ if __name__ == '__main__':
         for f in files:
             train_matrix.extend(_load_data(os.path.join(subdir, f))[0])
     train_matrix = np.array(train_matrix)
+
+    perform_univariate_linear_regression_tests(train_matrix[:, :-1], train_matrix[:, -1])
 
     print('>>> Start to load test dataset...')
     test_matrix = []
