@@ -25,7 +25,7 @@ if __name__ == '__main__':
         content_topic_predictor_path = os.path.join(prefix_dir, 'sparse_content_topic_predictor.p')
         channel_predictor_path = os.path.join(prefix_dir, 'cps_predictor.p')
         all_predictor_path = os.path.join(prefix_dir, 'sparse_all_predictor.p')
-        per_channel_predictor_path = os.path.join(prefix_dir, 'csp_predictor_5.p')
+        test_duration_path = os.path.join(prefix_dir, 'test_duration.p')
 
         # ground-truth values
         true_dict = pickle.load(open(true_dict_path, 'rb'))
@@ -61,11 +61,8 @@ if __name__ == '__main__':
                 else:
                     all_predictor[vid] = content_topic_predictor[vid]
 
-        # per channel predictor
-        per_channel_predictor = pickle.load(open(per_channel_predictor_path, 'rb'))
-        for vid in vids:
-            if vid not in per_channel_predictor:
-                per_channel_predictor[vid] = all_predictor[vid]
+        # test duration
+        test_duration = pickle.load(open(test_duration_path, 'rb'))
 
         # generate pandas dataframe
         true_data_f = pd.DataFrame(true_dict.items(), columns=['Vid', 'True'])
@@ -74,10 +71,11 @@ if __name__ == '__main__':
         content_topic_data_f = pd.DataFrame(content_topic_predictor.items(), columns=['Vid', 'CTopic'])
         channel_data_f = pd.DataFrame(channel_predictor.items(), columns=['Vid', 'CPS'])
         all_data_f = pd.DataFrame(all_predictor.items(), columns=['Vid', 'All'])
-        per_channel_data_f = pd.DataFrame(per_channel_predictor.items(), columns=['Vid', 'CSP'])
+        test_duration_data_f = pd.DataFrame(test_duration.items(), columns=['Vid', 'Duration'])
         data_f = true_data_f.merge(content_data_f, on='Vid').merge(topic_data_f, on='Vid')\
             .merge(content_topic_data_f, on='Vid').merge(channel_data_f, on='Vid')\
-            .merge(all_data_f, on='Vid').merge(per_channel_data_f, on='Vid')
+            .merge(all_data_f, on='Vid')\
+            .merge(test_duration_data_f, on='Vid')
 
         data_f = data_f.where(data_f < 1, 1)
         data_f = data_f.where(data_f > 0, 0)

@@ -18,6 +18,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     test_vids = []
+    test_duration = []
     true_re = []
     guess_re = []
 
@@ -31,9 +32,11 @@ if __name__ == '__main__':
                 # read header
                 fin.readline()
                 for line in fin:
-                    vid, dump = line.rstrip().split('\t', 1)
+                    vid, _, duration, dump = line.rstrip().split('\t', 3)
                     test_vids.append(vid)
-                    re30 = float(dump.split('\t')[10])
+                    duration = int(duration)
+                    test_duration.append(duration)
+                    re30 = float(dump.split('\t')[8])
                     true_re.append(re30)
                     random_guess = 0.5
                     guess_re.append(random_guess)
@@ -50,8 +53,10 @@ if __name__ == '__main__':
     to_write = True
     true_result_dict = {vid: true for vid, true in zip(test_vids, true_re)}
     predict_result_dict = {vid: pred for vid, pred in zip(test_vids, guess_re)}
+    test_duration_dict = {vid: duration for vid, duration in zip(test_vids, test_duration)}
     if to_write:
         print('>>> Prepare to write to pickle file...')
         print('>>> Number of videos in final test result dict: {0}'.format(len(test_vids)))
         write_dict_to_pickle(dict=true_result_dict, path='./output/true_predictor.p')
         write_dict_to_pickle(dict=predict_result_dict, path='./output/duration_predictor.p')
+        write_dict_to_pickle(dict=test_duration_dict, path='./output/test_duration.p')
