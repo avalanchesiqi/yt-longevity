@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict relative engagement from content + topic features, with ridge regression and sparse matrix."""
+"""Predict relative engagement from content + topic features, with ridge regression and sparse matrix.
+
+Time: ~2H28M
+"""
 
 from __future__ import division, print_function
 import os, sys

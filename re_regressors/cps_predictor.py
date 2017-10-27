@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict relative engagement from channel past success, with ridge regression."""
+"""Predict relative engagement from channel past success, with ridge regression.
+
+Time: ~38M
+"""
 
 from __future__ import division, print_function
 import os

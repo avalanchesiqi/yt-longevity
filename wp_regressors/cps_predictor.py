@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict watch percentage from channel past success, with ridge regression."""
+"""Predict watch percentage from channel past success, with ridge regression.
+
+Time: ~35M
+"""
 
 from __future__ import division, print_function
 import os

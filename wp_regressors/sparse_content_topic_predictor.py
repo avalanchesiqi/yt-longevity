@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict watch percentage from content + topic features, with ridge regression and sparse matrix."""
+"""Predict watch percentage from content + topic features, with ridge regression and sparse matrix.
+
+Time: ~2H
+"""
 
 from __future__ import division, print_function
 import os, sys

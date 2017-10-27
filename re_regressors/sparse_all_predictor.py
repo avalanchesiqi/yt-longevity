@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict relative engagement from all features, with ridge regression and sparse matrix."""
+"""Predict relative engagement from all features, with ridge regression and sparse matrix.
+
+Time: ~2H13M
+"""
 
 from __future__ import division, print_function
 import os, sys

@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Predict watch percentage from content, with ridge regression."""
+"""Predict watch percentage from content, with ridge regression.
+
+Time: ~2M
+"""
 
 from __future__ import division, print_function
 import os
