@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # mae and r2 list
     mae_list = []
     r2_list = []
-    name_list = ['Content', 'Topic', 'CTopic', 'CPS', 'All']
+    name_list = ['Content', 'Topic', 'CTopic', 'CPS', 'All', 'CSP']
     for name in name_list:
         mae_list.append(mean_absolute_error(wp_data_f['True'], wp_data_f[name]))
         r2_list.append(r2_score(wp_data_f['True'], wp_data_f[name]))

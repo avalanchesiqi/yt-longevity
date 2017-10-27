@@ -28,7 +28,7 @@ if __name__ == '__main__':
         content_topic_predictor_path = os.path.join(prefix_dir, 'sparse_content_topic_predictor.p')
         channel_predictor_path = os.path.join(prefix_dir, 'cps_predictor.p')
         all_predictor_path = os.path.join(prefix_dir, 'sparse_all_predictor.p')
-        # per_channel_predictor_path = os.path.join(prefix_dir, 'csp_predictor_5.p')
+        per_channel_predictor_path = os.path.join(prefix_dir, 'csp_predictor_5.p')
 
         # ground-truth values
         true_dict = pickle.load(open(true_dict_path, 'rb'))
@@ -64,11 +64,11 @@ if __name__ == '__main__':
                 else:
                     all_predictor[vid] = content_topic_predictor[vid]
 
-        # # per channel predictor
-        # per_channel_predictor = pickle.load(open(per_channel_predictor_path, 'rb'))
-        # for vid in vids:
-        #     if vid not in per_channel_predictor:
-        #         per_channel_predictor[vid] = all_predictor[vid]
+        # per channel predictor
+        per_channel_predictor = pickle.load(open(per_channel_predictor_path, 'rb'))
+        for vid in vids:
+            if vid not in per_channel_predictor:
+                per_channel_predictor[vid] = all_predictor[vid]
 
         # generate pandas dataframe
         true_data_f = pd.DataFrame(true_dict.items(), columns=['Vid', 'True'])
@@ -77,13 +77,12 @@ if __name__ == '__main__':
         content_topic_data_f = pd.DataFrame(content_topic_predictor.items(), columns=['Vid', 'CTopic'])
         channel_data_f = pd.DataFrame(channel_predictor.items(), columns=['Vid', 'CPS'])
         all_data_f = pd.DataFrame(all_predictor.items(), columns=['Vid', 'All'])
-        # per_channel_data_f = pd.DataFrame(per_channel_predictor.items(), columns=['Vid', 'CSP'])
+        per_channel_data_f = pd.DataFrame(per_channel_predictor.items(), columns=['Vid', 'CSP'])
         data_f = true_data_f.merge(content_data_f, on='Vid').merge(topic_data_f, on='Vid')\
             .merge(content_topic_data_f, on='Vid').merge(channel_data_f, on='Vid')\
-            .merge(all_data_f, on='Vid')
-            # .merge(all_data_f, on='Vid').merge(per_channel_data_f, on='Vid')
+            .merge(all_data_f, on='Vid').merge(per_channel_data_f, on='Vid')
 
-        for name in ['True', 'Content', 'Topic', 'CTopic', 'CPS', 'All']:
+        for name in ['True', 'Content', 'Topic', 'CTopic', 'CPS', 'All', 'CSP']:
             data_f[name] = data_f[name].where(data_f[name] < 1, 1)
             data_f[name] = data_f[name].where(data_f[name] > 0, 0)
         data_f.to_csv(dataframe_path, sep='\t')
