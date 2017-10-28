@@ -140,13 +140,14 @@ if __name__ == '__main__':
             'The two args are the value and tick position'
             return '%1.0f' % (10 ** x)
 
+        ax1.set_xticks([1, 2, 3, 4, 5])
         x_formatter = FuncFormatter(exponent)
         ax1.xaxis.set_major_formatter(x_formatter)
         ax1.set_xlim([xmin, xmax])
         ax1.set_ylim([ymin, ymax])
         ax1.set_xlabel('video duration (sec) '+r'$D$', fontsize=24)
         ax1.set_ylabel('watch percentage '+r'$\bar \mu_{30}$', fontsize=24)
-        ax1.tick_params(axis='both', which='major', labelsize=24)
+        ax1.tick_params(axis='both', which='major', labelsize=20)
 
         ax1.legend([plt.Rectangle((0, 0), 1, 1, fc=cornflower_blue), plt.Rectangle((0, 0), 1, 1, fc=tomato),
                     plt.Rectangle((0, 0), 1, 1, fc='k')],
