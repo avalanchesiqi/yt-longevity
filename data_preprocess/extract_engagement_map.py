@@ -161,7 +161,7 @@ if __name__ == '__main__':
         ax1.set_xlim([1, 5])
         ax1.set_ylim([0, 1])
         ax1.set_xlabel('video duration (sec) ' + r'$D$', fontsize=24)
-        ax1.set_ylabel('watch percentage ' + r'$\bar \mu_{30}$', fontsize=24)
+        ax1.set_ylabel('average watch percentage ' + r'$\bar \mu_{30}$', fontsize=24)
         ax1.tick_params(axis='both', which='major', labelsize=24)
 
         # KDE for top marginal
