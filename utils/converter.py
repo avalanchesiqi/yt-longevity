@@ -15,10 +15,14 @@ def to_watch_percentage(lookup_table, duration, re_score, lookup_keys=None):
     if lookup_keys is None:
         lookup_keys = lookup_table['duration']
     lookup_keys = np.array(lookup_keys)
-    if isinstance(duration, list):
+    if isinstance(re_score, list):
         wp_list = []
-        for d, s in zip(duration, re_score):
-            wp_list.append(to_watch_percentage(lookup_table, d, s, lookup_keys=lookup_keys))
+        if isinstance(duration, list):
+            for d, s in zip(duration, re_score):
+                wp_list.append(to_watch_percentage(lookup_table, d, s, lookup_keys=lookup_keys))
+        elif isinstance(duration, int):
+            for s in re_score:
+                wp_list.append(to_watch_percentage(lookup_table, duration, s, lookup_keys=lookup_keys))
         return wp_list
     else:
         bin_idx = np.sum(lookup_keys < duration)
@@ -43,10 +47,14 @@ def to_relative_engagement(lookup_table, duration, wp_score, lookup_keys=None):
     if lookup_keys is None:
         lookup_keys = lookup_table['duration']
     lookup_keys = np.array(lookup_keys)
-    if isinstance(duration, list):
+    if isinstance(wp_score, list):
         re_list = []
-        for d, s in zip(duration, wp_score):
-            re_list.append(to_relative_engagement(lookup_table, d, s, lookup_keys=lookup_keys))
+        if isinstance(duration, list):
+            for d, s in zip(duration, wp_score):
+                re_list.append(to_relative_engagement(lookup_table, d, s, lookup_keys=lookup_keys))
+        elif isinstance(duration, int):
+            for s in wp_score:
+                re_list.append(to_relative_engagement(lookup_table, duration, s, lookup_keys=lookup_keys))
         return re_list
     else:
         bin_idx = np.sum(lookup_keys < duration)
