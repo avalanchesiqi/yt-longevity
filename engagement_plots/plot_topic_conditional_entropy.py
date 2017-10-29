@@ -44,8 +44,8 @@ def _load_data(filepath):
     with open(filepath, 'r') as fin:
         fin.readline()
         for line in fin:
-            _, _, _, _, _, _, _, topics, _, _, _, _, re30, _ = line.rstrip().split('\t', 13)
-            if not topics == '' and topics != 'NA':
+            _, _, _, _, _, _, _, topics, _, _, _, re30, _ = line.rstrip().split('\t', 12)
+            if topics != '' and topics != 'NA':
                 topics = topics.split(',')
                 re30 = float(re30)
                 for topic in topics:
@@ -75,16 +75,15 @@ if __name__ == '__main__':
             mid_type_dict[mid] = type
 
     # == == == == == == == == Part 3: Load dataset == == == == == == == == #
-    data_loc = '../../production_data/tweeted_dataset_norm/'
-    # data_loc = '../../production_data/sample_tweeted_dataset/'
+    data_loc = '../../production_data/new_tweeted_dataset_norm/'
     type_eta_dict = defaultdict(list)
     type_eta_counter_dict = defaultdict(int)
     print('>>> Start to load all tweeted dataset...')
     for subdir, _, files in os.walk(data_loc):
         for f in files:
             _load_data(os.path.join(subdir, f))
-    print('>>> Finish loading all data!\n')
-    print('number of types: {0}'.format(len(type_eta_dict)))
+    print('>>> Finish loading all data!')
+    print('>> Number of topic types: {0}\n'.format(len(type_eta_dict)))
 
     # == == == == == Part 4: Calculate conditional entropy for topic type and relative engagement == == == == == #
     sorted_type_eta_counter = sorted(type_eta_counter_dict.items(), key=operator.itemgetter(1), reverse=True)[:500]
@@ -99,10 +98,10 @@ if __name__ == '__main__':
     # get running time
     print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
-    # == == == == == == == == Part 5: Generate scatter plots == == == == == == == == #
+    # == == == == == == == == Part 5: Generate bar plots == == == == == == == == #
     to_plot = True
     if to_plot:
-        plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(8, 6))
         cornflower_blue = (0.3921, 0.5843, 0.9294)
         tomato = (1.0, 0.3882, 0.2784)
 
@@ -128,47 +127,45 @@ if __name__ == '__main__':
         x_axis = [type_conditional_entropy_dict[x][0] for x in keys]
         y_axis = [type_conditional_entropy_dict[x][1] for x in keys]
         colors = [type_conditional_entropy_dict[x][2] for x in keys]
-        plt.scatter(x_axis, y_axis, c=colors, edgecolors='grey', cmap=rvb)
+        plt.scatter(x_axis, y_axis, c=colors, edgecolors='none', cmap=rvb)
 
-        # plot 10 most determined category
+        # plot 1st and 10th most determined category
         top10_index = np.argsort(y_axis)[:10]
-        for idx in top10_index:
-            plt.text(x_axis[idx], y_axis[idx], keys[idx], ha='left', va='center')
+        for idx in [top10_index[0], top10_index[-1]]:
+            if keys[idx] == 'obamabase':
+                keys[idx] = 'obama'
+            plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='top')
 
         plt.xscale('log')
-        # plt.ylim(ymin=np.floor(min(y_axis)))
         plt.ylim(ymax=-np.sum([p * safe_log2(p) for p in [bin_gap]*bin_num]))
         plt.tick_params(axis='both', which='major', labelsize=14)
-        plt.xlabel('Cluster size', fontsize=16)
-        plt.ylabel('Conditional entropy', fontsize=16)
+        plt.xlabel('topic cluster size', fontsize=16)
+        plt.ylabel('conditional entropy', fontsize=16)
 
         cb = plt.colorbar()
         cb.set_label(label='relative engagement $\eta$', size=16)
         cb.ax.tick_params(labelsize=14)
-        plt.tight_layout(rect=[0.02, 0, 0.98, 1])
-        plt.show()
 
-    to_plot_verbose = True
-    if to_plot_verbose:
-        ax1 = plt.figure(figsize=(8, 6)).add_subplot(111)
+        # inset subfigure
+        ax2 = fig.add_axes([0.38, 0.2, 0.4, 0.4])
         width = 1 / 2
         ind = np.arange(20)
-        tomato = '#ff6347'
-        cornflower_blue = '#6495ed'
+        # tomato = '#ff6347'
+        # cornflower_blue = '#6495ed'
         high_engage_topic = 'obamabase'
         low_engage_topic = 'handcraft'
 
         count_freq_high = get_conditional_entropy(type_eta_dict[high_engage_topic])[1]
         prob_high = [x / np.sum(count_freq_high) for x in count_freq_high]
-        ax1.bar(ind + width * 1 / 2, prob_high, width, edgecolor='k', color=tomato, label='{0}'.format(high_engage_topic))
+        ax2.bar(ind + width * 1 / 2, prob_high, width, color=tomato, label='{0}'.format('obama'))
 
         count_freq_low = get_conditional_entropy(type_eta_dict[low_engage_topic])[1]
         prob_low = [x / np.sum(count_freq_low) for x in count_freq_low]
-        ax1.bar(ind + width * 3 / 2, prob_low, width, edgecolor='k', color=cornflower_blue, label='{0}'.format(low_engage_topic))
+        ax2.bar(ind + width * 3 / 2, prob_low, width, color=cornflower_blue, label='{0}'.format(low_engage_topic))
 
-        ax1.set_xlim([0, 20])
-        ax1.set_ylim([0, 0.25])
-        ax1.set_xticks([0, 4, 8, 12, 16, 20])
+        ax2.set_xlim([0, 20])
+        ax2.set_ylim([0, 0.25])
+        ax2.set_xticks([0, 4, 8, 12, 16, 20])
 
         def rescale(x, pos):
             'The two args are the value and tick position'
@@ -176,14 +173,13 @@ if __name__ == '__main__':
 
         formatter = FuncFormatter(rescale)
 
-        ax1.xaxis.set_major_formatter(formatter)
-        ax1.set_xlabel('Relative engagement $\eta$', fontsize=16)
-        ax1.set_ylabel('Conditional probability $P(Y|X=1)$', fontsize=16)
-        ax1.tick_params(axis='both', which='major', labelsize=16)
-        ax1.spines['right'].set_visible(False)
-        ax1.spines['top'].set_visible(False)
-        ax1.set_title('$H(Y|X=1)$; Y=$\eta$, X=topic occurs', fontsize=18)
-        ax1.legend(loc='upper left', fontsize=14, frameon=False)
+        ax2.xaxis.set_major_formatter(formatter)
+        ax2.set_xlabel('relative engagement $\eta$', fontsize=8)
+        ax2.set_ylabel('conditional probability $P(Y|X=1)$', fontsize=8)
+        ax2.tick_params(axis='both', which='major', labelsize=8)
+        ax2.spines['right'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+        ax2.legend(loc='upper left', fontsize=16, frameon=False)
 
         plt.tight_layout()
         plt.show()
