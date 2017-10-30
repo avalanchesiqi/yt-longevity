@@ -136,13 +136,15 @@ if __name__ == '__main__':
                 keys[idx] = 'obama'
             plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='bottom')
 
-        # plot uninformative topic, government
+        # plot uninformative topic, puffinnpolitics
         plt.text(type_conditional_entropy_dict['puffinnpolitics'][0], type_conditional_entropy_dict['puffinnpolitics'][1], 'puffinnpolitics', size=16, ha='center', va='top')
+        plt.text(type_conditional_entropy_dict['book'][0], type_conditional_entropy_dict['book'][1], 'book', size=16, ha='center', va='top')
+        plt.text(type_conditional_entropy_dict['film'][0], type_conditional_entropy_dict['film'][1], 'film', size=16, ha='center', va='top')
 
         plt.xscale('log')
         plt.ylim(ymax=-np.sum([p * safe_log2(p) for p in [bin_gap]*bin_num]))
         plt.tick_params(axis='both', which='major', labelsize=14)
-        plt.xlabel('topic cluster size', fontsize=16)
+        plt.xlabel('topic size', fontsize=16)
         plt.ylabel('conditional entropy', fontsize=16)
 
         cb = plt.colorbar()
