@@ -134,7 +134,10 @@ if __name__ == '__main__':
         for idx in [top10_index[0], top10_index[-1]]:
             if keys[idx] == 'obamabase':
                 keys[idx] = 'obama'
-            plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='top')
+            plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='bottom')
+
+        # plot uninformative topic, government
+        plt.text(type_conditional_entropy_dict['government'][0], type_conditional_entropy_dict['government'][1], 'government', size=16, ha='center', va='top')
 
         plt.xscale('log')
         plt.ylim(ymax=-np.sum([p * safe_log2(p) for p in [bin_gap]*bin_num]))
@@ -148,20 +151,20 @@ if __name__ == '__main__':
 
         # inset subfigure
         ax2 = fig.add_axes([0.38, 0.2, 0.4, 0.4])
-        width = 1 / 2
+        width = 1 / 3
         ind = np.arange(20)
-        # tomato = '#ff6347'
-        # cornflower_blue = '#6495ed'
-        high_engage_topic = 'obamabase'
-        low_engage_topic = 'handcraft'
 
-        count_freq_high = get_conditional_entropy(type_eta_dict[high_engage_topic])[1]
-        prob_high = [x / np.sum(count_freq_high) for x in count_freq_high]
-        ax2.bar(ind + width * 1 / 2, prob_high, width, color=tomato, label='{0}'.format('obama'))
+        count_freq1 = get_conditional_entropy(type_eta_dict['handcraft'])[1]
+        prob1 = [x / np.sum(count_freq1) for x in count_freq1]
+        ax2.bar(ind + width * 1 / 2, prob1, width, color=cb.to_rgba(type_conditional_entropy_dict['handcraft'][2]), label='handcraft')
 
-        count_freq_low = get_conditional_entropy(type_eta_dict[low_engage_topic])[1]
-        prob_low = [x / np.sum(count_freq_low) for x in count_freq_low]
-        ax2.bar(ind + width * 3 / 2, prob_low, width, color=cornflower_blue, label='{0}'.format(low_engage_topic))
+        count_freq2 = get_conditional_entropy(type_eta_dict['government'])[1]
+        prob2 = [x / np.sum(count_freq2) for x in count_freq2]
+        ax2.bar(ind + width * 3 / 2, prob2, width, color=cb.to_rgba(type_conditional_entropy_dict['government'][2]), label='government')
+
+        count_freq3 = get_conditional_entropy(type_eta_dict['obamabase'])[1]
+        prob3 = [x / np.sum(count_freq3) for x in count_freq3]
+        ax2.bar(ind + width * 5 / 2, prob3, width, color=cb.to_rgba(type_conditional_entropy_dict['obamabase'][2]), label='obama')
 
         ax2.set_xlim([0, 20])
         ax2.set_ylim([0, 0.25])
@@ -179,7 +182,7 @@ if __name__ == '__main__':
         ax2.tick_params(axis='both', which='major', labelsize=8)
         ax2.spines['right'].set_visible(False)
         ax2.spines['top'].set_visible(False)
-        ax2.legend(loc='upper left', fontsize=16, frameon=False)
+        ax2.legend(loc='upper right', fontsize=14, frameon=False)
 
         plt.tight_layout()
         plt.show()
