@@ -137,7 +137,7 @@ if __name__ == '__main__':
             plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='bottom')
 
         # plot uninformative topic, government
-        plt.text(type_conditional_entropy_dict['government'][0], type_conditional_entropy_dict['government'][1], 'government', size=16, ha='center', va='top')
+        plt.text(type_conditional_entropy_dict['puffinnpolitics'][0], type_conditional_entropy_dict['puffinnpolitics'][1], 'puffinnpolitics', size=16, ha='center', va='top')
 
         plt.xscale('log')
         plt.ylim(ymax=-np.sum([p * safe_log2(p) for p in [bin_gap]*bin_num]))
@@ -151,20 +151,16 @@ if __name__ == '__main__':
 
         # inset subfigure
         ax2 = fig.add_axes([0.38, 0.2, 0.4, 0.4])
-        width = 1 / 3
+        width = 1 / 2
         ind = np.arange(20)
 
         count_freq1 = get_conditional_entropy(type_eta_dict['handcraft'])[1]
         prob1 = [x / np.sum(count_freq1) for x in count_freq1]
         ax2.bar(ind + width * 1 / 2, prob1, width, color=cb.to_rgba(type_conditional_entropy_dict['handcraft'][2]), label='handcraft')
 
-        count_freq2 = get_conditional_entropy(type_eta_dict['government'])[1]
+        count_freq2 = get_conditional_entropy(type_eta_dict['obamabase'])[1]
         prob2 = [x / np.sum(count_freq2) for x in count_freq2]
-        ax2.bar(ind + width * 3 / 2, prob2, width, color=cb.to_rgba(type_conditional_entropy_dict['government'][2]), label='government')
-
-        count_freq3 = get_conditional_entropy(type_eta_dict['obamabase'])[1]
-        prob3 = [x / np.sum(count_freq3) for x in count_freq3]
-        ax2.bar(ind + width * 5 / 2, prob3, width, color=cb.to_rgba(type_conditional_entropy_dict['obamabase'][2]), label='obama')
+        ax2.bar(ind + width * 5 / 2, prob2, width, color=cb.to_rgba(type_conditional_entropy_dict['obamabase'][2]), label='obama')
 
         ax2.set_xlim([0, 20])
         ax2.set_ylim([0, 0.25])
