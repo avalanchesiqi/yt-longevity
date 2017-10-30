@@ -18,11 +18,12 @@ import autograd.numpy as np
 from autograd import grad
 import matplotlib.pyplot as plt
 
-from utils.helper import read_as_float_array, read_as_int_array
+from utils.helper import read_as_float_array, read_as_int_array, strify
 from utils.converter import to_relative_engagement
 
 
-def predict(params, x):
+# power-law method
+def predict1(params, x):
     c, lam = params
     x_predict = None
     for i in x:
@@ -34,8 +35,42 @@ def predict(params, x):
     return x_predict
 
 
-def cost_function(params, x, y):
-    re_predict = predict(params, x)
+def cost_function1(params, x, y):
+    re_predict = predict1(params, x)
+    cost_vector = re_predict - y
+    cost = np.sum(abs(cost_vector))
+    return cost/len(cost_vector)
+
+
+# linear method
+def predict2(params, x):
+    w, b = params
+    x_predict = None
+    for i in x:
+        if i == 0:
+            x_predict = np.array([b])
+        else:
+            curr_predict = np.array([w*i + b])
+            x_predict = np.concatenate([x_predict, curr_predict], axis=0)
+    return x_predict
+
+
+def cost_function2(params, x, y):
+    re_predict = predict2(params, x)
+    cost_vector = re_predict - y
+    cost = np.sum(abs(cost_vector))
+    return cost/len(cost_vector)
+
+
+# constant method
+def predict3(params, x):
+    const = params
+    x_predict = np.array([const] * len(x)).reshape(len(x), )
+    return x_predict
+
+
+def cost_function3(params, x, y):
+    re_predict = predict3(params, x)
     cost_vector = re_predict - y
     cost = np.sum(abs(cost_vector))
     return cost/len(cost_vector)
@@ -45,7 +80,11 @@ if __name__ == '__main__':
     # == == == == == == == == Part 1: Set up experiment parameters == == == == == == == == #
     # setting parameters
     age = 120
-    autograd_func = grad(cost_function)
+    window_size = 14
+    min_window_view = 10
+    autograd_func1 = grad(cost_function1)
+    autograd_func2 = grad(cost_function2)
+    autograd_func3 = grad(cost_function3)
 
     engagement_map_loc = '../data_preprocess/engagement_map.p'
     if not os.path.exists(engagement_map_loc):
@@ -57,7 +96,7 @@ if __name__ == '__main__':
     lookup_durations = np.array(engagement_map['duration'])
 
     # == == == == == == == == Part 2: Load dataset == == == == == == == == #
-    data_loc = '../../production_data/new_tweeted_dataset_norm/test_data'
+    data_loc = '../../production_data/new_tweeted_dataset_norm/'
     fig = plt.figure(figsize=(9, 9))
 
     for subdir, _, files in os.walk(data_loc):
@@ -67,7 +106,7 @@ if __name__ == '__main__':
                 for line in fin:
                     dump, days, daily_view, daily_watch = line.rstrip().rsplit('\t', 3)
                     vid, _, duration, _ = dump.split('\t', 3)
-                    if vid == 'HKK99xm--Ro':
+                    if vid == 'RzvS7OmShAE':
                         fig_idx = 0
                     elif vid == 'rKdNjlNYMKk':
                         fig_idx = 1
@@ -78,24 +117,48 @@ if __name__ == '__main__':
                     daily_view = read_as_int_array(daily_view, delimiter=',', truncated=age)
                     daily_watch = read_as_float_array(daily_watch, delimiter=',', truncated=age)
 
-                    cumulative_wp = [0]*age
-                    for i in range(age):
-                        cumulative_wp[i] = np.sum(daily_watch[days <= i]) * 60 / np.sum(daily_view[days <= i]) / duration
+                    # a moving windows solution, using past 7 days to calculate wp
+                    cumulative_wp = []
+                    for i in range(days[-1]+1):
+                        if i < window_size:
+                            past_window_views = np.sum(daily_view[days <= i])
+                            past_window_watches = np.sum(daily_watch[days <= i])
+                        else:
+                            past_window_views = np.sum(daily_view[(i-window_size < days) & (days <= i)])
+                            past_window_watches = np.sum(daily_watch[(i-window_size < days) & (days <= i)])
+                        if past_window_views < min_window_view:
+                            break
+                        cumulative_wp.append(past_window_watches * 60 / past_window_views / duration)
 
                     cumulative_engagement = to_relative_engagement(engagement_map, duration, cumulative_wp, lookup_keys=lookup_durations)
+                    truncated_age = len(cumulative_engagement)
 
-                    optimizer = optimize.minimize(cost_function, np.array([0.5, 1]), jac=autograd_func,
-                                                  method='L-BFGS-B', args=(np.arange(120), cumulative_engagement),
-                                                  bounds=[(None, None), (None, None)], options={'disp': None})
+                    optimizer1 = optimize.minimize(cost_function1, np.array([0.5, 1]), jac=autograd_func1,
+                                                   method='L-BFGS-B',
+                                                   args=(np.arange(truncated_age), cumulative_engagement),
+                                                   bounds=[(None, None), (None, None)], options={'disp': None})
+
+                    optimizer2 = optimize.minimize(cost_function2, np.array([0.5, 1]), jac=autograd_func2,
+                                                   method='L-BFGS-B',
+                                                   args=(np.arange(truncated_age), cumulative_engagement),
+                                                   bounds=[(None, None), (None, None)], options={'disp': None})
+
+                    optimizer3 = optimize.minimize(cost_function3, np.array([0.5]), jac=autograd_func3,
+                                                   method='L-BFGS-B',
+                                                   args=(np.arange(truncated_age), cumulative_engagement),
+                                                   bounds=[(0, 1)], options={'disp': None})
+
+                    print(vid, truncated_age, optimizer1.fun, optimizer2.fun, optimizer3.fun,
+                          strify(optimizer1.x), strify(optimizer2.x), strify(optimizer3.x))
 
                     # == == == == == == == == Part 3: Plot fitting result == == == == == == == == #
                     to_plot = True
                     if to_plot:
                         ax1 = fig.add_subplot(2, 1, 1+fig_idx)
                         ax2 = ax1.twinx()
-                        ax1.plot(days, daily_view, 'b-')
-                        ax2.plot(days, cumulative_engagement, 'k--')
-                        ax2.plot(days, predict(optimizer.x, days), 'r-')
+                        ax1.plot(days[:truncated_age], daily_view[:truncated_age], 'b-')
+                        ax2.plot(np.arange(truncated_age), cumulative_engagement, 'k--')
+                        ax2.plot(np.arange(truncated_age), predict1(optimizer1.x, np.arange(truncated_age)), 'r-')
 
                         if fig_idx == 0:
                             ax1.set_ylabel(r'daily view $x_v$', color='b', fontsize=24)
@@ -114,7 +177,7 @@ if __name__ == '__main__':
 
                         annotated_str = r'ID: {0}'.format(vid)
                         annotated_str += '\n'
-                        annotated_str += r'$C$: {0:.4f}, $\lambda$: {1:.4f}'.format(*optimizer.x)
+                        annotated_str += r'$C$: {0:.4f}, $\lambda$: {1:.4f}'.format(*optimizer1.x)
                         ax2.text(120, 0.77, annotated_str, horizontalalignment='right', fontsize=24)
 
                         ax2.set_xticks([0, 40, 80, 120])
@@ -128,9 +191,9 @@ if __name__ == '__main__':
 
     plt.legend([plt.Line2D((0, 1), (0, 0), color='k', linestyle='--'),
                 plt.Line2D((0, 1), (0, 0), color='b'), plt.Line2D((0, 1), (0, 0), color='r')],
-               ['Observed relative engagement', 'Observed watch time', 'Fitted relative engagement'],
+               ['Observed relative engagement', 'Observed view series', 'Fitted relative engagement'],
                fontsize=18, frameon=False, handlelength=1,
-               loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2)
+               loc='lower center', bbox_to_anchor=(0.5, -1.75), ncol=2)
 
     plt.tight_layout(rect=[0, 0.08, 1, 1], h_pad=0)
     plt.show()

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 def plot_barchart(mae_list, r2_list):
     # generate barchart plot
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(8, 3))
     width = 0.4
     n = len(mae_list)
     ind = np.arange(n)
@@ -25,7 +25,7 @@ def plot_barchart(mae_list, r2_list):
     ax1.bar(ind, mae_list, width, edgecolor=['k']*n, color=cornflower_blue, lw=1.5)
     ax2.bar(ind, r2_list, width, edgecolor=['k']*n, color=tomato, lw=1.5)
 
-    ax1.set_ylim([0, 0.27])
+    ax1.set_ylim([0, 0.32])
     ax2.set_ylim([0, 1])
     ax1.set_yticks([0, 0.1, 0.2])
     ax2.set_yticks([0.2, 0.6, 1.0])
@@ -34,7 +34,7 @@ def plot_barchart(mae_list, r2_list):
 
     for label in ax1.get_xticklabels()[:]:
         label.set_visible(False)
-    ax2.set_xticklabels(('', 'C', 'T', 'C+T', 'CPS', 'ALL', 'CSP'))
+    ax2.set_xticklabels(('', 'D', 'C', 'T', 'C+T', 'R', 'All', 'CSP'))
 
     for tick, label in zip(ind, ax1.get_xticklabels()):
         ax1.text(ind[tick], mae_list[tick] + 0.01, [str(np.round(x, 4)) for x in mae_list][tick],
@@ -48,7 +48,14 @@ def plot_barchart(mae_list, r2_list):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
 
-    plt.tight_layout(rect=[0.01, 0, 1, 1])
+    ax1.set_title(r'(a) Predict relative engagement $\bar \eta_{30}$', fontsize=18)
+
+    # ax1.legend([plt.Rectangle((0, 0), 1, 1, fc=cornflower_blue, ec='k'),
+    #             plt.Rectangle((0, 0), 1, 1, fc=tomato, ec='k')],
+    #            ['MAE', r'$R^2$'], fontsize=14, frameon=False, loc='lower center', bbox_to_anchor=(0.5, -2.3),
+    #            fancybox=True, shadow=True, ncol=2)
+
+    plt.tight_layout(rect=[0.01, 0, 1, 0.99])
     plt.show()
 
 
@@ -69,10 +76,12 @@ if __name__ == '__main__':
     # mae and r2 list
     mae_list = []
     r2_list = []
-    for name in ['Content', 'Topic', 'CTopic', 'CPS', 'All', 'CSP']:
+    for name in ['Duration', 'Content', 'Topic', 'CTopic', 'CPS', 'All', 'CSP']:
         mae_list.append(mean_absolute_error(data_f['True'], data_f[name]))
         r2_list.append(r2_score(data_f['True'], data_f[name]))
     print('\n>>> MAE scores: ', mae_list)
     print('>>> R2 scores: ', r2_list)
+
+    r2_list[0] = 0.000
 
     plot_barchart(mae_list, r2_list)
