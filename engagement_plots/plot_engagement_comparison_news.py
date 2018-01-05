@@ -109,7 +109,7 @@ if __name__ == '__main__':
     to_plot = True
     if to_plot:
         gs = gridspec.GridSpec(2, 2, width_ratios=[8, 1], height_ratios=[1, 8])
-        fig = plt.figure(figsize=(9, 9))
+        fig = plt.figure(figsize=(9, 9.5))
         ax1 = plt.subplot(gs[1, 0])
 
         for t in np.arange(5, 50, 5):
@@ -176,5 +176,6 @@ if __name__ == '__main__':
         axt.plot(x, tweeted_kde_x(x), color=cornflower_blue)
         axt.plot(x, quality_kde_x(x), color=tomato)
 
-        plt.subplots_adjust(left=0.13, bottom=0.1, right=0.99, top=0.99, wspace=0.03, hspace=0.03)
+        axt.set_title('(b)', fontsize=32)
+        plt.subplots_adjust(left=0.13, bottom=0.08, right=0.99, top=0.96, wspace=0.03, hspace=0.03)
         plt.show()

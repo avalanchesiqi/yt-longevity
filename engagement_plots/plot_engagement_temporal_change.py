@@ -107,5 +107,6 @@ if __name__ == '__main__':
         # get running time
         print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
 
+        plt.title('(b)', fontsize=24)
         plt.tight_layout()
         plt.show()

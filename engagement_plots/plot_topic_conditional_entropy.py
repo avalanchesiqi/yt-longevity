@@ -52,7 +52,7 @@ def _load_data(filepath):
                     if topic in mid_type_dict:
                         freebase_types = mid_type_dict[topic].split(',')
                         for ft in freebase_types:
-                            if ft != 'common' and ft != 'type_ontology':
+                            if ft != 'common' and ft != 'type_ontology' and ft != 'type':
                                 type_eta_dict[ft].append(re30)
                                 type_eta_counter_dict[ft] += 1
     print('>>> Finish loading file {0}!'.format(filepath))
@@ -137,7 +137,7 @@ if __name__ == '__main__':
             plt.text(x_axis[idx], y_axis[idx], keys[idx], size=16, ha='center', va='bottom')
 
         # plot uninformative topic, puffinnpolitics
-        plt.text(type_conditional_entropy_dict['puffinnpolitics'][0], type_conditional_entropy_dict['puffinnpolitics'][1], 'puffinnpolitics', size=16, ha='center', va='top')
+        plt.text(type_conditional_entropy_dict['baseball'][0], type_conditional_entropy_dict['baseball'][1], 'baseball', size=16, ha='center', va='top')
         plt.text(type_conditional_entropy_dict['book'][0], type_conditional_entropy_dict['book'][1], 'book', size=16, ha='center', va='top')
         plt.text(type_conditional_entropy_dict['film'][0], type_conditional_entropy_dict['film'][1], 'film', size=16, ha='center', va='top')
 
@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
         count_freq2 = get_conditional_entropy(type_eta_dict['obamabase'])[1]
         prob2 = [x / np.sum(count_freq2) for x in count_freq2]
-        ax2.bar(ind + width * 5 / 2, prob2, width, color=cb.to_rgba(type_conditional_entropy_dict['obamabase'][2]), label='obama')
+        ax2.bar(ind + width * 3 / 2, prob2, width, color=cb.to_rgba(type_conditional_entropy_dict['obamabase'][2]), label='obama')
 
         ax2.set_xlim([0, 20])
         ax2.set_ylim([0, 0.25])
@@ -176,7 +176,7 @@ if __name__ == '__main__':
 
         ax2.xaxis.set_major_formatter(formatter)
         ax2.set_xlabel('relative engagement $\eta$', fontsize=8)
-        ax2.set_ylabel('conditional probability $P(Y|X=1)$', fontsize=8)
+        ax2.set_ylabel('engagement distribution', fontsize=8)
         ax2.tick_params(axis='both', which='major', labelsize=8)
         ax2.spines['right'].set_visible(False)
         ax2.spines['top'].set_visible(False)

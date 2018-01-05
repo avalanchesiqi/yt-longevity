@@ -195,5 +195,6 @@ if __name__ == '__main__':
                fontsize=18, frameon=False, handlelength=1,
                loc='lower center', bbox_to_anchor=(0.5, -1.75), ncol=2)
 
+    plt.title('(a)', fontsize=24)
     plt.tight_layout(rect=[0, 0.08, 1, 1], h_pad=0)
     plt.show()

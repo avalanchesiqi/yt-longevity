@@ -55,5 +55,6 @@ if __name__ == '__main__':
     ax.legend(loc='lower left', scatterpoints=2, frameon=True, fontsize=24)
     ax.tick_params(axis='both', which='major', labelsize=20)
 
+    ax.set_title('(c)', fontsize=32)
     plt.tight_layout()
     plt.show()

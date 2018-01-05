@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Plot absolute percentile error for hip and mlr result, with option to show Honglin's result"""
+"""Plot absolute percentile error for hip and mlr result, with option to show Honglin's result.
+
+Time: ~6M
+"""
 
 from __future__ import print_function, division
 import sys, os, time, datetime
@@ -147,6 +150,7 @@ if __name__ == '__main__':
     ax1.spines['top'].set_visible(False)
     ax1.yaxis.set_ticks_position('left')
     ax1.xaxis.set_ticks_position('bottom')
+    ax1.set_title('(a) Forecast daily view and watch time', fontsize=18)
 
     # get running time
     print('\n>>> Total running time: {0}'.format(str(datetime.timedelta(seconds=time.time() - start_time)))[:-3])
