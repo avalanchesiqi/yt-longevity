@@ -138,9 +138,8 @@ if __name__ == '__main__':
     exp_formatter = FuncFormatter(exponent)
     to_plot_engagement_map = True
     if to_plot_engagement_map:
-        gs = gridspec.GridSpec(2, 2, top=1, right=1, bottom=0.11, left=0.13, wspace=0.025, hspace=0.025,
-                               width_ratios=[8, 1], height_ratios=[1, 8])
-        fig = plt.figure(figsize=(9, 9))
+        gs = gridspec.GridSpec(2, 2, width_ratios=[8, 1], height_ratios=[1, 8])
+        fig = plt.figure(figsize=(9, 9.5))
         ax1 = plt.subplot(gs[1, 0])
 
         x_axis = [np.log10(x) for x in duration_splits]
@@ -157,12 +156,13 @@ if __name__ == '__main__':
                      zorder=15)
         ax1.plot(x_axis, [np.percentile(x, 50) for x in wp_bin_matrix[:-1]], color=cornflower_blue, alpha=1, zorder=15)
 
+        ax1.set_xticks([1, 2, 3, 4, 5])
         ax1.xaxis.set_major_formatter(exp_formatter)
         ax1.set_xlim([1, 5])
         ax1.set_ylim([0, 1])
         ax1.set_xlabel('video duration (sec) ' + r'$D$', fontsize=24)
         ax1.set_ylabel('average watch percentage ' + r'$\bar \mu_{30}$', fontsize=24)
-        ax1.tick_params(axis='both', which='major', labelsize=24)
+        ax1.tick_params(axis='both', which='major', labelsize=20)
 
         # KDE for top marginal
         df_x = [np.log10(x[0]) for x in duration_engagement_tuple]
@@ -204,15 +204,16 @@ if __name__ == '__main__':
             plot_contour((np.log10(287) + np.log10(306)) / 2, color='k', fsize=18, title=True)
             plot_contour(np.log10(13779), color='k', fsize=14)
 
+        axt.set_title('(a)', fontsize=32)
+        plt.subplots_adjust(left=0.13, bottom=0.08, right=0.99, top=0.96, wspace=0.03, hspace=0.03)
         plt.show()
 
     # == == == == == == == == Part 6: Plot duration watch time map == == == == == == == == #
     sea_green = '#2e8b57'
     to_plot_watch_time = True
     if to_plot_watch_time:
-        gs = gridspec.GridSpec(2, 2, top=1, right=1, bottom=0.11, left=0.13, wspace=0.025, hspace=0.025,
-                               width_ratios=[8, 1], height_ratios=[1, 8])
-        fig = plt.figure(figsize=(9, 9))
+        gs = gridspec.GridSpec(2, 2, width_ratios=[8, 1], height_ratios=[1, 8])
+        fig = plt.figure(figsize=(9, 9.5))
         ax1 = plt.subplot(gs[1, 0])
 
         x_axis = [np.log10(x) for x in duration_splits]
@@ -228,13 +229,14 @@ if __name__ == '__main__':
             ax1.plot(x_axis, [np.percentile(x, t) for x in wt_bin_matrix[:-1]], color=sea_green, alpha=0.8, zorder=15)
         ax1.plot(x_axis, [np.percentile(x, 50) for x in wt_bin_matrix[:-1]], color=sea_green, alpha=1, zorder=15)
 
+        ax1.set_xticks([1, 2, 3, 4, 5])
         ax1.xaxis.set_major_formatter(exp_formatter)
         ax1.yaxis.set_major_formatter(exp_formatter)
         ax1.set_xlim([1, 5])
         ax1.set_ylim([1, 4])
         ax1.set_xlabel('video duration (sec) ' + r'$D$', fontsize=24)
         ax1.set_ylabel('average watch time (sec)', fontsize=24)
-        ax1.tick_params(axis='both', which='major', labelsize=24)
+        ax1.tick_params(axis='both', which='major', labelsize=20)
         for label in ax1.get_yticklabels()[1::2]:
             label.set_visible(False)
         plt.setp(ax1.yaxis.get_majorticklabels(), rotation=90)
@@ -276,6 +278,8 @@ if __name__ == '__main__':
                 ax1.text(np.log10(point[0]), np.log10(point[1]) + 0.02, point[2],
                          horizontalalignment='center', size=20, color='k', zorder=25)
 
+        axt.set_title('(b)', fontsize=32)
+        plt.subplots_adjust(left=0.13, bottom=0.08, right=0.99, top=0.96, wspace=0.03, hspace=0.03)
         plt.show()
 
     # get running time
